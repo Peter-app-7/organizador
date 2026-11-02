@@ -35,21 +35,20 @@ function estadoDoDia(texto) {
 
 function mudarEstadoDia(texto) {
   const estado = estadoDoDia(texto);
+
+  // Os limites são do exercício total: um dia vazio não pode ser marcado se o máximo já foi atingido.
+  if (estado === 'nada') {
+    const total = contarNaSemana(dados.ginasio) + contarNaSemana(dados.cycling);
+    if (total >= dados.ajustes.ginasioMax) {
+      avisar(`Já tens ${total} dias de exercício: o máximo é ${dados.ajustes.ginasioMax}.`);
+      return;
+    }
+  }
+
   dados.ginasio = dados.ginasio.filter((dia) => dia !== texto);
   dados.cycling = dados.cycling.filter((dia) => dia !== texto);
-
-  if (estado === 'nada') {
-    const marcados = contarNaSemana(dados.ginasio);
-    if (marcados >= dados.ajustes.ginasioMax) {
-      // Com o máximo atingido, o estado Ginásio é saltado: o dia passa logo a Cycling.
-      avisar(`Já tens ${marcados} dias de ginásio, o máximo é ${dados.ajustes.ginasioMax}. Este dia ficou em Cycling.`);
-      dados.cycling.push(texto);
-    } else {
-      dados.ginasio.push(texto);
-    }
-  } else if (estado === 'ginasio') {
-    dados.cycling.push(texto);
-  }
+  if (estado === 'nada') dados.ginasio.push(texto);
+  if (estado === 'ginasio') dados.cycling.push(texto);
 
   guardarDados();
   desenharSemana();
@@ -58,8 +57,9 @@ function mudarEstadoDia(texto) {
 function desenharSemana() {
   const dias = diasDaSemanaMostrada();
   const { ginasioMin, ginasioMax } = dados.ajustes;
-  const marcados = contarNaSemana(dados.ginasio);
+  const diasGinasio = contarNaSemana(dados.ginasio);
   const diasCycling = contarNaSemana(dados.cycling);
+  const total = diasGinasio + diasCycling;
   const hoje = dataParaTexto(new Date());
 
   document.getElementById('semana-titulo').textContent =
@@ -67,10 +67,13 @@ function desenharSemana() {
       .replace(/\./g, '');
 
   const resumo = document.getElementById('semana-resumo');
-  const cumprido = marcados >= ginasioMin;
-  resumo.textContent = `Ginásio: ${marcados} de ${ginasioMin} mínimo${cumprido ? ' ✓' : ''} · máximo ${ginasioMax}`;
-  resumo.classList.toggle('resumo-falta', !cumprido);
-  document.getElementById('semana-cycling').textContent = `Cycling: ${diasCycling} ${diasCycling === 1 ? 'dia' : 'dias'}`;
+  resumo.replaceChildren(
+    `Exercício: ${total} de ${ginasioMin} mínimo · máximo ${ginasioMax}`,
+    ' ',
+    criar('span', { className: 'resumo-divisao', textContent: `${diasGinasio} ginásio · ${diasCycling} cycling` }),
+  );
+  // Destaca o contador se faltar exercício, ou se dados antigos passarem o máximo.
+  resumo.classList.toggle('resumo-falta', total < ginasioMin || total > ginasioMax);
 
   // Um quadrado por dia. O nome completo e o estado ficam no aria-label, para leitores de ecrã.
   document.getElementById('semana-dias').replaceChildren(...dias.map((dia, i) => {

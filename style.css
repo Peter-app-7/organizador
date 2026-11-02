@@ -139,7 +139,8 @@ button:disabled { opacity: .6; }
 .semana-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
 .resumo { font-weight: 600; margin: 8px 0 12px; }
 .resumo-falta { color: var(--alerta); }
-.resumo-cycling { font-weight: 600; margin: -8px 0 12px; }
+/* À frente do total; se não couber, a divisão passa inteira para a linha seguinte. */
+.resumo-divisao { display: inline-block; font-size: .85rem; font-weight: 400; color: var(--texto-suave); }
 
 /* Sete colunas iguais: os quadrados encolhem com o ecrã, sempre numa só linha. */
 .quadrados {
