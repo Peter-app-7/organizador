@@ -23,8 +23,9 @@ function dadosIniciais() {
   return {
     versao: 1,
     ginasio: [],        // dias marcados, ex.: "2026-11-02"
-    cycling: [],        // dias de cycling, no mesmo formato; um dia nunca está nas duas listas
-    agua: { data: null, litros: 0 }, // água do dia indicado em "data"
+    cycling: [],        // dias de cycling, no mesmo formato
+    falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das três listas
+    agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
     tarefas: [],        // { id, texto, feita }
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
@@ -70,10 +71,15 @@ function normalizarDados(bruto) {
   limpos.ginasio = [...new Set(bruto.ginasio.filter(eData))];
   const cycling = Array.isArray(bruto.cycling) ? bruto.cycling.filter(eData) : [];
   limpos.cycling = [...new Set(cycling)].filter((dia) => !limpos.ginasio.includes(dia));
-  const agua = bruto.agua;
-  if (agua && eData(agua.data) && [0, 0.5, 1, 1.5, 2].includes(agua.litros)) {
-    limpos.agua = { data: agua.data, litros: agua.litros };
-  }
+  const falhados = Array.isArray(bruto.falhados) ? bruto.falhados.filter(eData) : [];
+  limpos.falhados = [...new Set(falhados)]
+    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia));
+  // Dados e cópias antigas guardavam só um dia, em { data, litros }: passa a ser uma entrada do histórico.
+  const agua = bruto.agua && typeof bruto.agua === 'object' ? bruto.agua : {};
+  const aguaPorDia = eData(agua.data) ? { [agua.data]: agua.litros } : agua;
+  Object.entries(aguaPorDia).forEach(([dia, litros]) => {
+    if (eData(dia) && [0.5, 1, 1.5, 2].includes(litros)) limpos.agua[dia] = litros;
+  });
   limpos.tarefas = bruto.tarefas
     .filter((t) => t && eTexto(t.texto))
     .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true }));

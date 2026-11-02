@@ -3,12 +3,7 @@
 
 // Momentos escolhidos para o novo suplemento, antes de o adicionar.
 const novosMomentos = new Set();
-const NIVEIS_AGUA = [
-  { litros: 0.5, rotulo: '0,5 L' },
-  { litros: 1, rotulo: '1 L' },
-  { litros: 1.5, rotulo: '1,5 L' },
-  { litros: 2, rotulo: '2 L' },
-];
+const NIVEIS_AGUA = [0.5, 1, 1.5, 2];
 
 // As marcas são guardadas com a data: noutro dia já não contam, por isso limpam-se sozinhas.
 function marcadosDeHoje() {
@@ -159,29 +154,33 @@ document.getElementById('suplementos-formulario').addEventListener('submit', (ev
   desenharSuplementos();
 });
 
-// A água é guardada com a data: noutro dia já não conta, por isso volta sozinha a zero.
-function aguaDeHoje() {
-  return dados.agua.data === dataParaTexto(new Date()) ? dados.agua.litros : 0;
+// A água é guardada por data: aqui mexe-se sempre na de hoje, e a Semana mostra a de cada dia.
+function aguaDoDia(texto) {
+  return dados.agua[texto] || 0;
+}
+
+function rotuloAgua(litros) {
+  return `${String(litros).replace('.', ',')} L`;
 }
 
 // Tocar num nível marca o total até esse valor; tocar no nível já marcado volta ao anterior.
 function tocarNivelAgua(litros) {
-  dados.agua = {
-    data: dataParaTexto(new Date()),
-    litros: aguaDeHoje() === litros ? litros - 0.5 : litros,
-  };
+  const hoje = dataParaTexto(new Date());
+  const novo = aguaDoDia(hoje) === litros ? litros - 0.5 : litros;
+  if (novo > 0) dados.agua[hoje] = novo;
+  else delete dados.agua[hoje];
   guardarDados();
   desenharAgua();
 }
 
 function desenharAgua() {
-  const atual = aguaDeHoje();
-  document.getElementById('agua-niveis').replaceChildren(...NIVEIS_AGUA.map((nivel) => criar('button', {
+  const atual = aguaDoDia(dataParaTexto(new Date()));
+  document.getElementById('agua-niveis').replaceChildren(...NIVEIS_AGUA.map((litros) => criar('button', {
     type: 'button',
     className: 'agua-nivel',
-    textContent: nivel.rotulo,
-    'aria-pressed': String(nivel.litros <= atual),
-    onclick: () => tocarNivelAgua(nivel.litros),
+    textContent: rotuloAgua(litros),
+    'aria-pressed': String(litros <= atual),
+    onclick: () => tocarNivelAgua(litros),
   })));
 }
 

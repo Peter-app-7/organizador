@@ -42,7 +42,7 @@ function desenharCompras() {
   tiposDeCompras().forEach((tipo) => {
     const produtos = visiveis
       .filter((p) => p.tipo === tipo)
-      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT'));
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' })); // ignora maiúsculas e acentos
     if (produtos.length === 0) return;
     caixa.append(
       criar('h3', { textContent: tipo }),
