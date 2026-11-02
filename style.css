@@ -133,21 +133,43 @@ button:disabled { opacity: .6; }
 .resumo { font-weight: 600; margin: 8px 0 12px; }
 .resumo-falta { color: var(--alerta); }
 
+/* Cinco colunas iguais: os quadrados encolhem com o ecrã, sempre numa só linha. */
+.quadrados {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
 .dia {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  gap: 2px;
   width: 100%;
-  min-height: 56px;
-  margin-bottom: 6px;
-  padding: 8px 12px;
+  min-height: 72px;
+  padding: 6px 2px;
   background: var(--cartao);
   border: 1px solid var(--linha);
   border-radius: 8px;
-  text-align: left;
 }
-.dia-hoje { border-width: 2px; border-color: var(--destaque); }
-.dia[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); font-weight: 600; }
+.dia-nome { font-size: .8rem; }
+.dia-numero { font-size: 1.05rem; font-weight: 600; }
+/* Contorno afastado do quadrado, para se ver também quando o dia está colorido. */
+.dia-hoje { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.dia[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
+/* O haltere é desenhado aqui e usa a cor do texto do quadrado. Fica invisível, mas a ocupar espaço, se o dia não estiver marcado. */
+.haltere {
+  width: 20px;
+  height: 20px;
+  visibility: hidden;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 9.5h2v5H1zM4 6.5h3.5v11H4zM16.5 6.5H20v11h-3.5zM21 9.5h2v5h-2zM7.5 10.5h9v3h-9z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 9.5h2v5H1zM4 6.5h3.5v11H4zM16.5 6.5H20v11h-3.5zM21 9.5h2v5h-2zM7.5 10.5h9v3h-9z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.dia[aria-pressed="true"] .haltere { visibility: visible; }
 
 /* --- Compras: sim/não --- */
 .sim-nao { display: flex; flex: none; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }

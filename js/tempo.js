@@ -59,21 +59,18 @@ function desenharTempo() {
   const guardado = lerTempoGuardado();
   const diario = guardado && guardado.previsao && guardado.previsao.daily;
   const hoje = dataParaTexto(new Date());
-  // Só interessam os dias de hoje em diante, mesmo que a previsão guardada seja antiga.
-  const indices = diario
-    ? diario.time.map((dia, i) => (dia >= hoje ? i : -1)).filter((i) => i >= 0)
-    : [];
+  // Mostra só o dia de hoje. A previsão guardada tem mais dias, para servir sem internet nos dias seguintes.
+  const indiceHoje = diario ? diario.time.indexOf(hoje) : -1;
 
-  if (indices.length === 0) {
+  if (indiceHoje === -1) {
     agora.textContent = `${localidade.nome} · ${previsaoFalhou ? 'previsão indisponível' : 'a carregar…'}`;
     return;
   }
 
-  const primeiro = indices[0];
   const recente = Date.now() - guardado.obtidoEm < TRES_HORAS;
   const atual = guardado.previsao.current;
 
-  if (diario.time[primeiro] === hoje && recente && atual) {
+  if (recente && atual) {
     const estado = descreverTempo(atual.weather_code);
     agora.replaceChildren(
       `${localidade.nome} `,
@@ -81,22 +78,15 @@ function desenharTempo() {
       ` ${estado.icone} ${estado.texto}`,
     );
   } else {
-    const estado = descreverTempo(diario.weather_code[primeiro]);
+    const estado = descreverTempo(diario.weather_code[indiceHoje]);
     agora.textContent = `${localidade.nome} ${estado.icone} ${estado.texto}`;
   }
 
-  indices.slice(0, 4).forEach((i) => {
-    const nome = diario.time[i] === hoje
-      ? 'Hoje'
-      : formatarData(textoParaData(diario.time[i]), { weekday: 'short' }).replace('.', '');
-    const minima = Math.round(diario.temperature_2m_min[i]);
-    const maxima = Math.round(diario.temperature_2m_max[i]);
-    const chuva = diario.precipitation_probability_max[i];
-    const textoChuva = chuva === null || chuva === undefined ? '' : ` · 💧${chuva}%`;
-    caixaDias.append(criar('span', {
-      textContent: `${nome} ${descreverTempo(diario.weather_code[i]).icone} ${minima}°–${maxima}°${textoChuva}`,
-    }));
-  });
+  const minima = Math.round(diario.temperature_2m_min[indiceHoje]);
+  const maxima = Math.round(diario.temperature_2m_max[indiceHoje]);
+  const chuva = diario.precipitation_probability_max[indiceHoje];
+  const textoChuva = chuva === null || chuva === undefined ? '' : ` · 💧${chuva}%`;
+  caixaDias.append(criar('span', { textContent: `Hoje ${minima}°–${maxima}°${textoChuva}` }));
 
   if (previsaoFalhou) {
     const quando = new Date(guardado.obtidoEm).toLocaleString('pt-PT', {
@@ -112,7 +102,9 @@ async function atualizarTempo() {
   const localidade = dados.localidade;
   if (!localidade) return;
   const guardado = lerTempoGuardado();
-  if (guardado && Date.now() - guardado.obtidoEm < TRINTA_MINUTOS) return;
+  const diario = guardado && guardado.previsao && guardado.previsao.daily;
+  const temHoje = Boolean(diario && diario.time.includes(dataParaTexto(new Date())));
+  if (temHoje && Date.now() - guardado.obtidoEm < TRINTA_MINUTOS) return;
 
   try {
     const resposta = await fetch(urlTempo(localidade));
