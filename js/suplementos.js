@@ -1,6 +1,9 @@
 // suplementos.js: lista diária de suplementos, na vista inicial, por momento do dia.
 // Os nomes são escritos na app e ficam só nos dados guardados no aparelho.
 
+// Momentos escolhidos para o novo suplemento, antes de o adicionar.
+const novosMomentos = new Set();
+
 // As marcas são guardadas com a data: noutro dia já não contam, por isso limpam-se sozinhas.
 function marcadosDeHoje() {
   return dados.tomados.data === dataParaTexto(new Date()) ? dados.tomados.marcados : [];
@@ -30,7 +33,6 @@ function alternarMomento(suplemento, momento) {
   if (suplemento.momentos.includes(momento)) {
     if (suplemento.momentos.length === 1) {
       avisar('Cada suplemento precisa de pelo menos um momento.');
-      desenharSuplementos();
       return;
     }
     suplemento.momentos = suplemento.momentos.filter((m) => m !== momento);
@@ -42,36 +44,59 @@ function alternarMomento(suplemento, momento) {
   desenharSuplementos();
 }
 
-function linhaTomado(suplemento, momento, marcados) {
+// Um nome na lista do dia: tocar marca ou desmarca como tomado.
+function nomeTomado(suplemento, momento, marcados) {
   const chave = chaveTomado(suplemento, momento);
   const tomado = marcados.includes(chave);
-  return criar('li', {},
-    criar('label', { className: tomado ? 'linha linha-feita' : 'linha' },
-      criar('input', { type: 'checkbox', checked: tomado, onchange: () => alternarTomado(chave) }),
-      criar('span', { className: 'linha-texto', textContent: suplemento.nome })));
+  const botao = criar('button', {
+    type: 'button',
+    className: 'suplemento',
+    'aria-pressed': String(tomado),
+    onclick: () => alternarTomado(chave),
+  });
+  if (tomado) botao.append(criar('span', { textContent: '✓ ', 'aria-hidden': 'true' }));
+  botao.append(suplemento.nome);
+  return criar('li', {}, botao);
 }
 
-// Caixa e nome de um momento, usados ao adicionar e ao gerir um suplemento.
-function escolhaMomento(momento, marcado, aoMudar) {
-  return criar('label', { className: 'momento-escolha' },
-    criar('input', { type: 'checkbox', checked: marcado, value: momento.id, onchange: aoMudar }),
-    criar('span', { textContent: momento.nome }));
+// Quadrados M, A, J e N, usados ao adicionar e em cada linha da tabela.
+function quadradosMomentos(estaAtivo, aoTocar, descricao) {
+  return criar('div', { className: 'quadrados-momentos' }, ...MOMENTOS.map((momento) => criar('button', {
+    type: 'button',
+    className: 'quadrado-momento',
+    textContent: momento.nome[0],
+    'aria-pressed': String(estaAtivo(momento.id)),
+    'aria-label': `${descricao}: ${momento.nome}`,
+    onclick: () => aoTocar(momento.id),
+  })));
 }
 
-function linhaGerir(suplemento) {
-  return criar('li', { className: 'linha linha-suplemento' },
-    criar('span', { className: 'linha-texto', textContent: suplemento.nome }),
+function linhaTabela(suplemento) {
+  return criar('li', { className: 'linha-tabela' },
+    criar('span', { className: 'nome-tabela', textContent: suplemento.nome }),
+    quadradosMomentos(
+      (momento) => suplemento.momentos.includes(momento),
+      (momento) => alternarMomento(suplemento, momento),
+      suplemento.nome,
+    ),
     botaoApagar(suplemento.nome, () => {
       limparMarcas(suplemento);
       dados.suplementos = dados.suplementos.filter((s) => s.id !== suplemento.id);
       guardarDados();
       desenharSuplementos();
-    }),
-    criar('div', { className: 'momentos-escolha' }, ...MOMENTOS.map((momento) => escolhaMomento(
-      momento,
-      suplemento.momentos.includes(momento.id),
-      () => alternarMomento(suplemento, momento.id),
-    ))));
+    }));
+}
+
+function desenharNovosMomentos() {
+  document.getElementById('suplementos-novos-momentos').replaceChildren(quadradosMomentos(
+    (momento) => novosMomentos.has(momento),
+    (momento) => {
+      if (novosMomentos.has(momento)) novosMomentos.delete(momento);
+      else novosMomentos.add(momento);
+      desenharNovosMomentos();
+    },
+    'Novo suplemento',
+  ));
 }
 
 function desenharSuplementos() {
@@ -84,39 +109,45 @@ function desenharSuplementos() {
     const doMomento = ordenados.filter((s) => s.momentos.includes(momento.id));
     if (doMomento.length === 0) return;
     caixa.append(
-      criar('h3', { textContent: momento.nome }),
-      criar('ul', { className: 'lista' }, ...doMomento.map((s) => linhaTomado(s, momento.id, marcados))),
+      criar('h3', { className: 'momento-titulo', textContent: momento.nome }),
+      criar('ul', { className: 'suplementos-nomes' }, ...doMomento.map((s) => nomeTomado(s, momento.id, marcados))),
     );
   });
   if (caixa.children.length === 0) {
-    caixa.append(criar('p', { className: 'vazio', textContent: 'Ainda não há suplementos. Adiciona-os em "Gerir suplementos".' }));
+    caixa.append(criar('p', { className: 'vazio', textContent: 'Ainda não há suplementos. Toca em "Editar" para os adicionar.' }));
   }
 
-  document.getElementById('suplementos-lista').replaceChildren(...ordenados.map(linhaGerir));
+  desenharNovosMomentos();
+  document.getElementById('suplementos-lista').replaceChildren(...ordenados.map(linhaTabela));
 }
 
-// Prepara as caixas dos momentos no formulário de adicionar.
-const novosMomentos = document.getElementById('suplementos-novos-momentos');
-novosMomentos.append(...MOMENTOS.map((momento) => escolhaMomento(momento, false)));
+document.getElementById('suplementos-editar').addEventListener('click', (evento) => {
+  const painel = document.getElementById('suplementos-gerir');
+  painel.hidden = !painel.hidden;
+  evento.currentTarget.textContent = painel.hidden ? 'Editar' : 'Fechar';
+  evento.currentTarget.setAttribute('aria-expanded', String(!painel.hidden));
+});
 
 document.getElementById('suplementos-formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();
   const campo = document.getElementById('suplementos-nome');
   const nome = campo.value.trim();
-  const caixas = [...novosMomentos.querySelectorAll('input')];
-  const momentos = caixas.filter((c) => c.checked).map((c) => c.value);
   if (!nome) return;
-  if (dados.suplementos.some((s) => s.nome.toLocaleLowerCase('pt-PT') === nome.toLocaleLowerCase('pt-PT'))) {
+  if (dados.suplementos.some((s) => chaveTexto(s.nome) === chaveTexto(nome))) {
     avisar('Este suplemento já está na lista.');
     return;
   }
-  if (momentos.length === 0) {
-    avisar('Escolhe pelo menos um momento do dia.');
+  if (novosMomentos.size === 0) {
+    avisar('Toca em M, A, J ou N para escolher pelo menos um momento.');
     return;
   }
-  dados.suplementos.push({ id: novoId(), nome, momentos });
+  dados.suplementos.push({
+    id: novoId(),
+    nome,
+    momentos: MOMENTOS.map((m) => m.id).filter((id) => novosMomentos.has(id)),
+  });
   guardarDados();
   campo.value = '';
-  caixas.forEach((c) => { c.checked = false; });
+  novosMomentos.clear();
   desenharSuplementos();
 });

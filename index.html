@@ -38,22 +38,20 @@
       <p id="semana-resumo" class="resumo"></p>
       <ul id="semana-dias" class="quadrados"></ul>
 
-      <h2>Suplementos de hoje</h2>
-      <div id="suplementos-momentos"></div>
-      <details class="gerir">
-        <summary>Gerir suplementos</summary>
-        <form id="suplementos-formulario" class="formulario">
-          <label>Nome
-            <input id="suplementos-nome" type="text" placeholder="Nome do suplemento" autocomplete="off" required>
-          </label>
-          <fieldset class="grupo-momentos">
-            <legend>Quando o tomas?</legend>
-            <div id="suplementos-novos-momentos" class="momentos-escolha"></div>
-          </fieldset>
-          <button type="submit" class="botao-principal">Adicionar</button>
+      <div class="titulo-com-botao">
+        <h2>Suplementos</h2>
+        <button id="suplementos-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="suplementos-gerir">Editar</button>
+      </div>
+      <div id="suplementos-gerir" class="tabela-suplementos" hidden>
+        <h3 class="momento-titulo">Gerir suplementos</h3>
+        <form id="suplementos-formulario" class="linha-tabela">
+          <input id="suplementos-nome" type="text" placeholder="Novo suplemento" aria-label="Nome do novo suplemento" autocomplete="off" required>
+          <div id="suplementos-novos-momentos"></div>
+          <button type="submit" class="botao-adicionar" aria-label="Adicionar suplemento">+</button>
         </form>
         <ul id="suplementos-lista" class="lista"></ul>
-      </details>
+      </div>
+      <div id="suplementos-momentos"></div>
     </section>
 
     <section id="vista-agenda" class="vista" hidden>
