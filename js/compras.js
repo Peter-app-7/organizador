@@ -35,7 +35,8 @@ function desenharCompras() {
   const caixa = document.getElementById('compras-lista');
   caixa.replaceChildren();
 
-  TIPOS_COMPRAS.forEach((tipo) => {
+  atualizarSeletorTipo();
+  tiposDeCompras().forEach((tipo) => {
     const produtos = visiveis
       .filter((p) => p.tipo === tipo)
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT'));
@@ -53,9 +54,13 @@ function desenharCompras() {
 }
 
 const seletorTipo = document.getElementById('compras-tipo');
-TIPOS_COMPRAS.forEach((tipo) => {
-  seletorTipo.append(criar('option', { value: tipo, textContent: tipo }));
-});
+
+// Os tipos podem mudar ao importar uma lista: mantém a escolha atual, se ainda existir.
+function atualizarSeletorTipo() {
+  const escolhido = seletorTipo.value;
+  seletorTipo.replaceChildren(...tiposDeCompras().map((tipo) => criar('option', { value: tipo, textContent: tipo })));
+  if (tiposDeCompras().includes(escolhido)) seletorTipo.value = escolhido;
+}
 
 document.getElementById('compras-formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();

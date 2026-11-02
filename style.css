@@ -45,7 +45,8 @@ h3 { font-size: .9rem; margin: 18px 0 6px; color: var(--texto-suave); }
 /* Tamanho 16px nos campos: abaixo disso, o iPhone faz zoom ao tocar. */
 input, select, button { font: inherit; color: inherit; }
 
-input[type="text"], input[type="date"], input[type="time"], input[type="number"], select {
+textarea { font: inherit; resize: vertical; }
+input[type="text"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
   display: block;
   width: 100%;
   min-height: 44px;
@@ -162,6 +163,11 @@ button:disabled { opacity: .6; }
 }
 .linha-suplemento { flex-wrap: wrap; padding-bottom: 10px; }
 .linha-suplemento .linha-texto { flex: 1 1 60%; }
+
+/* --- Importar lista --- */
+.previa-lista { margin: 0; padding-left: 20px; overflow-wrap: anywhere; }
+.nota-previa { font-size: .9rem; color: var(--texto-suave); margin: 8px 0; overflow-wrap: anywhere; }
+#importar-previa .botao-principal { margin-top: 12px; }
 
 /* --- Barra de baixo e avisos --- */
 .navegacao {

@@ -91,6 +91,16 @@
         <label>Tipo <select id="compras-tipo"></select></label>
         <button type="submit" class="botao-principal">Adicionar</button>
       </form>
+      <details id="importar-caixa" class="gerir">
+        <summary>Importar lista</summary>
+        <form id="importar-formulario" class="formulario">
+          <label>Cola aqui a lista: títulos das categorias seguidos dos produtos, um por linha.
+            <textarea id="importar-texto" rows="8" required></textarea>
+          </label>
+          <button type="submit" class="botao-principal">Pré-visualizar</button>
+        </form>
+        <div id="importar-previa"></div>
+      </details>
       <label class="opcao">
         <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
       </label>
@@ -141,6 +151,7 @@
   <script src="js/agenda.js"></script>
   <script src="js/tarefas.js"></script>
   <script src="js/compras.js"></script>
+  <script src="js/importar.js"></script>
   <script src="js/localidade.js"></script>
   <script src="js/ajustes.js"></script>
   <script src="js/app.js"></script>

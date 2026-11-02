@@ -16,6 +16,7 @@ const FICHEIROS = [
   'js/agenda.js',
   'js/tarefas.js',
   'js/compras.js',
+  'js/importar.js',
   'js/localidade.js',
   'js/ajustes.js',
   'js/app.js',

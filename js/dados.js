@@ -26,12 +26,27 @@ function dadosIniciais() {
     compromissos: [],   // { id, texto, data, hora }
     tarefas: [],        // { id, texto, feita }
     compras: [],        // { id, nome, tipo, comprar }
+    tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
     suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] }
     tomados: { data: null, marcados: [] }, // marcas do dia indicado em "data"
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
   };
+}
+
+// Texto sem maiúsculas nem acentos, para comparar nomes (ex.: "Maçãs" e "macas").
+function chaveTexto(texto) {
+  return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Todos os tipos de produto, com "Outros" sempre em último.
+function tiposDeCompras() {
+  return [
+    ...TIPOS_COMPRAS.filter((tipo) => tipo !== 'Outros'),
+    ...dados.tiposCompras,
+    'Outros',
+  ];
 }
 
 function novoId() {
@@ -64,9 +79,17 @@ function normalizarDados(bruto) {
     .map((p) => ({
       id: idValido(p.id),
       nome: p.nome,
-      tipo: TIPOS_COMPRAS.includes(p.tipo) ? p.tipo : 'Outros',
+      tipo: eTexto(p.tipo) ? p.tipo.trim() : 'Outros',
       comprar: p.comprar === true,
     }));
+  // Tipos criados na app: os guardados e os de qualquer produto, sem repetir os predefinidos.
+  const tiposGuardados = Array.isArray(bruto.tiposCompras) ? bruto.tiposCompras.filter(eTexto) : [];
+  const tiposVistos = new Set(TIPOS_COMPRAS.map(chaveTexto));
+  [...tiposGuardados.map((t) => t.trim()), ...limpos.compras.map((p) => p.tipo)].forEach((tipo) => {
+    if (tiposVistos.has(chaveTexto(tipo))) return;
+    tiposVistos.add(chaveTexto(tipo));
+    limpos.tiposCompras.push(tipo);
+  });
 
   // Dados e cópias anteriores a esta funcionalidade não têm suplementos: fica a lista vazia.
   const suplementos = Array.isArray(bruto.suplementos) ? bruto.suplementos : [];
