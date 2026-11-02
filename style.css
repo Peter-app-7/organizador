@@ -32,6 +32,9 @@ body {
   background: var(--fundo);
   color: var(--texto);
   font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-wrap: anywhere; /* nomes compridos sem espaços quebram em vez de alargar a página */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Espaço para a barra de baixo não tapar o fim da página. */
   padding-bottom: calc(76px + env(safe-area-inset-bottom));
 }
@@ -42,13 +45,18 @@ h1 { font-size: 1.6rem; margin: 8px 0 12px; }
 h2 { font-size: 1.05rem; margin: 20px 0 8px; }
 h3 { font-size: .9rem; margin: 18px 0 6px; color: var(--texto-suave); }
 
-/* Tamanho 16px nos campos: abaixo disso, o iPhone faz zoom ao tocar. */
-input, select, button { font: inherit; color: inherit; }
+input, select, button, textarea { font: inherit; color: inherit; }
+textarea { resize: vertical; }
 
-textarea { font: inherit; resize: vertical; }
+/* Sempre 16px nos campos, mesmo dentro de etiquetas com letra menor:
+   abaixo disso, o iPhone amplia a página ao tocar e ela deixa de caber no ecrã. */
+input, select, textarea { font-size: 16px; }
+
 input[type="text"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
   display: block;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   margin-top: 4px;
   padding: 8px 10px;
@@ -71,15 +79,16 @@ button:disabled { opacity: .6; }
   border-bottom: 1px solid var(--linha);
 }
 .tempo-linha { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#tempo-agora { flex: 1; min-width: 0; }
 .tempo-temperatura { font-size: 1.3rem; font-weight: 600; }
 .tempo-dias { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: .85rem; color: var(--texto-suave); }
 .tempo-nota { font-size: .8rem; color: var(--alerta); width: 100%; }
-.botao-icone { background: none; border: 0; font-size: 1.3rem; min-width: 44px; min-height: 44px; }
+.botao-icone { flex: none; background: none; border: 0; font-size: 1.3rem; min-width: 44px; min-height: 44px; }
 
 /* --- Formulários e botões --- */
-.formulario { display: grid; gap: 10px; margin-bottom: 16px; }
+.formulario { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 16px; }
 .formulario label, .campos-lado-a-lado label { font-size: .9rem; color: var(--texto-suave); }
-.campos-lado-a-lado { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.campos-lado-a-lado { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 
 .botao-principal, .botao-secundario {
   display: block;
