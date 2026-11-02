@@ -1,0 +1,9 @@
+# Nunca publicar: notas pessoais e definições do Claude Code
+CLAUDE.md
+.claude/
+
+# Cópias de segurança da app: têm os dados pessoais
+*-copia-*.json
+
+# Ficheiros do macOS
+.DS_Store

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Organizador</title>
+
+  <!-- Estas linhas fazem a página abrir como uma app quando está no ecrã principal do iPhone. -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Organizador">
+  <!-- A cor da barra do sistema segue o modo claro ou escuro do aparelho. -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#212529">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Previsão do tempo: fora das vistas, por isso está sempre visível. -->
+  <header class="tempo">
+    <div class="tempo-linha">
+      <div id="tempo-agora">Previsão do tempo</div>
+      <button id="botao-ajustes" class="botao-icone" type="button" aria-label="Definições e cópia de segurança">⚙️</button>
+    </div>
+    <div id="tempo-dias" class="tempo-dias"></div>
+  </header>
+
+  <main>
+    <section id="vista-semana" class="vista">
+      <h1>Semana</h1>
+      <div class="semana-navegacao">
+        <button id="semana-anterior" type="button" aria-label="Semana anterior">‹</button>
+        <button id="semana-hoje" type="button">Hoje</button>
+        <button id="semana-seguinte" type="button" aria-label="Semana seguinte">›</button>
+      </div>
+      <p id="semana-titulo" class="subtitulo"></p>
+      <p id="semana-resumo" class="resumo"></p>
+      <ul id="semana-dias" class="lista"></ul>
+
+      <h2>Suplementos de hoje</h2>
+      <div id="suplementos-momentos"></div>
+      <details class="gerir">
+        <summary>Gerir suplementos</summary>
+        <form id="suplementos-formulario" class="formulario">
+          <label>Nome
+            <input id="suplementos-nome" type="text" placeholder="Nome do suplemento" autocomplete="off" required>
+          </label>
+          <fieldset class="grupo-momentos">
+            <legend>Quando o tomas?</legend>
+            <div id="suplementos-novos-momentos" class="momentos-escolha"></div>
+          </fieldset>
+          <button type="submit" class="botao-principal">Adicionar</button>
+        </form>
+        <ul id="suplementos-lista" class="lista"></ul>
+      </details>
+    </section>
+
+    <section id="vista-agenda" class="vista" hidden>
+      <h1>Agenda</h1>
+      <form id="agenda-formulario" class="formulario">
+        <label>Compromisso
+          <input id="agenda-texto" type="text" placeholder="Ex.: consulta" required>
+        </label>
+        <div class="campos-lado-a-lado">
+          <label>Dia <input id="agenda-data" type="date" required></label>
+          <label>Hora <input id="agenda-hora" type="time" required></label>
+        </div>
+        <button type="submit" class="botao-principal">Adicionar</button>
+      </form>
+      <div id="agenda-lista"></div>
+    </section>
+
+    <section id="vista-tarefas" class="vista" hidden>
+      <h1>Tarefas</h1>
+      <form id="tarefas-formulario" class="formulario">
+        <label>Nova tarefa
+          <input id="tarefas-texto" type="text" placeholder="Ex.: renovar o cartão" required>
+        </label>
+        <button type="submit" class="botao-principal">Adicionar</button>
+      </form>
+      <ul id="tarefas-lista" class="lista"></ul>
+    </section>
+
+    <section id="vista-compras" class="vista" hidden>
+      <h1>Compras</h1>
+      <form id="compras-formulario" class="formulario">
+        <label>Produto
+          <input id="compras-nome" type="text" placeholder="Ex.: leite" required>
+        </label>
+        <label>Tipo <select id="compras-tipo"></select></label>
+        <button type="submit" class="botao-principal">Adicionar</button>
+      </form>
+      <label class="opcao">
+        <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
+      </label>
+      <div id="compras-lista"></div>
+    </section>
+
+    <section id="vista-ajustes" class="vista" hidden>
+      <h1>Definições</h1>
+      <h2>Localidade da previsão do tempo</h2>
+      <p id="localidade-atual" class="subtitulo"></p>
+      <form id="localidade-formulario" class="formulario">
+        <label>Procurar localidade
+          <input id="localidade-nome" type="text" placeholder="Nome da localidade" autocomplete="off" required>
+        </label>
+        <button id="localidade-procurar" type="submit" class="botao-principal">Procurar</button>
+      </form>
+      <ul id="localidade-resultados" class="lista"></ul>
+      <h2>Ginásio (dias por semana)</h2>
+      <div class="campos-lado-a-lado">
+        <label>Mínimo <input id="ajuste-min" type="number" min="0" max="5" inputmode="numeric"></label>
+        <label>Máximo <input id="ajuste-max" type="number" min="1" max="5" inputmode="numeric"></label>
+      </div>
+      <h2>Cópia de segurança</h2>
+      <p>Os dados ficam só neste aparelho. Guarda uma cópia de vez em quando, por exemplo no iCloud Drive.</p>
+      <p id="copia-estado" class="subtitulo"></p>
+      <button id="copia-exportar" type="button" class="botao-principal">Exportar cópia</button>
+      <label class="botao-secundario">Restaurar a partir de uma cópia
+        <input id="copia-importar" type="file" accept=".json,application/json" hidden>
+      </label>
+      <p class="nota">Previsão do tempo: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+    </section>
+  </main>
+
+  <p id="aviso" class="aviso" role="status" hidden></p>
+
+  <nav class="navegacao" aria-label="Vistas">
+    <button type="button" data-vista="semana">📅<span>Semana</span></button>
+    <button type="button" data-vista="agenda">🕒<span>Agenda</span></button>
+    <button type="button" data-vista="tarefas">✅<span>Tarefas</span></button>
+    <button type="button" data-vista="compras">🛒<span>Compras</span></button>
+  </nav>
+
+  <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
+  <script src="js/dados.js"></script>
+  <script src="js/tempo.js"></script>
+  <script src="js/suplementos.js"></script>
+  <script src="js/semana.js"></script>
+  <script src="js/agenda.js"></script>
+  <script src="js/tarefas.js"></script>
+  <script src="js/compras.js"></script>
+  <script src="js/localidade.js"></script>
+  <script src="js/ajustes.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
