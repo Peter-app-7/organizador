@@ -1,5 +1,5 @@
 // semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
-// nada, Ginásio, Cycling e de volta a nada.
+// nada, Ginásio, Cycling e de volta a nada. Por baixo ficam as tarefas.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling' };
@@ -110,5 +110,5 @@ document.getElementById('semana-hoje').addEventListener('click', () => {
 
 desenhar.semana = () => {
   desenharSemana();
-  desenharSuplementos();
+  desenharTarefas();
 };

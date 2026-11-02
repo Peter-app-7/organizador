@@ -1,8 +1,14 @@
-// suplementos.js: lista diária de suplementos, na vista inicial, por momento do dia.
+// suplementos.js: vista Suplementos. Lista diária, por momento do dia, e a água de hoje por baixo.
 // Os nomes são escritos na app e ficam só nos dados guardados no aparelho.
 
 // Momentos escolhidos para o novo suplemento, antes de o adicionar.
 const novosMomentos = new Set();
+const NIVEIS_AGUA = [
+  { litros: 0.5, rotulo: '0,5 L' },
+  { litros: 1, rotulo: '1 L' },
+  { litros: 1.5, rotulo: '1,5 L' },
+  { litros: 2, rotulo: '2 L' },
+];
 
 // As marcas são guardadas com a data: noutro dia já não contam, por isso limpam-se sozinhas.
 function marcadosDeHoje() {
@@ -119,6 +125,7 @@ function desenharSuplementos() {
 
   desenharNovosMomentos();
   document.getElementById('suplementos-lista').replaceChildren(...ordenados.map(linhaTabela));
+  desenharAgua();
 }
 
 document.getElementById('suplementos-editar').addEventListener('click', (evento) => {
@@ -151,3 +158,31 @@ document.getElementById('suplementos-formulario').addEventListener('submit', (ev
   novosMomentos.clear();
   desenharSuplementos();
 });
+
+// A água é guardada com a data: noutro dia já não conta, por isso volta sozinha a zero.
+function aguaDeHoje() {
+  return dados.agua.data === dataParaTexto(new Date()) ? dados.agua.litros : 0;
+}
+
+// Tocar num nível marca o total até esse valor; tocar no nível já marcado volta ao anterior.
+function tocarNivelAgua(litros) {
+  dados.agua = {
+    data: dataParaTexto(new Date()),
+    litros: aguaDeHoje() === litros ? litros - 0.5 : litros,
+  };
+  guardarDados();
+  desenharAgua();
+}
+
+function desenharAgua() {
+  const atual = aguaDeHoje();
+  document.getElementById('agua-niveis').replaceChildren(...NIVEIS_AGUA.map((nivel) => criar('button', {
+    type: 'button',
+    className: 'agua-nivel',
+    textContent: nivel.rotulo,
+    'aria-pressed': String(nivel.litros <= atual),
+    onclick: () => tocarNivelAgua(nivel.litros),
+  })));
+}
+
+desenhar.suplementos = desenharSuplementos;

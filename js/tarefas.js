@@ -1,4 +1,4 @@
-// tarefas.js: vista Tarefas. Coisas para fazer, sem hora, que se marcam como feitas.
+// tarefas.js: lista de Tarefas, na vista Semana. Coisas para fazer, sem hora, que se marcam como feitas.
 
 function linhaTarefa(tarefa) {
   return criar('li', { className: tarefa.feita ? 'linha linha-feita' : 'linha' },
@@ -43,5 +43,3 @@ document.getElementById('tarefas-formulario').addEventListener('submit', (evento
   campo.value = '';
   desenharTarefas();
 });
-
-desenhar.tarefas = desenharTarefas;

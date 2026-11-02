@@ -190,6 +190,21 @@ button:disabled { opacity: .6; }
   --icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='5.5' cy='16.5' r='4'/%3E%3Ccircle cx='18.5' cy='16.5' r='4'/%3E%3Cpath d='M5.5 16.5 9.5 9h6.5l2.5 7.5M9.5 9l3.5 7.5H5.5M14.5 5H17l-1 4'/%3E%3C/svg%3E");
 }
 
+/* --- Água: título e quatro botões numa só linha --- */
+.agua { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; }
+.agua h2 { flex: none; margin: 0; }
+.agua-niveis { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.agua-nivel {
+  min-height: 44px;
+  margin: 0;
+  padding: 4px 0;
+  font-size: .85rem;
+  background: var(--cartao);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.agua-nivel[aria-pressed="true"] { font-weight: 700; color: var(--sobre-azul); background: var(--azul); border-color: var(--azul); }
+
 /* --- Compras: sim/não --- */
 .sim-nao { display: flex; flex: none; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }
 .sim-nao button { min-width: 44px; min-height: 40px; background: none; border: 0; }

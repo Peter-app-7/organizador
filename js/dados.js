@@ -14,7 +14,7 @@ const MOMENTOS = [
   { id: 'noite', nome: 'Noite' },
 ];
 
-// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.tarefas()...
+// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.compras()...
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
 const aoAbrir = [];
@@ -24,7 +24,7 @@ function dadosIniciais() {
     versao: 1,
     ginasio: [],        // dias marcados, ex.: "2026-11-02"
     cycling: [],        // dias de cycling, no mesmo formato; um dia nunca está nas duas listas
-    compromissos: [],   // { id, texto, data, hora }: da antiga vista Agenda, só para os dados não se perderem
+    agua: { data: null, litros: 0 }, // água do dia indicado em "data"
     tarefas: [],        // { id, texto, feita }
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
@@ -63,7 +63,6 @@ function normalizarDados(bruto) {
   }
 
   const eData = (t) => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t);
-  const eHora = (t) => typeof t === 'string' && /^\d{2}:\d{2}$/.test(t);
   const eTexto = (t) => typeof t === 'string' && t.trim() !== '';
   const idValido = (id) => (typeof id === 'string' && id ? id : novoId());
 
@@ -71,9 +70,10 @@ function normalizarDados(bruto) {
   limpos.ginasio = [...new Set(bruto.ginasio.filter(eData))];
   const cycling = Array.isArray(bruto.cycling) ? bruto.cycling.filter(eData) : [];
   limpos.cycling = [...new Set(cycling)].filter((dia) => !limpos.ginasio.includes(dia));
-  limpos.compromissos = (Array.isArray(bruto.compromissos) ? bruto.compromissos : [])
-    .filter((c) => c && eTexto(c.texto) && eData(c.data) && eHora(c.hora))
-    .map((c) => ({ id: idValido(c.id), texto: c.texto, data: c.data, hora: c.hora }));
+  const agua = bruto.agua;
+  if (agua && eData(agua.data) && [0, 0.5, 1, 1.5, 2].includes(agua.litros)) {
+    limpos.agua = { data: agua.data, litros: agua.litros };
+  }
   limpos.tarefas = bruto.tarefas
     .filter((t) => t && eTexto(t.texto))
     .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true }));

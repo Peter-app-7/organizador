@@ -38,8 +38,19 @@
       <p id="semana-resumo" class="resumo"></p>
       <ul id="semana-dias" class="quadrados"></ul>
 
-      <div class="titulo-com-botao">
-        <h2>Suplementos</h2>
+      <h2>Tarefas</h2>
+      <form id="tarefas-formulario" class="formulario">
+        <label>Nova tarefa
+          <input id="tarefas-texto" type="text" placeholder="Ex.: renovar o cartão" required>
+        </label>
+        <button type="submit" class="botao-principal">Adicionar</button>
+      </form>
+      <ul id="tarefas-lista" class="lista"></ul>
+    </section>
+
+    <section id="vista-suplementos" class="vista" hidden>
+      <div class="titulo-com-botao titulo-vista">
+        <h1>Suplementos</h1>
         <button id="suplementos-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="suplementos-gerir">Editar</button>
       </div>
       <div id="suplementos-gerir" class="tabela-suplementos" hidden>
@@ -52,17 +63,11 @@
         <ul id="suplementos-lista" class="lista"></ul>
       </div>
       <div id="suplementos-momentos"></div>
-    </section>
 
-    <section id="vista-tarefas" class="vista" hidden>
-      <h1>Tarefas</h1>
-      <form id="tarefas-formulario" class="formulario">
-        <label>Nova tarefa
-          <input id="tarefas-texto" type="text" placeholder="Ex.: renovar o cartão" required>
-        </label>
-        <button type="submit" class="botao-principal">Adicionar</button>
-      </form>
-      <ul id="tarefas-lista" class="lista"></ul>
+      <div class="agua">
+        <h2 id="agua-titulo">Água</h2>
+        <div id="agua-niveis" class="agua-niveis" role="group" aria-labelledby="agua-titulo"></div>
+      </div>
     </section>
 
     <section id="vista-compras" class="vista" hidden>
@@ -126,7 +131,7 @@
 
   <nav class="navegacao" aria-label="Vistas">
     <button type="button" data-vista="semana">📅<span>Semana</span></button>
-    <button type="button" data-vista="tarefas">✅<span>Tarefas</span></button>
+    <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
     <button type="button" data-vista="compras">🛒<span>Compras</span></button>
   </nav>
 
