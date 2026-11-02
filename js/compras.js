@@ -1,5 +1,7 @@
 // compras.js: vista Compras. Lista da casa, por tipo de produto, com sim/não para comprar.
 
+let comprasAEditar = false;
+
 function definirComprar(produto, valor) {
   produto.comprar = valor;
   guardarDados();
@@ -22,11 +24,12 @@ function linhaProduto(produto) {
         'aria-pressed': String(!produto.comprar),
         onclick: () => definirComprar(produto, false),
       })),
-    botaoApagar(produto.nome, () => {
+    // O × só existe no modo de edição.
+    ...(comprasAEditar ? [botaoApagar(produto.nome, () => {
       dados.compras = dados.compras.filter((p) => p.id !== produto.id);
       guardarDados();
       desenharCompras();
-    }));
+    })] : []));
 }
 
 function desenharCompras() {
@@ -73,5 +76,12 @@ document.getElementById('compras-formulario').addEventListener('submit', (evento
   desenharCompras();
 });
 document.getElementById('compras-filtro').addEventListener('change', desenharCompras);
+document.getElementById('compras-editar').addEventListener('click', (evento) => {
+  comprasAEditar = !comprasAEditar;
+  document.getElementById('compras-gerir').hidden = !comprasAEditar;
+  evento.currentTarget.textContent = comprasAEditar ? 'Fechar' : 'Editar';
+  evento.currentTarget.setAttribute('aria-expanded', String(comprasAEditar));
+  desenharCompras();
+});
 
 desenhar.compras = desenharCompras;

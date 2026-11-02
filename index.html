@@ -36,6 +36,7 @@
       </div>
       <p id="semana-titulo" class="subtitulo"></p>
       <p id="semana-resumo" class="resumo"></p>
+      <p id="semana-cycling" class="resumo-cycling"></p>
       <ul id="semana-dias" class="quadrados"></ul>
 
       <div class="titulo-com-botao">
@@ -54,21 +55,6 @@
       <div id="suplementos-momentos"></div>
     </section>
 
-    <section id="vista-agenda" class="vista" hidden>
-      <h1>Agenda</h1>
-      <form id="agenda-formulario" class="formulario">
-        <label>Compromisso
-          <input id="agenda-texto" type="text" placeholder="Ex.: consulta" required>
-        </label>
-        <div class="campos-lado-a-lado">
-          <label>Dia <input id="agenda-data" type="date" required></label>
-          <label>Hora <input id="agenda-hora" type="time" required></label>
-        </div>
-        <button type="submit" class="botao-principal">Adicionar</button>
-      </form>
-      <div id="agenda-lista"></div>
-    </section>
-
     <section id="vista-tarefas" class="vista" hidden>
       <h1>Tarefas</h1>
       <form id="tarefas-formulario" class="formulario">
@@ -81,7 +67,11 @@
     </section>
 
     <section id="vista-compras" class="vista" hidden>
-      <h1>Compras</h1>
+      <div class="titulo-com-botao titulo-vista">
+        <h1>Compras</h1>
+        <button id="compras-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="compras-gerir">Editar</button>
+      </div>
+      <div id="compras-gerir" hidden>
       <form id="compras-formulario" class="formulario">
         <label>Produto
           <input id="compras-nome" type="text" placeholder="Ex.: leite" required>
@@ -99,6 +89,7 @@
         </form>
         <div id="importar-previa"></div>
       </details>
+      </div>
       <label class="opcao">
         <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
       </label>
@@ -136,7 +127,6 @@
 
   <nav class="navegacao" aria-label="Vistas">
     <button type="button" data-vista="semana">📅<span>Semana</span></button>
-    <button type="button" data-vista="agenda">🕒<span>Agenda</span></button>
     <button type="button" data-vista="tarefas">✅<span>Tarefas</span></button>
     <button type="button" data-vista="compras">🛒<span>Compras</span></button>
   </nav>
@@ -146,7 +136,6 @@
   <script src="js/tempo.js"></script>
   <script src="js/suplementos.js"></script>
   <script src="js/semana.js"></script>
-  <script src="js/agenda.js"></script>
   <script src="js/tarefas.js"></script>
   <script src="js/compras.js"></script>
   <script src="js/importar.js"></script>

@@ -14,7 +14,7 @@ const MOMENTOS = [
   { id: 'noite', nome: 'Noite' },
 ];
 
-// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.agenda()...
+// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.tarefas()...
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
 const aoAbrir = [];
@@ -23,7 +23,8 @@ function dadosIniciais() {
   return {
     versao: 1,
     ginasio: [],        // dias marcados, ex.: "2026-11-02"
-    compromissos: [],   // { id, texto, data, hora }
+    cycling: [],        // dias de cycling, no mesmo formato; um dia nunca está nas duas listas
+    compromissos: [],   // { id, texto, data, hora }: da antiga vista Agenda, só para os dados não se perderem
     tarefas: [],        // { id, texto, feita }
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
@@ -56,7 +57,7 @@ function novoId() {
 // Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
 // Lança um erro se não parecerem dados desta app.
 function normalizarDados(bruto) {
-  const listas = ['ginasio', 'compromissos', 'tarefas', 'compras'];
+  const listas = ['ginasio', 'tarefas', 'compras'];
   if (!bruto || typeof bruto !== 'object' || !listas.every((nome) => Array.isArray(bruto[nome]))) {
     throw new Error('Formato desconhecido');
   }
@@ -68,7 +69,9 @@ function normalizarDados(bruto) {
 
   const limpos = dadosIniciais();
   limpos.ginasio = [...new Set(bruto.ginasio.filter(eData))];
-  limpos.compromissos = bruto.compromissos
+  const cycling = Array.isArray(bruto.cycling) ? bruto.cycling.filter(eData) : [];
+  limpos.cycling = [...new Set(cycling)].filter((dia) => !limpos.ginasio.includes(dia));
+  limpos.compromissos = (Array.isArray(bruto.compromissos) ? bruto.compromissos : [])
     .filter((c) => c && eTexto(c.texto) && eData(c.data) && eHora(c.hora))
     .map((c) => ({ id: idValido(c.id), texto: c.texto, data: c.data, hora: c.hora }));
   limpos.tarefas = bruto.tarefas

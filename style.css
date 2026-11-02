@@ -10,6 +10,9 @@
   --destaque-texto: #ffffff;
   --alerta: #a4500f;
   --verde: #1a7f37;
+  --sobre-verde: #ffffff;
+  --azul: #1d5fc4;
+  --sobre-azul: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +26,9 @@
     --destaque-texto: #0c1a1a;
     --alerta: #eda566;
     --verde: #4ade80;
+    --sobre-verde: #06240f;
+    --azul: #60a5fa;
+    --sobre-azul: #0b1a2e;
   }
 }
 
@@ -126,7 +132,6 @@ button:disabled { opacity: .6; }
 .linha-texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .linha-feita .linha-texto { text-decoration: line-through; color: var(--texto-suave); }
 .linha input[type="checkbox"] { width: 22px; height: 22px; flex: none; }
-.hora { font-weight: 600; font-variant-numeric: tabular-nums; }
 .botao-apagar { background: none; border: 0; color: var(--texto-suave); min-width: 44px; min-height: 44px; font-size: 1.1rem; flex: none; }
 
 /* --- Semana --- */
@@ -134,12 +139,13 @@ button:disabled { opacity: .6; }
 .semana-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
 .resumo { font-weight: 600; margin: 8px 0 12px; }
 .resumo-falta { color: var(--alerta); }
+.resumo-cycling { font-weight: 600; margin: -8px 0 12px; }
 
-/* Cinco colunas iguais: os quadrados encolhem com o ecrã, sempre numa só linha. */
+/* Sete colunas iguais: os quadrados encolhem com o ecrã, sempre numa só linha. */
 .quadrados {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -149,29 +155,39 @@ button:disabled { opacity: .6; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   width: 100%;
-  min-height: 72px;
-  padding: 6px 2px;
+  min-height: 66px;
+  margin: 0;
+  padding: 5px 0;
   background: var(--cartao);
   border: 1px solid var(--linha);
   border-radius: 8px;
 }
-.dia-nome { font-size: .8rem; }
-.dia-numero { font-size: 1.05rem; font-weight: 600; }
-/* Contorno afastado do quadrado, para se ver também quando o dia está colorido. */
-.dia-hoje { outline: 2px solid var(--destaque); outline-offset: 2px; }
-.dia[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
-/* O haltere é desenhado aqui e usa a cor do texto do quadrado. Fica invisível, mas a ocupar espaço, se o dia não estiver marcado. */
-.haltere {
-  width: 20px;
-  height: 20px;
+.dia-nome { font-size: .7rem; }
+.dia-numero { font-size: .95rem; font-weight: 600; }
+/* Contorno ligeiramente afastado do quadrado, para se ver também quando o dia está colorido. */
+.dia-hoje { outline: 2px solid var(--texto); outline-offset: 1px; }
+.dia[data-estado="ginasio"] { background: var(--azul); border-color: var(--azul); color: var(--sobre-azul); }
+.dia[data-estado="cycling"] { background: var(--verde); border-color: var(--verde); color: var(--sobre-verde); }
+/* Os ícones são desenhados aqui e usam a cor do texto do quadrado.
+   Ficam invisíveis, mas a ocupar espaço, se o dia não tiver atividade. */
+.dia-icone {
+  width: 16px;
+  height: 16px;
   visibility: hidden;
   background: currentColor;
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 9.5h2v5H1zM4 6.5h3.5v11H4zM16.5 6.5H20v11h-3.5zM21 9.5h2v5h-2zM7.5 10.5h9v3h-9z'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 9.5h2v5H1zM4 6.5h3.5v11H4zM16.5 6.5H20v11h-3.5zM21 9.5h2v5h-2zM7.5 10.5h9v3h-9z'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: var(--icone) center / contain no-repeat;
+  mask: var(--icone) center / contain no-repeat;
 }
-.dia[aria-pressed="true"] .haltere { visibility: visible; }
+.dia[data-estado="ginasio"] .dia-icone {
+  visibility: visible;
+  --icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 9.5h2v5H1zM4 6.5h3.5v11H4zM16.5 6.5H20v11h-3.5zM21 9.5h2v5h-2zM7.5 10.5h9v3h-9z'/%3E%3C/svg%3E");
+}
+.dia[data-estado="cycling"] .dia-icone {
+  visibility: visible;
+  --icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='5.5' cy='16.5' r='4'/%3E%3Ccircle cx='18.5' cy='16.5' r='4'/%3E%3Cpath d='M5.5 16.5 9.5 9h6.5l2.5 7.5M9.5 9l3.5 7.5H5.5M14.5 5H17l-1 4'/%3E%3C/svg%3E");
+}
 
 /* --- Compras: sim/não --- */
 .sim-nao { display: flex; flex: none; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }
@@ -182,7 +198,8 @@ button:disabled { opacity: .6; }
 .gerir { margin-top: 16px; }
 .gerir summary { min-height: 44px; padding: 10px 0; font-weight: 600; cursor: pointer; }
 .titulo-com-botao { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 20px 0 4px; }
-.titulo-com-botao h2 { margin: 0; }
+.titulo-com-botao h1, .titulo-com-botao h2 { margin: 0; }
+.titulo-vista { margin: 8px 0 12px; }
 .botao-pequeno {
   flex: none;
   min-height: 32px;
@@ -260,7 +277,7 @@ button:disabled { opacity: .6; }
   left: 0; right: 0; bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--cartao);
   border-top: 1px solid var(--linha);
