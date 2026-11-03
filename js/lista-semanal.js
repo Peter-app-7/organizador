@@ -59,27 +59,41 @@ const UNIDADE = '(?:kg|gr?|mg|l|lt|ml|cl|un|uni|unid|unidades?|latas?|embalagens
 const QUANTIDADE_FIM = new RegExp(`[\\s,;:–—-]+(?:x\\s*)?\\d+(?:[.,]\\d+)?\\s*${UNIDADE}?\\.?$`, 'i');
 const QUANTIDADE_INICIO = new RegExp(`^\\d+(?:[.,]\\d+)?\\s*(?:${UNIDADE}\\.?\\s+|x\\s+|\\s)(?:de\\s+)?`, 'i');
 
-function chaveProduto(nome) {
-  const semQuantidade = nome.trim()
+function nomeSemQuantidade(nome) {
+  return nome.trim()
     .replace(/\s*\([^()]*\)$/, '')
     .replace(QUANTIDADE_FIM, '')
     .replace(QUANTIDADE_INICIO, '');
-  return chaveTexto(semQuantidade);
 }
 
-// Só os produtos da lista semanal que ainda não estão nas compras, seja qual for o tipo em que lá estejam.
-function produtosSemanaisEmFalta() {
+// O hífen conta como espaço: "Batata-doce" e "Batata doce" são o mesmo produto.
+function chaveProduto(nome) {
+  return chaveTexto(nomeSemQuantidade(nome).replace(/-/g, ' '));
+}
+
+function temQuantidade(nome) {
+  return nomeSemQuantidade(nome) !== nome.trim();
+}
+
+// O que falta fazer: produtos que não estão nas compras, seja qual for o tipo em que lá estejam,
+// e produtos que estão lá sem quantidade. Um produto que já tenha quantidade não entra em nenhuma das listas.
+function planoListaSemanal() {
   const existentes = new Set(dados.compras.map((p) => chaveProduto(p.nome)));
-  const emFalta = [];
+  const quantidades = new Map();
+  const novos = [];
   LISTA_SEMANAL.forEach(({ tipo, produtos }) => {
     produtos.forEach(([nome, quantidade]) => {
       const chave = chaveProduto(nome);
+      quantidades.set(chave, quantidade);
       if (existentes.has(chave)) return;
       existentes.add(chave);
-      emFalta.push({ nome: primeiraMaiuscula(`${nome} (${quantidade})`), tipo });
+      novos.push({ nome: primeiraMaiuscula(`${nome} (${quantidade})`), tipo });
     });
   });
-  return emFalta;
+  const aPreencher = dados.compras
+    .filter((p) => quantidades.has(chaveProduto(p.nome)) && !temQuantidade(p.nome))
+    .map((produto) => ({ produto, quantidade: quantidades.get(chaveProduto(produto.nome)) }));
+  return { novos, aPreencher };
 }
 
 // Devolve o tipo tal como a app o conhece; se for novo, passa a existir.
@@ -90,20 +104,33 @@ function tipoDeCompras(nome) {
   return nome;
 }
 
+function contarProdutos(numero) {
+  return `${numero} ${numero === 1 ? 'produto' : 'produtos'}`;
+}
+
+function perguntaListaSemanal(novos, aPreencher) {
+  if (aPreencher === 0) return `Adicionar ${contarProdutos(novos)}?`;
+  if (novos === 0) return `Preencher a quantidade de ${contarProdutos(aPreencher)}?`;
+  return `Adicionar ${contarProdutos(novos)} e preencher a quantidade de ${aPreencher}?`;
+}
+
 function adicionarListaSemanal() {
-  const emFalta = produtosSemanaisEmFalta();
-  if (emFalta.length === 0) {
-    avisar('Os produtos da lista semanal já estão todos na lista.');
+  const { novos, aPreencher } = planoListaSemanal();
+  if (novos.length === 0 && aPreencher.length === 0) {
+    avisar('Os produtos da lista semanal já estão todos na lista, com quantidade.');
     return;
   }
-  const quantos = `${emFalta.length} ${emFalta.length === 1 ? 'produto' : 'produtos'}`;
-  if (!confirm(`Adicionar ${quantos}?`)) return;
-  emFalta.forEach(({ nome, tipo }) => {
+  if (!confirm(perguntaListaSemanal(novos.length, aPreencher.length))) return;
+  novos.forEach(({ nome, tipo }) => {
     dados.compras.push({ id: novoId(), nome, tipo: tipoDeCompras(tipo), comprar: true });
+  });
+  // Só muda o nome: o tipo e o sim/não ficam como estavam.
+  aPreencher.forEach(({ produto, quantidade }) => {
+    produto.nome = `${produto.nome.trim()} (${quantidade})`;
   });
   guardarDados();
   desenharCompras();
-  avisar(`${quantos} ${emFalta.length === 1 ? 'adicionado' : 'adicionados'}.`);
+  avisar('Lista semanal atualizada.');
 }
 
 document.getElementById('compras-lista-semanal').addEventListener('click', adicionarListaSemanal);
