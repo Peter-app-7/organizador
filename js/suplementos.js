@@ -122,17 +122,13 @@ function desenharSuplementos() {
 
   if (ordenados.some((s) => s.momentos.length > 0)) {
     // Dois a dois, sempre nos mesmos lugares: um horário vazio mostra só o título e um traço.
-    caixa.append(criar('div', { className: 'momentos-grelha' }, ...MOMENTOS.filter((m) => m.id !== 'livre').map((momento) => (
+    // O Horário livre é o último bloco e só aparece se tiver suplementos.
+    const blocos = MOMENTOS.filter((m) => m.id !== 'livre' || doMomento(m.id).length > 0);
+    caixa.append(criar('div', { className: 'momentos-grelha' }, ...blocos.map((momento) => (
       criar('div', { className: 'momento-celula' },
         criar('h3', { className: 'momento-titulo', textContent: momento.nome }),
         doMomento(momento.id).length > 0 ? nomes(momento.id) : criar('p', { className: 'momento-vazio', textContent: '—' }))
     ))));
-    const livre = MOMENTOS.find((m) => m.id === 'livre');
-    if (doMomento(livre.id).length > 0) {
-      caixa.append(criar('div', { className: 'momento-livre' },
-        criar('h3', { className: 'momento-titulo', textContent: livre.nome }),
-        nomes(livre.id)));
-    }
   } else {
     caixa.append(criar('p', { className: 'vazio', textContent: 'Ainda não há suplementos. Toca em "Editar" para os adicionar.' }));
   }

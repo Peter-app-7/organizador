@@ -253,11 +253,18 @@ button:disabled { opacity: .6; }
 
 /* --- Jejum: usa os quadrados e a navegação da Semana, com uma cor por tipo --- */
 #vista-suplementos .jejum { margin-top: 16px; }
-.jejum-cabecalho { display: flex; align-items: center; gap: 6px; }
-.jejum-cabecalho h2 { flex: none; margin: 0; }
-.jejum-navegacao { flex: none; grid-template-columns: 44px auto 44px; gap: 4px; }
+/* Duas colunas laterais iguais: o grupo ‹ Hoje › fica centrado no ecrã, seja qual for o texto dos lados. */
+.jejum-cabecalho { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 6px; }
+.jejum-cabecalho h2 { margin: 0; }
+.jejum-navegacao { grid-template-columns: 44px auto 44px; gap: 4px; }
 .jejum-navegacao button { padding: 0 8px; font-size: .9rem; }
-.jejum-datas { flex: 1; min-width: 0; margin: 0; font-size: .8rem; line-height: 1.2; text-align: right; color: var(--texto-suave); }
+.jejum-datas { margin: 0; font-size: .8rem; line-height: 1.2; text-align: right; white-space: nowrap; color: var(--texto-suave); }
+/* Em ecrãs muito estreitos, as datas passam para debaixo do título e as setas continuam centradas. */
+@media (max-width: 359px) {
+  .jejum-cabecalho h2 { grid-area: 1 / 1; }
+  .jejum-datas { grid-area: 2 / 1; text-align: left; }
+  .jejum-navegacao { grid-area: 1 / 2 / 3 / 3; }
+}
 .jejum-resumo { margin: 4px 0 6px; font-size: .85rem; font-weight: 600; line-height: 1.2; }
 .jejum-resumo .resumo-divisao { display: inline; font-size: .75rem; }
 
@@ -371,38 +378,32 @@ input.seletor-dia-campo {
 }
 .momento-titulo { margin: 10px 0 0; font-size: .8rem; font-weight: 700; color: var(--texto); }
 /* Vista geral: a página flui normalmente. A margem negativa tira a folga do fundo da página, para não haver
-   scroll quando tudo cabe; o fim da vista fica sempre 8 px acima da barra de baixo, com a zona segura incluída. */
+   scroll quando tudo cabe; o fim da vista fica sempre acima da barra de baixo, com a zona segura incluída. */
 #vista-suplementos { margin-bottom: -19px; }
 #vista-suplementos .titulo-vista { margin: 0 0 6px; }
 #suplementos-editar { min-height: 44px; }
+/* A Água fica bem separada do Jejum e sem encostar à barra de baixo. */
+#vista-suplementos .agua { margin: 28px 0 16px; }
 #suplementos-momentos .momento-titulo { margin: 0 0 2px; line-height: 1.2; }
 
-/* Horários dois a dois: Manhã e Almoço, Jantar e Noite. */
+/* Horários dois a dois: Manhã e Almoço, Jantar e Noite, Horário livre. */
 .momentos-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .momento-celula { min-width: 0; }
 .momento-vazio { margin: 0; font-size: .8rem; color: var(--texto-suave); }
-/* O horário livre fica numa linha, a toda a largura, separado dos horários fixos. */
-.momento-livre { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 4px; border-top: 1px solid var(--linha); }
-#suplementos-momentos .momento-livre .momento-titulo { flex: none; margin: 0; }
-.momento-livre .suplementos-nomes { flex: 1; min-width: 0; margin: 0; }
 
-/* Etiquetas lado a lado, que só quebram quando não cabem. A margem negativa alinha-as com o título. */
-.suplementos-nomes { display: flex; flex-wrap: wrap; list-style: none; margin: 0 0 0 -3px; padding: 0; }
-.suplementos-nomes li { min-width: 0; max-width: 100%; }
-/* A borda transparente conta para o toque (44 px), mas não se vê: entre etiquetas vêem-se só 6 px. */
+/* Nomes do dia, lado a lado, só texto. A margem negativa alinha o texto com o título, mantendo a zona de toque. */
+.suplementos-nomes { display: flex; flex-wrap: wrap; list-style: none; margin: 0 0 0 -8px; padding: 0; }
+.suplementos-nomes li { display: flex; min-width: 0; max-width: 100%; }
+/* Toque de 44 px; as margens negativas mantêm as linhas a 36 px umas das outras, sem as afastar. */
 .suplemento {
   min-height: 44px;
-  margin: 0;
-  padding: 2px 8px;
+  margin: -4px 0;
+  padding: 6px 8px;
   font-size: .85rem;
-  line-height: 1.2;
   text-align: left;
   color: var(--texto-suave);
-  background: var(--cartao);
-  background-clip: padding-box;
-  border: 3px solid transparent;
-  border-radius: 9px;
-  box-shadow: inset 0 0 0 1px var(--linha);
+  background: none;
+  border: 0;
 }
 .suplemento[aria-pressed="true"] { color: var(--verde); font-weight: 700; }
 
