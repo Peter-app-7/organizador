@@ -2,7 +2,7 @@
 // Tenta sempre primeiro a versão mais recente; sem internet, usa a guardada.
 // A previsão do tempo vem de outro endereço, por isso não passa por aqui.
 
-const NOME_CACHE = 'organizador-v7';
+const NOME_CACHE = 'organizador-v8';
 const FICHEIROS = [
   './',
   'index.html',
@@ -15,7 +15,10 @@ const FICHEIROS = [
   'js/semana.js',
   'js/tarefas.js',
   'js/compras.js',
+  'js/lista-semanal.js',
   'js/importar.js',
+  'js/receitas-dados.js',
+  'js/receitas.js',
   'js/localidade.js',
   'js/ajustes.js',
   'js/app.js',

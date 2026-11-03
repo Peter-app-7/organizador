@@ -405,19 +405,96 @@ input.seletor-dia-campo {
 .nota-previa { font-size: .9rem; color: var(--texto-suave); margin: 8px 0; overflow-wrap: anywhere; }
 #importar-previa .botao-principal { margin-top: 12px; }
 
+/* --- Compras: lista semanal --- */
+.botao-discreto {
+  display: block;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  font-size: .85rem;
+  color: var(--destaque);
+  background: none;
+  border: 0;
+}
+
+/* --- Receitas --- */
+.receita {
+  margin-bottom: 8px;
+  padding: 8px 12px 4px 8px;
+  cursor: pointer;
+  background: var(--cartao);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  transition: background-color .25s ease;
+}
+.receita-topo { display: flex; align-items: flex-start; gap: 8px; }
+.receita-titulo { flex: 1; min-width: 0; margin: 0; padding-top: 10px; font-size: 1rem; }
+.receita-ingredientes { margin: 6px 0 2px 4px; font-size: .85rem; color: var(--texto-suave); }
+.receita-titulo, .receita-ingredientes { transition: opacity .25s ease; }
+
+/* A caixa verdadeira fica invisível por cima do quadrado, com 44 px de zona de toque. */
+.receita-marca { position: relative; display: block; flex: none; width: 44px; height: 44px; cursor: pointer; }
+.receita-caixa { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.receita-visto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sobre-verde);
+  background: var(--cartao);
+  border: 2px solid var(--texto-suave);
+  border-radius: 8px;
+  transition: background-color .25s ease, border-color .25s ease;
+}
+.receita-caixa:focus-visible + .receita-visto { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.receita-caixa:checked + .receita-visto { background: var(--verde); border-color: var(--verde); }
+.receita-caixa:checked + .receita-visto::after { content: "✓"; }
+
+/* Feita: esbatida, mas os passos abertos continuam fáceis de ler. */
+.receita-feita { background: transparent; }
+.receita-feita .receita-titulo, .receita-feita .receita-ingredientes { opacity: .6; }
+
+.receita-abrir {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 0 0 4px;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--destaque);
+  background: none;
+  border: 0;
+}
+.receita-abrir::after { content: "›"; font-size: 1.3rem; line-height: 1; transition: transform .2s ease; }
+.receita-abrir[aria-expanded="true"]::after { transform: rotate(90deg); }
+.receita-passos { margin: 0 0 8px 4px; padding-top: 8px; font-size: .95rem; cursor: auto; border-top: 1px solid var(--linha); }
+.receita-passos ol { margin: 0; padding-left: 22px; }
+.receita-passos li { margin-bottom: 8px; }
+.receita-nota { margin: 8px 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .receita, .receita * { transition: none; }
+}
+
 /* --- Barra de baixo e avisos --- */
 .navegacao {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--cartao);
   border-top: 1px solid var(--linha);
 }
-.navegacao button { min-height: 60px; background: none; border: 0; font-size: 1.2rem; color: var(--texto-suave); }
-.navegacao span { display: block; font-size: .75rem; }
+.navegacao button { min-height: 60px; padding: 0 2px; background: none; border: 0; font-size: 1.2rem; color: var(--texto-suave); }
+.navegacao span { display: block; font-size: .75rem; white-space: nowrap; }
 .navegacao button[aria-current="page"] { color: var(--destaque); font-weight: 700; }
 
 .aviso {

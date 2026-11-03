@@ -30,6 +30,7 @@ function dadosIniciais() {
     tarefas: [],        // { id, texto, feita, dia }; "dia" é opcional, ex.: "2026-11-02", ou null
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
+    receitasFeitas: [], // ids das receitas marcadas como feitas esta semana (ver receitas-dados.js)
     suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] } ou { ..., momentos: ["livre"] }
     tomados: { data: null, marcados: [] }, // marcas do dia indicado em "data"
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
@@ -135,6 +136,10 @@ function normalizarDados(bruto) {
     tiposVistos.add(chaveTexto(tipo));
     limpos.tiposCompras.push(tipo);
   });
+
+  // Dados e cópias anteriores às receitas não têm esta lista: fica vazia.
+  const receitasFeitas = Array.isArray(bruto.receitasFeitas) ? bruto.receitasFeitas.filter(eTexto) : [];
+  limpos.receitasFeitas = [...new Set(receitasFeitas)];
 
   // Dados e cópias anteriores a esta funcionalidade não têm suplementos: fica a lista vazia.
   const suplementos = Array.isArray(bruto.suplementos) ? bruto.suplementos : [];

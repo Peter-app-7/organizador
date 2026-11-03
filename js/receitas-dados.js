@@ -1,0 +1,165 @@
+// receitas-dados.js: as receitas da vista Receitas. Para mudar uma receita, basta editar aqui.
+// Cada "id" identifica a marca "feita" guardada no aparelho: não o mudes numa receita que já exista.
+// Numa receita nova, usa um id que ainda não exista.
+
+const RECEITAS_NOTA = 'Quantidades para 2 adultos e 1 bebé. Despensa assumida (não vai para a lista de compras): azeite, sal, pimenta, alho, ervas aromáticas, paprika, vinagre, limão.';
+
+const RECEITAS = [
+  {
+    id: 'r01',
+    titulo: 'Hambúrgueres de vaca com batata doce assada e salada',
+    ingredientes: ['Vaca picada 400 g', 'Ovo 1 un.', 'Cebola 60 g', 'Batata doce 600 g', 'Salada 200 g', 'Azeite 2 c. sopa', 'Sal, pimenta e paprika a gosto'],
+    passos: [
+      'Liga o forno a 200 °C. Descasca a batata doce e corta-a em cubos de 2 cm.',
+      'Num tabuleiro com papel vegetal, mistura a batata doce com 1 colher de sopa de azeite, sal e paprika. Leva ao forno 30 a 35 minutos, virando os cubos a meio.',
+      'Pica a cebola bem fina. Numa taça, mistura com as mãos a carne, a cebola, o ovo, sal e pimenta, só até ficar uniforme.',
+      'Divide em 5 hambúrgueres de cerca de 80 g (2 para cada adulto e 1 para a bebé) e achata-os com a palma da mão.',
+      'Aquece uma frigideira antiaderente com 1 colher de sopa de azeite em lume médio-alto. Grelha 3 a 4 minutos por lado, sem carregar. Têm de ficar bem passados, sem rosa no centro.',
+      'Serve com a batata doce e a salada.',
+    ],
+    notaBebe: 'tira a porção dela antes de pôr sal; corta o hambúrguer em pedaços pequenos e esmaga a batata doce.',
+  },
+  {
+    id: 'r02',
+    titulo: 'Bife de vaca salteado com cogumelos e brócolos',
+    ingredientes: ['Bife de vaca 400 g', 'Cogumelos 250 g', 'Brócolos 400 g', 'Cebola 60 g', 'Alho 2 dentes', 'Azeite 2 c. sopa', 'Sal e pimenta a gosto'],
+    passos: [
+      'Corta o bife em tiras finas de 1 cm, contra o veio da carne. Tempera com sal e pimenta.',
+      'Corta os brócolos em floretes pequenos. Coze-os em água a ferver com sal durante 4 a 5 minutos, até ficarem verdes e ainda firmes. Escorre.',
+      'Lamina os cogumelos, corta a cebola em meias-luas finas e pica o alho.',
+      'Aquece 1 colher de sopa de azeite numa frigideira grande em lume forte. Salteia a carne em duas vezes, 1 a 2 minutos, sem mexer muito. Reserva.',
+      'Na mesma frigideira, com o resto do azeite, refoga a cebola 3 minutos, junta os cogumelos e deixa 5 minutos até dourarem e perderem a água. Junta o alho 30 segundos.',
+      'Junta os brócolos e a carne, mexe 1 minuto e acerta o sal.',
+    ],
+    notaBebe: 'corta a carne em tiras muito finas e bem macias; separa a porção dela antes do sal.',
+  },
+  {
+    id: 'r03',
+    titulo: 'Frango grelhado com brócolos e batata doce',
+    ingredientes: ['Bife de frango 400 g', 'Batata doce 500 g', 'Brócolos 400 g', 'Azeite 2 c. sopa', 'Paprika, sal e pimenta a gosto'],
+    passos: [
+      'Liga o forno a 200 °C. Corta a batata doce em rodelas de 1 cm, mistura com 1 colher de sopa de azeite e sal e põe num tabuleiro. Assa 25 a 30 minutos, virando a meio.',
+      'Tempera os bifes com 1 colher de sopa de azeite, sal, pimenta e paprika. Se forem grossos, achata-os até terem cerca de 1,5 cm.',
+      'Numa frigideira ou grelhador bem quente, grelha 4 a 5 minutos de cada lado. O frango está pronto quando não tem rosa por dentro e o sumo sai transparente.',
+      'Deixa repousar 3 minutos e corta em tiras.',
+      'Coze os brócolos em floretes, a vapor ou em água a ferver, 5 minutos.',
+    ],
+    notaBebe: 'corta o frango em pedaços pequenos e macios; esmaga a batata doce com um garfo; sem sal.',
+  },
+  {
+    id: 'r04',
+    titulo: 'Frango salteado com espinafres e cogumelos',
+    ingredientes: ['Bife de frango 400 g', 'Cogumelos 250 g', 'Espinafres 250 g', 'Cebola 60 g', 'Alho 2 dentes', 'Azeite 2 c. sopa', 'Sal e pimenta a gosto'],
+    passos: [
+      'Corta o frango em cubos de 2 cm e tempera com sal e pimenta.',
+      'Aquece 1 colher de sopa de azeite numa frigideira grande em lume forte. Salteia o frango 5 a 6 minutos, virando, até ficar dourado e cozinhado por dentro. Reserva.',
+      'Na mesma frigideira, com o resto do azeite, refoga a cebola em meias-luas 3 minutos. Junta os cogumelos laminados e deixa 5 minutos. Junta o alho 30 segundos.',
+      'Junta os espinafres em duas vezes e mexe 1 a 2 minutos até murcharem.',
+      'Devolve o frango, mistura 1 minuto e acerta o sal.',
+    ],
+    notaBebe: 'separa a porção dela antes do sal e corta tudo em pedaços pequenos.',
+  },
+  {
+    id: 'r05',
+    titulo: 'Peru com cebola e cogumelos',
+    ingredientes: ['Bife de peru 400 g', 'Cebola 150 g', 'Cogumelos 250 g', 'Azeite 2 c. sopa', 'Água 50 ml', 'Sal, pimenta e ervas aromáticas a gosto'],
+    passos: [
+      'Tempera os bifes de peru com sal e pimenta.',
+      'Aquece 1 colher de sopa de azeite numa frigideira em lume médio-alto. Dora o peru 3 a 4 minutos de cada lado. Reserva (acaba de cozinhar no passo 5).',
+      'Corta a cebola em meias-luas e refoga na mesma frigideira, em lume médio, 8 minutos, até ficar macia e translúcida.',
+      'Junta os cogumelos laminados e deixa 5 minutos.',
+      'Junta 50 ml de água e raspa o fundo da frigideira. Devolve o peru, tapa e deixa em lume brando 3 a 4 minutos, até não ter rosa por dentro. Corta em tiras.',
+    ],
+    notaBebe: 'corta o peru em tiras finas e macias; separa a porção dela antes do sal.',
+  },
+  {
+    id: 'r06',
+    titulo: 'Salmão no forno com espargos e arroz',
+    ingredientes: ['Salmão 400 g (2 lombos)', 'Espargos 250 g', 'Arroz 180 g (cru)', 'Água 360 ml', 'Azeite 1 c. sopa', 'Limão 1/2 (opcional)', 'Sal e pimenta a gosto'],
+    passos: [
+      'Liga o forno a 200 °C e forra um tabuleiro com papel vegetal.',
+      'Tira a base dura dos espargos (a parte que parte com facilidade). Põe-nos no tabuleiro com meia colher de sopa de azeite e sal.',
+      'Coloca o salmão ao lado, com o resto do azeite, sal e pimenta. Leva ao forno 12 a 15 minutos, até o salmão se desfazer em lascas com o garfo.',
+      'Arroz: lava-o, junta a água e uma pitada de sal, tapa e coze em lume baixo 12 a 15 minutos. Deixa repousar 5 minutos tapado e solta com um garfo.',
+      'Serve com um fio de limão, se quiseres.',
+    ],
+    notaBebe: 'tira a pele do salmão e confirma que não tem espinhas; desfaz em lascas; sem sal.',
+  },
+  {
+    id: 'r07',
+    titulo: 'Dourada ou robalo no forno com batata doce e brócolos',
+    ingredientes: ['Dourada ou robalo 400 g de filetes (ou 2 peixes inteiros de 350 a 400 g)', 'Batata doce 500 g', 'Brócolos 300 g', 'Azeite 2 c. sopa', 'Limão 1/2 (opcional)', 'Sal e pimenta a gosto'],
+    passos: [
+      'Liga o forno a 200 °C. Corta a batata doce em rodelas de 1 cm, mistura com 1 colher de sopa de azeite e sal e leva ao forno 15 minutos sozinha.',
+      'Seca o peixe com papel de cozinha e tempera com azeite, sal e pimenta. Filetes: junta ao tabuleiro e assa 12 a 15 minutos. Peixes inteiros: faz 3 golpes de cada lado e assa 25 a 30 minutos.',
+      'Coze os brócolos em floretes 5 minutos.',
+      'O peixe está pronto quando a carne fica opaca e se solta com facilidade. Serve com um fio de limão.',
+    ],
+    notaBebe: 'tira todas as espinhas com muito cuidado e desfaz o peixe com um garfo; sem sal.',
+  },
+  {
+    id: 'r08',
+    titulo: 'Omelete de claras com espinafres e cottage',
+    ingredientes: ['Ovos 6 un.', 'Claras de ovo 250 ml', 'Espinafres 150 g', 'Cottage 150 g', 'Azeite 1 c. sopa', 'Salada 200 g', 'Sal e pimenta a gosto'],
+    passos: [
+      'Bate os ovos com as claras, sal e pimenta.',
+      'Numa frigideira antiaderente com metade do azeite, em lume médio, salteia os espinafres 1 a 2 minutos até murcharem. Retira e escorre bem.',
+      'Na mesma frigideira, com o resto do azeite, deita os ovos. Mexe com a espátula nas bordas durante 1 minuto e baixa o lume. Tapa e deixa 4 a 5 minutos, até estar quase firme.',
+      'Distribui os espinafres e o cottage numa metade, dobra a omelete e deixa 1 a 2 minutos.',
+      'Corta em 3 partes e serve com a salada.',
+    ],
+    notaBebe: 'o ovo tem de estar bem cozinhado; sem sal.',
+  },
+  {
+    id: 'r09',
+    titulo: 'Salada de atum com ovo cozido e chucrute',
+    ingredientes: ['Atum em lata 2 latas', 'Ovos 4 un.', 'Salada 300 g', 'Cebola 30 g', 'Chucrute 60 g', 'Azeite 1 c. sopa', 'Vinagre 1 c. sopa', 'Sal e pimenta a gosto'],
+    passos: [
+      'Coze os ovos em água a ferver 10 minutos. Passa por água fria e descasca.',
+      'Escorre o atum, lava a salada e corta a cebola em rodelas muito finas.',
+      'Mistura a salada, a cebola e o chucrute numa taça grande.',
+      'Faz o molho com o azeite, o vinagre e pimenta. Usa pouco sal, porque o atum e o chucrute já têm.',
+      'Junta o atum em lascas e os ovos cortados em quartos.',
+    ],
+    notaBebe: 'não come o atum (mercúrio) nem o chucrute (sal); dá-lhe ovo cozido picado e salada macia ou legumes cozidos.',
+  },
+  {
+    id: 'r10',
+    titulo: 'Massa com bolonhesa de vaca e abóbora',
+    ingredientes: ['Massa 250 g', 'Vaca picada 400 g', 'Abóbora 300 g', 'Cebola 100 g', 'Tomate triturado 400 g (1 lata)', 'Alho 2 dentes', 'Azeite 1 c. sopa', 'Sal, pimenta e orégãos a gosto'],
+    passos: [
+      'Descasca a abóbora e rala-a no ralador grosso (desfaz-se no molho).',
+      'Refoga a cebola picada no azeite em lume médio 5 minutos. Junta o alho picado 30 segundos.',
+      'Junta a carne picada e desfaz-a com a colher de pau. Mexe 6 a 8 minutos, até perder a cor rosa.',
+      'Junta a abóbora ralada e deixa 3 minutos. Junta o tomate triturado, sal, pimenta e orégãos. Tapa e deixa em lume brando 20 minutos, mexendo de vez em quando.',
+      'Coze a massa em água abundante com sal, o tempo da embalagem. Guarda meia chávena da água da cozedura, escorre e mistura a massa com o molho, juntando um pouco dessa água.',
+    ],
+    notaBebe: 'deixa a massa um pouco mais cozida e separa a porção dela do molho antes do sal.',
+  },
+  {
+    id: 'r11',
+    titulo: 'Arroz de frango com cogumelos e espargos',
+    ingredientes: ['Arroz 180 g (cru)', 'Bife de frango 400 g', 'Cogumelos 200 g', 'Espargos 150 g', 'Cebola 80 g', 'Alho 1 dente', 'Água 450 ml', 'Azeite 1 c. sopa', 'Sal, pimenta e paprika a gosto'],
+    passos: [
+      'Corta o frango em cubos de 2 cm e tempera com sal, pimenta e paprika.',
+      'Num tacho com o azeite, em lume médio-alto, dora o frango 4 minutos. Reserva.',
+      'No mesmo tacho, refoga a cebola picada 4 minutos, junta os cogumelos laminados 4 minutos e o alho 30 segundos.',
+      'Junta o arroz sem lavar e mexe 1 minuto. Junta a água quente e sal, devolve o frango, tapa e deixa em lume mínimo 12 minutos.',
+      'Corta os espargos em pedaços de 3 cm (sem a base dura), põe por cima, tapa e deixa mais 5 minutos. Deixa repousar 5 minutos tapado e solta com um garfo.',
+    ],
+    notaBebe: 'separa a porção dela antes do sal; frango em pedaços pequenos e espargos bem macios.',
+  },
+  {
+    id: 'r12',
+    titulo: 'Sardinhas com abóbora assada e salada',
+    ingredientes: ['Sardinhas em lata 3 latas', 'Abóbora 600 g', 'Ovos 2 un.', 'Salada 200 g', 'Azeite 1 c. sopa', 'Sal, pimenta e limão ou vinagre a gosto'],
+    passos: [
+      'Liga o forno a 200 °C. Descasca a abóbora e corta em cubos de 2 cm. Mistura com o azeite e sal e assa 30 a 35 minutos, virando a meio, até ficar macia e dourada nas pontas.',
+      'Coze os ovos em água a ferver 10 minutos e passa por água fria.',
+      'Escorre as sardinhas. Podes servi-las frias ou aquecê-las 3 minutos no forno, no fim.',
+      'Tempera a salada com limão ou vinagre e um fio de azeite.',
+      'Serve as sardinhas com a abóbora, os ovos cortados ao meio e a salada.',
+    ],
+    notaBebe: 'tira a pele das sardinhas e esmaga-as com um garfo; esmaga também a abóbora; sem sal.',
+  },
+];

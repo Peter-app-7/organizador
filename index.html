@@ -99,7 +99,18 @@
       <label class="opcao">
         <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
       </label>
+      <button id="compras-lista-semanal" type="button" class="botao-discreto">Adicionar lista semanal</button>
       <div id="compras-lista"></div>
+    </section>
+
+    <section id="vista-receitas" class="vista" hidden>
+      <div class="titulo-com-botao titulo-vista">
+        <h1>Receitas</h1>
+        <button id="receitas-nova-semana" type="button" class="botao-pequeno">Nova semana</button>
+      </div>
+      <p id="receitas-contador" class="resumo"></p>
+      <p id="receitas-nota" class="nota-previa"></p>
+      <div id="receitas-lista"></div>
     </section>
 
     <section id="vista-ajustes" class="vista" hidden>
@@ -135,6 +146,7 @@
     <button type="button" data-vista="semana">📅<span>Semana</span></button>
     <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
     <button type="button" data-vista="compras">🛒<span>Compras</span></button>
+    <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
   </nav>
 
   <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
@@ -144,7 +156,10 @@
   <script src="js/semana.js"></script>
   <script src="js/tarefas.js"></script>
   <script src="js/compras.js"></script>
+  <script src="js/lista-semanal.js"></script>
   <script src="js/importar.js"></script>
+  <script src="js/receitas-dados.js"></script>
+  <script src="js/receitas.js"></script>
   <script src="js/localidade.js"></script>
   <script src="js/ajustes.js"></script>
   <script src="js/app.js"></script>
