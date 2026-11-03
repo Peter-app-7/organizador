@@ -251,38 +251,19 @@ button:disabled { opacity: .6; }
   border-radius: 6px;
 }
 
-/* --- Jejum: usa os quadrados da Semana, com uma cor por tipo --- */
-.jejum h2 { margin-top: 16px; }
-.jejum-dia { min-height: 56px; }
-.jejum-curto { min-height: 1.4em; }
-.jejum-dia[data-jejum="2r"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
-.jejum-dia[data-jejum="1r"] { background: var(--alerta); border-color: var(--alerta); color: var(--sobre-alerta); }
-.jejum-dia[data-jejum="36h"] { background: var(--roxo); border-color: var(--roxo); color: var(--sobre-roxo); }
+/* --- Jejum: usa os quadrados e a navegação da Semana, com uma cor por tipo --- */
+.jejum-navegacao { grid-template-columns: 1fr 2fr 1fr; }
+/* No lugar do ícone do ginásio, com a mesma altura, para os quadrados ficarem iguais. */
+.dia-jejum { height: 16px; font-size: .75rem; font-weight: 700; line-height: 16px; }
+.dia[data-jejum="2r"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
+.dia[data-jejum="1r"] { background: var(--alerta); border-color: var(--alerta); color: var(--sobre-alerta); }
+.dia[data-jejum="36h"] { background: var(--roxo); border-color: var(--roxo); color: var(--sobre-roxo); }
 
-.jejum-escolha { margin-top: 14px; padding: 2px 10px 6px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
-.jejum-escolha .momento-titulo { margin: 8px 0 2px; }
-.jejum-opcao {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  margin: 0;
-  padding: 4px 0;
-  font-size: .9rem;
-  text-align: left;
-  background: none;
-  border: 0;
-}
-.jejum-opcao[aria-pressed="true"] { font-weight: 700; }
-.jejum-opcao[aria-pressed="true"]::after { content: "✓"; margin-left: auto; color: var(--destaque); }
-
-/* Quadradinho de cor, usado nas opções e na legenda. */
-.jejum-cor { flex: none; width: 12px; height: 12px; background: var(--cor-jejum, transparent); border: 1px solid var(--cor-jejum, var(--texto-suave)); border-radius: 3px; }
+/* Legenda por baixo dos quadrados. */
+.jejum-cor { flex: none; width: 12px; height: 12px; background: var(--cor-jejum); border-radius: 3px; }
 [data-jejum="2r"] > .jejum-cor { --cor-jejum: var(--destaque); }
 [data-jejum="1r"] > .jejum-cor { --cor-jejum: var(--alerta); }
 [data-jejum="36h"] > .jejum-cor { --cor-jejum: var(--roxo); }
-
 .jejum-legenda { display: flex; flex-wrap: wrap; gap: 2px 12px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .8rem; color: var(--texto-suave); }
 .jejum-legenda li { display: flex; align-items: center; gap: 5px; }
 
