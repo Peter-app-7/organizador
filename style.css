@@ -252,20 +252,41 @@ button:disabled { opacity: .6; }
 }
 
 /* --- Jejum: usa os quadrados e a navegação da Semana, com uma cor por tipo --- */
-.jejum-navegacao { grid-template-columns: 1fr 2fr 1fr; }
-/* No lugar do ícone do ginásio, com a mesma altura, para os quadrados ficarem iguais. */
-.dia-jejum { height: 16px; font-size: .75rem; font-weight: 700; line-height: 16px; }
+.jejum { flex: none; }
+.jejum-cabecalho { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.jejum-cabecalho h2 { flex: none; margin: 0; }
+.jejum-navegacao { flex: none; grid-template-columns: 44px auto 44px; gap: 4px; }
+.jejum-navegacao button { padding: 0 8px; font-size: .9rem; }
+.jejum-datas { flex: 1; min-width: 0; margin: 0; font-size: .8rem; line-height: 1.2; text-align: right; color: var(--texto-suave); }
+.jejum-resumo { margin: 2px 0 4px; font-size: .8rem; font-weight: 600; line-height: 1.2; }
+.jejum-resumo .resumo-divisao { display: inline; font-size: .75rem; }
+
+/* Mais baixos do que os da Semana: o nome e o número na mesma linha, com o tipo por baixo. */
+#jejum-dias .dia {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  align-content: center;
+  align-items: baseline;
+  column-gap: 3px;
+  row-gap: 1px;
+  min-height: 46px;
+  padding: 2px 0;
+}
+#jejum-dias .dia-nome { font-size: .65rem; }
+#jejum-dias .dia-numero { font-size: .75rem; }
+.dia-jejum { grid-column: 1 / -1; height: 16px; font-size: .75rem; font-weight: 700; line-height: 16px; text-align: center; }
 .dia[data-jejum="2r"] { background: var(--destaque); border-color: var(--destaque); color: var(--destaque-texto); }
 .dia[data-jejum="1r"] { background: var(--alerta); border-color: var(--alerta); color: var(--sobre-alerta); }
 .dia[data-jejum="36h"] { background: var(--roxo); border-color: var(--roxo); color: var(--sobre-roxo); }
 
 /* Legenda por baixo dos quadrados. */
-.jejum-cor { flex: none; width: 12px; height: 12px; background: var(--cor-jejum); border-radius: 3px; }
+.jejum-cor { flex: none; width: 10px; height: 10px; background: var(--cor-jejum); border-radius: 3px; }
 [data-jejum="2r"] > .jejum-cor { --cor-jejum: var(--destaque); }
 [data-jejum="1r"] > .jejum-cor { --cor-jejum: var(--alerta); }
 [data-jejum="36h"] > .jejum-cor { --cor-jejum: var(--roxo); }
-.jejum-legenda { display: flex; flex-wrap: wrap; gap: 2px 12px; list-style: none; margin: 10px 0 0; padding: 0; font-size: .8rem; color: var(--texto-suave); }
-.jejum-legenda li { display: flex; align-items: center; gap: 5px; }
+.jejum-legenda { display: flex; flex-wrap: wrap; gap: 0 8px; list-style: none; margin: 4px 0 0; padding: 0; font-size: .7rem; line-height: 1.3; color: var(--texto-suave); }
+.jejum-legenda li { display: flex; align-items: center; gap: 4px; }
 
 /* --- Água: título e quatro botões numa só linha --- */
 .agua { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; }
@@ -359,16 +380,50 @@ input.seletor-dia-campo {
   border-radius: 8px;
 }
 .momento-titulo { margin: 10px 0 0; font-size: .8rem; font-weight: 700; color: var(--texto); }
-/* O horário livre fica separado dos horários fixos. */
-.momento-livre { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linha); }
+/* Vista geral sem scroll: ocupa o espaço entre o cabeçalho do tempo e a barra de baixo (a altura vem de
+   suplementos.js). A margem negativa compensa as folgas da página. A editar, volta a crescer normalmente. */
+#vista-suplementos:not(.suplementos-a-editar) {
+  display: flex;
+  flex-direction: column;
+  height: var(--altura-suplementos, auto);
+  margin-bottom: -20px;
+}
+#vista-suplementos > * { flex: none; }
+#vista-suplementos .titulo-vista { margin: 0; }
+#vista-suplementos h1 { font-size: 1.25rem; }
+#suplementos-editar { min-height: 44px; }
+#vista-suplementos .agua { margin: 6px 0 0; }
+
+/* Se faltar espaço, só os horários fazem scroll. A margem deixa ver a zona de toque à esquerda dos nomes. */
+#vista-suplementos #suplementos-momentos {
+  flex: 0 1 auto;
+  min-height: 0;
+  margin: 0 -8px;
+  padding: 0 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+#suplementos-momentos .momento-titulo { margin: 0; font-size: .75rem; line-height: 1.2; }
+
+/* Horários dois a dois: Manhã e Almoço, Jantar e Noite. */
+.momentos-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; margin-top: 2px; }
+.momento-celula { min-width: 0; }
+.momento-vazio { margin: 0; font-size: .8rem; color: var(--texto-suave); }
+/* O horário livre fica numa linha, a toda a largura, separado dos horários fixos. */
+.momento-livre { display: flex; align-items: center; gap: 8px; margin-top: 2px; padding-top: 2px; border-top: 1px solid var(--linha); }
+.momento-livre .momento-titulo { flex: none; }
+.momento-livre .suplementos-nomes { flex: 1; min-width: 0; margin: 0; }
 
 /* Nomes do dia, lado a lado. A margem negativa alinha o texto com o título, mantendo a zona de toque. */
 .suplementos-nomes { display: flex; flex-wrap: wrap; list-style: none; margin: 0 0 0 -8px; padding: 0; }
+.suplementos-nomes li { min-width: 0; max-width: 100%; }
 .suplemento {
-  min-height: 36px;
+  min-height: 44px;
   margin: 0;
-  padding: 6px 8px;
+  padding: 2px 8px;
   font-size: .85rem;
+  line-height: 1.2;
   text-align: left;
   color: var(--texto-suave);
   background: none;

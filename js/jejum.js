@@ -3,8 +3,8 @@
 
 // A ordem desta lista é a ordem dos toques. "lista" é o sítio dos dados onde ficam os dias desse tipo.
 const TIPOS_JEJUM = [
-  { id: '2r', lista: 'jejum2r', curto: '2R', nome: 'Intermitente (2 refeições por dia)', legenda: 'intermitente (2 refeições)' },
-  { id: '1r', lista: 'jejum1r', curto: '1R', nome: '1 refeição por dia', legenda: '1 refeição por dia' },
+  { id: '2r', lista: 'jejum2r', curto: '2R', nome: 'Intermitente (2 refeições por dia)', legenda: 'intermitente' },
+  { id: '1r', lista: 'jejum1r', curto: '1R', nome: '1 refeição por dia', legenda: '1 refeição' },
   { id: '36h', lista: 'jejum36h', curto: '36h', nome: '36 horas', legenda: '36 horas' },
 ];
 
@@ -32,6 +32,13 @@ function retirarJejum(texto) {
 function rotuloDiaJejum(texto) {
   const data = textoParaData(texto);
   return `${ABREVIATURAS_DIAS[(data.getDay() + 6) % 7]} ${data.getDate()}`;
+}
+
+// Ex.: "2–8 nov" ou, entre dois meses, "30 nov–6 dez".
+function intervaloDatasJejum(primeiro, ultimo) {
+  const mesmoMes = primeiro.slice(0, 7) === ultimo.slice(0, 7);
+  const inicio = mesmoMes ? String(textoParaData(primeiro).getDate()) : dataAbreviada(primeiro);
+  return `${inicio}–${dataAbreviada(ultimo)}`;
 }
 
 function mudarJejumDia(texto) {
@@ -73,14 +80,10 @@ function desenharJejum() {
   const [dois, um, trinta] = TIPOS_JEJUM.map(contar);
   const total = dois + um + trinta;
 
-  const primeiro = textoParaData(dias[0]);
-  const ultimo = textoParaData(dias[6]);
-  document.getElementById('jejum-titulo').textContent =
-    `${formatarData(primeiro, { day: 'numeric', month: 'short' })} a ${formatarData(ultimo, { day: 'numeric', month: 'short', year: 'numeric' })}`
-      .replace(/\./g, '');
+  document.getElementById('jejum-titulo').textContent = intervaloDatasJejum(dias[0], dias[6]);
 
   document.getElementById('jejum-resumo').replaceChildren(
-    `Jejum: ${total} ${total === 1 ? 'dia' : 'dias'} · ${trinta} de 36 h`,
+    `${total} ${total === 1 ? 'dia' : 'dias'} · ${trinta} de 36 h`,
     ' ',
     criar('span', { className: 'resumo-divisao', textContent: `${dois} de 2R · ${um} de 1R` }),
   );
