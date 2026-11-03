@@ -30,9 +30,11 @@
     <section id="vista-semana" class="vista">
       <h1>Semana</h1>
       <div class="semana-navegacao">
-        <button id="semana-anterior" type="button" aria-label="Semana anterior">‹</button>
+        <button id="semana-anterior" type="button" aria-label="Semana anterior">«</button>
+        <button id="dia-anterior" type="button" aria-label="Dia anterior">‹</button>
         <button id="semana-hoje" type="button">Hoje</button>
-        <button id="semana-seguinte" type="button" aria-label="Semana seguinte">›</button>
+        <button id="dia-seguinte" type="button" aria-label="Dia seguinte">›</button>
+        <button id="semana-seguinte" type="button" aria-label="Semana seguinte">»</button>
       </div>
       <p id="semana-titulo" class="subtitulo"></p>
       <p id="semana-resumo" class="resumo"></p>
@@ -48,6 +50,7 @@
         </label>
         <button type="submit" class="botao-principal">Adicionar</button>
       </form>
+      <p id="tarefas-dia-selecionado" class="subtitulo"></p>
       <div id="tarefas-lista"></div>
     </section>
 

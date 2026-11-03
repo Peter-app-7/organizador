@@ -58,6 +58,35 @@ function tiposDeCompras() {
   ];
 }
 
+// Converte o dia de uma tarefa para "AAAA-MM-DD", venha em que formato vier: "2026-11-03T10:00:00Z",
+// "03/11/2026", "3-11-26", "2026/11/03" ou um instante em milissegundos. Sem conversão possível, devolve null.
+function converterDiaTarefa(valor) {
+  if (typeof valor === 'number') {
+    const instante = new Date(valor);
+    return Number.isNaN(instante.getTime()) ? null : dataParaTexto(instante);
+  }
+  if (typeof valor !== 'string') return null;
+  const texto = valor.trim();
+
+  const comHoras = /^\d{4}-\d{2}-\d{2}T/.test(texto) ? new Date(texto) : null;
+  if (comHoras) return Number.isNaN(comHoras.getTime()) ? null : dataParaTexto(comHoras);
+
+  let ano; let mes; let dia;
+  const anoPrimeiro = texto.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  const diaPrimeiro = texto.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})$/);
+  if (anoPrimeiro) {
+    [, ano, mes, dia] = anoPrimeiro.map(Number);
+  } else if (diaPrimeiro) {
+    [, dia, mes, ano] = diaPrimeiro.map(Number);
+    if (ano < 100) ano += 2000;
+  } else {
+    return null;
+  }
+  // Rejeita dias que não existem, como 31/02.
+  const data = new Date(ano, mes - 1, dia);
+  return data.getMonth() === mes - 1 && data.getDate() === dia ? dataParaTexto(data) : null;
+}
+
 function novoId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -89,7 +118,7 @@ function normalizarDados(bruto) {
   });
   limpos.tarefas = bruto.tarefas
     .filter((t) => t && eTexto(t.texto))
-    .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true, dia: eData(t.dia) ? t.dia : null }));
+    .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true, dia: converterDiaTarefa(t.dia) }));
   limpos.compras = bruto.compras
     .filter((p) => p && eTexto(p.nome))
     .map((p) => ({

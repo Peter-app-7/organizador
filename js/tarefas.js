@@ -1,11 +1,17 @@
 // tarefas.js: lista de Tarefas, na vista Semana. Coisas para fazer, sem hora e com dia opcional,
 // que se marcam como feitas. Tocar no texto de uma tarefa abre a edição.
+// Mostra as tarefas sem dia e só as marcadas para o dia selecionado.
 
 // Tarefa aberta para editar: { id, texto, dia }. Guarda o que já foi escrito, para não se perder se a lista for redesenhada.
 let tarefaEmEdicao = null;
 
 function dataPorExtenso(texto) {
   return primeiraMaiuscula(formatarData(textoParaData(texto), { weekday: 'long', day: 'numeric', month: 'long' }));
+}
+
+// Uma tarefa guardada para outro dia deixa de se ver aqui: o aviso diz onde ficou.
+function avisarSeFicouNoutroDia(dia) {
+  if (dia && dia !== dataParaTexto(diaSelecionado)) avisar(`Tarefa guardada em: ${dataPorExtenso(dia)}.`);
 }
 
 function abrirEdicaoTarefa(tarefa) {
@@ -31,6 +37,7 @@ function guardarEdicaoTarefa() {
     tarefa.texto = texto;
     tarefa.dia = tarefaEmEdicao.dia || null;
     guardarDados();
+    avisarSeFicouNoutroDia(tarefa.dia);
   }
   fecharEdicaoTarefa();
 }
@@ -73,17 +80,9 @@ function linhaEdicaoTarefa() {
       criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: fecharEdicaoTarefa }))));
 }
 
-function linhaTarefa(tarefa, mostrarDia) {
+function linhaTarefa(tarefa) {
   if (tarefaEmEdicao && tarefaEmEdicao.id === tarefa.id) return linhaEdicaoTarefa();
 
-  const conteudo = [tarefa.texto];
-  if (mostrarDia) {
-    const atrasada = !tarefa.feita && tarefa.dia < dataParaTexto(new Date());
-    conteudo.push(criar('span', {
-      className: atrasada ? 'tarefa-dia tarefa-atrasada' : 'tarefa-dia',
-      textContent: dataPorExtenso(tarefa.dia),
-    }));
-  }
   return criar('li', { className: tarefa.feita ? 'linha linha-feita' : 'linha' },
     criar('input', {
       type: 'checkbox',
@@ -98,9 +97,10 @@ function linhaTarefa(tarefa, mostrarDia) {
     criar('button', {
       type: 'button',
       className: 'linha-texto tarefa-texto',
+      textContent: tarefa.texto,
       'aria-label': `Editar: ${tarefa.texto}`,
       onclick: () => abrirEdicaoTarefa(tarefa),
-    }, ...conteudo),
+    }),
     botaoApagar(tarefa.texto, () => {
       dados.tarefas = dados.tarefas.filter((t) => t.id !== tarefa.id);
       if (tarefaEmEdicao && tarefaEmEdicao.id === tarefa.id) tarefaEmEdicao = null;
@@ -114,27 +114,25 @@ function porFazerPrimeiro(tarefas) {
   return [...tarefas.filter((t) => !t.feita), ...tarefas.filter((t) => t.feita)];
 }
 
-function grupoTarefas(titulo, tarefas, mostrarDia = false) {
+function grupoTarefas(titulo, tarefas) {
   if (tarefas.length === 0) return [];
-  const lista = criar('ul', { className: 'lista' }, ...tarefas.map((t) => linhaTarefa(t, mostrarDia)));
+  const lista = criar('ul', { className: 'lista' }, ...tarefas.map(linhaTarefa));
   return titulo ? [criar('h3', { textContent: titulo }), lista] : [lista];
 }
 
 function desenharTarefas() {
-  const diasDaSemana = diasDaSemanaMostrada().map(dataParaTexto);
-  const comDia = dados.tarefas.filter((t) => t.dia);
+  const selecionado = dataParaTexto(diaSelecionado);
+  document.getElementById('tarefas-dia-selecionado').textContent = dataPorExtenso(selecionado);
+
+  // Uma tarefa aberta para editar continua à vista, mesmo que se navegue para outro dia.
+  const emEdicao = (t) => tarefaEmEdicao && tarefaEmEdicao.id === t.id;
+  const doDia = dados.tarefas.filter((t) => t.dia && (t.dia === selecionado || emEdicao(t)));
   const semDia = dados.tarefas.filter((t) => !t.dia);
-  // De outras semanas só aparecem as por fazer, para nenhuma ficar esquecida.
-  const noutrosDias = comDia
-    .filter((t) => !t.feita && !diasDaSemana.includes(t.dia))
-    .sort((a, b) => a.dia.localeCompare(b.dia));
-  const temGrupos = comDia.length > 0;
 
   const caixa = document.getElementById('tarefas-lista');
   caixa.replaceChildren(
-    ...diasDaSemana.flatMap((dia) => grupoTarefas(dataPorExtenso(dia), porFazerPrimeiro(comDia.filter((t) => t.dia === dia)))),
-    ...grupoTarefas(temGrupos ? 'Sem dia' : null, porFazerPrimeiro(semDia)),
-    ...grupoTarefas('Noutros dias', noutrosDias, true),
+    ...grupoTarefas(doDia.length > 0 ? 'Para este dia' : null, porFazerPrimeiro(doDia)),
+    ...grupoTarefas(doDia.length > 0 ? 'Sem dia' : null, porFazerPrimeiro(semDia)),
   );
   if (caixa.children.length === 0) {
     caixa.append(criar('p', { className: 'vazio', textContent: 'Sem tarefas.' }));
@@ -149,6 +147,7 @@ document.getElementById('tarefas-formulario').addEventListener('submit', (evento
   if (!texto) return;
   dados.tarefas.push({ id: novoId(), texto, feita: false, dia: campoDia.value || null });
   guardarDados();
+  avisarSeFicouNoutroDia(campoDia.value);
   campo.value = '';
   campoDia.value = '';
   desenhar.semana();

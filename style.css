@@ -141,14 +141,12 @@ button:disabled { opacity: .6; }
 .linha-texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* O texto da tarefa é um botão: tocar abre a edição. */
 .tarefa-texto { min-height: 36px; margin: 0; padding: 0; text-align: left; background: none; border: 0; }
-.tarefa-dia { display: block; font-size: .8rem; color: var(--texto-suave); }
-.tarefa-atrasada { color: var(--alerta); }
 .linha-feita .linha-texto { text-decoration: line-through; color: var(--texto-suave); }
 .linha input[type="checkbox"] { width: 22px; height: 22px; flex: none; }
 .botao-apagar { background: none; border: 0; color: var(--texto-suave); min-width: 44px; min-height: 44px; font-size: 1.1rem; flex: none; }
 
 /* --- Semana --- */
-.semana-navegacao { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 8px; }
+.semana-navegacao { display: grid; grid-template-columns: 1fr 1fr 2fr 1fr 1fr; gap: 8px; }
 .semana-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
 .resumo { font-weight: 600; margin: 8px 0 12px; }
 .resumo-falta { color: var(--alerta); }
@@ -199,6 +197,17 @@ button:disabled { opacity: .6; }
 .dia-numero { font-size: .95rem; font-weight: 600; }
 /* Contorno ligeiramente afastado do quadrado, para se ver também quando o dia está colorido. */
 .dia-hoje { outline: 2px solid var(--texto); outline-offset: 1px; }
+/* Traço por baixo do dia selecionado, fora do quadrado para se ver em qualquer cor. */
+.dia-selecionado::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: -8px;
+  height: 3px;
+  background: var(--destaque);
+  border-radius: 2px;
+}
 .dia[data-estado="ginasio"] { background: var(--azul); border-color: var(--azul); color: var(--sobre-azul); }
 .dia[data-estado="cycling"] { background: var(--verde); border-color: var(--verde); color: var(--sobre-verde); }
 .dia[data-estado="falhado"] { background: var(--vermelho); border-color: var(--vermelho); color: var(--sobre-vermelho); }
@@ -232,7 +241,7 @@ button:disabled { opacity: .6; }
   justify-content: center;
   width: min(100%, 30px);
   aspect-ratio: 1;
-  margin: 6px auto 0;
+  margin: 10px auto 0;
   font-size: .65rem;
   font-weight: 600;
   white-space: nowrap;

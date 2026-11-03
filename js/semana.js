@@ -1,6 +1,7 @@
 // semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
 // nada, Ginásio, Cycling, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia,
-// só para consulta, e um número no canto com as tarefas por fazer desse dia. No fim da vista ficam as tarefas.
+// só para consulta, e um número no canto com as tarefas por fazer desse dia. No fim da vista ficam as tarefas
+// do dia selecionado, que muda com os botões de navegação.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', falhado: 'Falhado' };
@@ -14,14 +15,25 @@ function segundaDaSemana(data) {
   return somarDias(data, -diasDesdeSegunda);
 }
 
-function semanaDeHoje() {
-  return segundaDaSemana(new Date());
+let diaSelecionado = somarDias(new Date(), 0);
+let hojeConhecido = dataParaTexto(new Date());
+
+function selecionarDia(data) {
+  diaSelecionado = data;
+  desenhar.semana();
 }
 
-let semanaMostrada = semanaDeHoje();
+// Se o dia mudar com a app aberta e estivesses a ver "hoje", continuas a ver o novo "hoje".
+aoAbrir.push(() => {
+  const hoje = dataParaTexto(new Date());
+  if (hoje === hojeConhecido) return;
+  if (dataParaTexto(diaSelecionado) === hojeConhecido) diaSelecionado = somarDias(new Date(), 0);
+  hojeConhecido = hoje;
+});
 
 function diasDaSemanaMostrada() {
-  return [0, 1, 2, 3, 4, 5, 6].map((n) => somarDias(semanaMostrada, n));
+  const segunda = segundaDaSemana(diaSelecionado);
+  return [0, 1, 2, 3, 4, 5, 6].map((n) => somarDias(segunda, n));
 }
 
 function contarNaSemana(lista) {
@@ -67,6 +79,7 @@ function desenharSemana() {
   const total = diasGinasio + diasCycling;
   const diasFalhados = contarNaSemana(dados.falhados);
   const hoje = dataParaTexto(new Date());
+  const selecionado = dataParaTexto(diaSelecionado);
 
   document.getElementById('semana-titulo').textContent =
     `${formatarData(dias[0], { day: 'numeric', month: 'short' })} a ${formatarData(dias[6], { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -92,8 +105,8 @@ function desenharSemana() {
     const descricaoTarefas = porFazer ? `, ${porFazer} ${porFazer === 1 ? 'tarefa' : 'tarefas'} por fazer` : '';
     return criar('li', {}, criar('button', {
       type: 'button',
-      className: texto === hoje ? 'dia dia-hoje' : 'dia',
-      'aria-label': `${nome}: ${NOMES_ESTADOS[estado]}${descricaoAgua}${descricaoTarefas}`,
+      className: ['dia', texto === hoje && 'dia-hoje', texto === selecionado && 'dia-selecionado'].filter(Boolean).join(' '),
+      'aria-label': `${nome}: ${NOMES_ESTADOS[estado]}${descricaoAgua}${descricaoTarefas}${texto === selecionado ? ', dia selecionado' : ''}`,
       onclick: () => mudarEstadoDia(texto),
     },
     criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[i] }),
@@ -107,18 +120,11 @@ function desenharSemana() {
   });
 }
 
-document.getElementById('semana-anterior').addEventListener('click', () => {
-  semanaMostrada = somarDias(semanaMostrada, -7);
-  desenhar.semana();
-});
-document.getElementById('semana-seguinte').addEventListener('click', () => {
-  semanaMostrada = somarDias(semanaMostrada, 7);
-  desenhar.semana();
-});
-document.getElementById('semana-hoje').addEventListener('click', () => {
-  semanaMostrada = semanaDeHoje();
-  desenhar.semana();
-});
+document.getElementById('semana-anterior').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, -7)));
+document.getElementById('dia-anterior').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, -1)));
+document.getElementById('semana-hoje').addEventListener('click', () => selecionarDia(somarDias(new Date(), 0)));
+document.getElementById('dia-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 1)));
+document.getElementById('semana-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 7)));
 
 desenhar.semana = () => {
   desenharSemana();
