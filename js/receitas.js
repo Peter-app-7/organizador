@@ -71,7 +71,6 @@ function desenharReceitas() {
   document.getElementById('receitas-lista').replaceChildren(...RECEITAS.map(cartaoReceita));
 }
 
-document.getElementById('receitas-nota').textContent = RECEITAS_NOTA;
 document.getElementById('receitas-nova-semana').addEventListener('click', () => {
   if (!confirm('Desmarcar todas as receitas?')) return;
   dados.receitasFeitas = [];

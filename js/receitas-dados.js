@@ -2,8 +2,6 @@
 // Cada "id" identifica a marca "feita" guardada no aparelho: não o mudes numa receita que já exista.
 // Numa receita nova, usa um id que ainda não exista.
 
-const RECEITAS_NOTA = 'Despensa assumida (não vai para a lista de compras): azeite, sal, pimenta, alho, ervas aromáticas, paprika, vinagre, limão.';
-
 const RECEITAS = [
   {
     id: 'r01',

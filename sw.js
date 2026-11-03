@@ -2,7 +2,7 @@
 // Tenta sempre primeiro a versão mais recente; sem internet, usa a guardada.
 // A previsão do tempo vem de outro endereço, por isso não passa por aqui.
 
-const NOME_CACHE = 'organizador-v9';
+const NOME_CACHE = 'organizador-v10';
 const FICHEIROS = [
   './',
   'index.html',
