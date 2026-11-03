@@ -387,8 +387,9 @@ input.seletor-dia-campo {
 #suplementos-momentos .momento-titulo { margin: 0 0 2px; line-height: 1.2; }
 
 /* Horários dois a dois: Manhã e Almoço, Jantar e Noite, Horário livre. */
-.momentos-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
-.momento-celula { min-width: 0; }
+/* Cada bloco é um cartão; a grelha dá a mesma altura às duas caixas de cada linha. */
+.momentos-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.momento-celula { min-width: 0; padding: 10px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
 .momento-vazio { margin: 0; font-size: .8rem; color: var(--texto-suave); }
 
 /* Nomes do dia, lado a lado, só texto. A margem negativa alinha o texto com o título, mantendo a zona de toque. */
