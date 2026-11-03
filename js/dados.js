@@ -15,6 +15,13 @@ const MOMENTOS = [
   { id: 'livre', nome: 'Horário livre', letra: 'L' }, // sem hora marcada: não se junta aos outros momentos
 ];
 
+const TIPOS_JEJUM = [
+  { id: 'nenhum', nome: 'Sem jejum', curto: '', legenda: '' },
+  { id: '2r', nome: 'Intermitente (2 refeições por dia)', curto: '2R', legenda: 'intermitente' },
+  { id: '1r', nome: '1 refeição por dia', curto: '1R', legenda: '1 refeição' },
+  { id: '36h', nome: '36 horas', curto: '36h', legenda: '36 horas' },
+];
+
 // Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.compras()...
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
@@ -33,6 +40,7 @@ function dadosIniciais() {
     receitasFeitas: [], // ids das receitas marcadas como feitas esta semana (ver receitas-dados.js)
     suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] } ou { ..., momentos: ["livre"] }
     tomados: { data: null, marcados: [] }, // marcas do dia indicado em "data"
+    jejum: Array(7).fill('nenhum'), // tipo de jejum de segunda a domingo; repete-se todas as semanas
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
@@ -154,6 +162,17 @@ function normalizarDados(bruto) {
   if (tomados && eData(tomados.data) && Array.isArray(tomados.marcados)) {
     limpos.tomados = { data: tomados.data, marcados: tomados.marcados.filter((c) => typeof c === 'string') };
   }
+
+  // Dados e cópias anteriores ao jejum ficam sem jejum. Só um dia pode ter 36 horas: fica o primeiro.
+  const jejum = Array.isArray(bruto.jejum) ? bruto.jejum : [];
+  let tem36Horas = false;
+  limpos.jejum = limpos.jejum.map((semJejum, i) => {
+    if (!TIPOS_JEJUM.some((tipo) => tipo.id === jejum[i])) return semJejum;
+    if (jejum[i] !== '36h') return jejum[i];
+    if (tem36Horas) return semJejum;
+    tem36Horas = true;
+    return '36h';
+  });
 
   const local = bruto.localidade;
   if (local && eTexto(local.nome)
