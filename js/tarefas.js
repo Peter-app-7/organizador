@@ -9,6 +9,56 @@ function dataPorExtenso(texto) {
   return primeiraMaiuscula(formatarData(textoParaData(texto), { weekday: 'long', day: 'numeric', month: 'long' }));
 }
 
+const MESES_ABREVIADOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+// Ex.: "2026-11-12" passa a "12 nov".
+function dataAbreviada(texto) {
+  const data = textoParaData(texto);
+  return `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}`;
+}
+
+// Ícone de calendário que abre o seletor de data do sistema e, com dia escolhido, mostra a data e um ✕.
+// O campo de data fica invisível por cima do ícone: é tocar nele que abre o seletor no iPhone.
+function seletorDia(id, valor, aoMudar) {
+  const campo = criar('input', {
+    id,
+    type: 'date',
+    className: 'seletor-dia-campo',
+    value: valor,
+    'aria-label': 'Dia da tarefa (opcional)',
+  });
+  const rotulo = criar('span', { className: 'seletor-dia-rotulo' });
+  const botao = criar('label', { className: 'seletor-dia' }, rotulo, campo);
+  const remover = criar('button', {
+    type: 'button',
+    className: 'botao-apagar',
+    textContent: '✕',
+    'aria-label': 'Retirar o dia',
+  });
+
+  const mostrar = () => {
+    rotulo.textContent = campo.value ? dataAbreviada(campo.value) : '';
+    botao.classList.toggle('seletor-dia-escolhido', Boolean(campo.value));
+    remover.hidden = !campo.value;
+  };
+  const mudou = () => {
+    mostrar();
+    aoMudar(campo.value);
+  };
+  campo.addEventListener('input', mudou);
+  campo.addEventListener('change', mudou);
+  remover.addEventListener('click', () => {
+    campo.value = '';
+    mudou();
+  });
+  mostrar();
+  return [botao, remover];
+}
+
+function desenharSeletorNovaTarefa() {
+  document.getElementById('tarefas-seletor-dia').replaceChildren(...seletorDia('tarefas-dia', '', () => {}));
+}
+
 // Uma tarefa guardada para outro dia deixa de se ver aqui: o aviso diz onde ficou.
 function avisarSeFicouNoutroDia(dia) {
   if (dia && dia !== dataParaTexto(diaSelecionado)) avisar(`Tarefa guardada em: ${dataPorExtenso(dia)}.`);
@@ -43,12 +93,6 @@ function guardarEdicaoTarefa() {
 }
 
 function linhaEdicaoTarefa() {
-  const campoDia = criar('input', {
-    id: 'tarefa-edicao-dia',
-    type: 'date',
-    value: tarefaEmEdicao.dia,
-    oninput: (evento) => { tarefaEmEdicao.dia = evento.target.value; },
-  });
   return criar('li', { className: 'linha linha-edicao' },
     criar('form', {
       className: 'formulario',
@@ -57,24 +101,16 @@ function linhaEdicaoTarefa() {
         guardarEdicaoTarefa();
       },
     },
-    criar('label', {}, 'Tarefa', criar('input', {
-      id: 'tarefa-edicao-texto',
-      type: 'text',
-      value: tarefaEmEdicao.texto,
-      required: true,
-      oninput: (evento) => { tarefaEmEdicao.texto = evento.target.value; },
-    })),
-    criar('div', { className: 'campo-com-botao' },
-      criar('label', {}, 'Dia (opcional)', campoDia),
-      criar('button', {
-        type: 'button',
-        className: 'botao-pequeno',
-        textContent: 'Sem dia',
-        onclick: () => {
-          campoDia.value = '';
-          tarefaEmEdicao.dia = '';
-        },
-      })),
+    criar('div', { className: 'linha-tarefa-campos' },
+      criar('input', {
+        id: 'tarefa-edicao-texto',
+        type: 'text',
+        value: tarefaEmEdicao.texto,
+        required: true,
+        'aria-label': 'Texto da tarefa',
+        oninput: (evento) => { tarefaEmEdicao.texto = evento.target.value; },
+      }),
+      criar('div', { className: 'seletor-dia-caixa' }, ...seletorDia('tarefa-edicao-dia', tarefaEmEdicao.dia, (dia) => { tarefaEmEdicao.dia = dia; }))),
     criar('div', { className: 'botoes-edicao' },
       criar('button', { type: 'submit', className: 'botao-principal', textContent: 'Guardar' }),
       criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: fecharEdicaoTarefa }))));
@@ -142,13 +178,15 @@ function desenharTarefas() {
 document.getElementById('tarefas-formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();
   const campo = document.getElementById('tarefas-texto');
-  const campoDia = document.getElementById('tarefas-dia');
+  const dia = document.getElementById('tarefas-dia').value;
   const texto = campo.value.trim();
   if (!texto) return;
-  dados.tarefas.push({ id: novoId(), texto, feita: false, dia: campoDia.value || null });
+  dados.tarefas.push({ id: novoId(), texto, feita: false, dia: dia || null });
   guardarDados();
-  avisarSeFicouNoutroDia(campoDia.value);
+  avisarSeFicouNoutroDia(dia);
   campo.value = '';
-  campoDia.value = '';
+  desenharSeletorNovaTarefa();
   desenhar.semana();
 });
+
+desenharSeletorNovaTarefa();

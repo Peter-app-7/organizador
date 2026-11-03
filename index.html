@@ -41,14 +41,10 @@
       <ul id="semana-dias" class="quadrados"></ul>
 
       <h2>Tarefas</h2>
-      <form id="tarefas-formulario" class="formulario">
-        <label>Nova tarefa
-          <input id="tarefas-texto" type="text" placeholder="Ex.: renovar o cartão" required>
-        </label>
-        <label>Dia (opcional)
-          <input id="tarefas-dia" type="date">
-        </label>
-        <button type="submit" class="botao-principal">Adicionar</button>
+      <form id="tarefas-formulario" class="linha-tarefa-campos">
+        <input id="tarefas-texto" type="text" placeholder="Nova tarefa" aria-label="Nova tarefa" autocomplete="off" required>
+        <div id="tarefas-seletor-dia" class="seletor-dia-caixa"></div>
+        <button type="submit" class="botao-adicionar" aria-label="Adicionar tarefa">+</button>
       </form>
       <p id="tarefas-dia-selecionado" class="subtitulo"></p>
       <div id="tarefas-lista"></div>
