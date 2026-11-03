@@ -147,8 +147,6 @@ document.getElementById('suplementos-editar').addEventListener('click', (evento)
   painel.hidden = !painel.hidden;
   evento.currentTarget.textContent = painel.hidden ? 'Editar' : 'Fechar';
   evento.currentTarget.setAttribute('aria-expanded', String(!painel.hidden));
-  // A editar, a vista cresce e a página faz scroll normalmente.
-  document.getElementById('vista-suplementos').classList.toggle('suplementos-a-editar', !painel.hidden);
 });
 
 document.getElementById('suplementos-formulario').addEventListener('submit', (evento) => {
@@ -204,20 +202,5 @@ function desenharAgua() {
     onclick: () => tocarNivelAgua(litros),
   })));
 }
-
-// Altura que sobra entre o cabeçalho do tempo e a barra de baixo. A vista ocupa exatamente esse espaço:
-// o Jejum e a Água ficam sempre visíveis e, se faltar espaço, só os horários fazem scroll.
-const ALTURA_MINIMA_SUPLEMENTOS = 380; // em ecrãs mais baixos, como na horizontal, a página faz scroll
-const cabecalhoTempo = document.querySelector('.tempo');
-const barraNavegacao = document.querySelector('.navegacao');
-
-function ajustarAlturaSuplementos() {
-  const livre = window.innerHeight - cabecalhoTempo.offsetHeight - barraNavegacao.offsetHeight - 12; // 8 em cima e 4 em baixo
-  document.documentElement.style.setProperty('--altura-suplementos', `${Math.max(livre, ALTURA_MINIMA_SUPLEMENTOS)}px`);
-}
-window.addEventListener('resize', ajustarAlturaSuplementos);
-// O cabeçalho muda de altura quando a previsão chega.
-new ResizeObserver(ajustarAlturaSuplementos).observe(cabecalhoTempo);
-ajustarAlturaSuplementos();
 
 desenhar.suplementos = desenharSuplementos;
