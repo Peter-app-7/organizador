@@ -4,7 +4,7 @@
 // durante 10 minutos, e misturar ficheiros de versões diferentes pode partir a app.
 // A previsão do tempo vem de outro endereço, por isso não passa por aqui.
 
-const NOME_CACHE = 'organizador-v18';
+const NOME_CACHE = 'organizador-v20';
 const FICHEIROS = [
   './',
   'index.html',
@@ -15,8 +15,8 @@ const FICHEIROS = [
   'js/tempo.js',
   'js/suplementos.js',
   'js/semana.js',
+  'js/habitos.js',
   'js/jejum.js',
-  'js/tarefas.js',
   'js/compras.js',
   'js/lista-semanal.js',
   'js/importar.js',

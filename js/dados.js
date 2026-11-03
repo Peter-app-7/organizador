@@ -27,7 +27,6 @@ function dadosIniciais() {
     cycling: [],        // dias de cycling, no mesmo formato
     falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das três listas
     agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
-    tarefas: [],        // { id, texto, feita, dia }; "dia" é opcional, ex.: "2026-11-02", ou null
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
     receitasFeitas: [], // ids das receitas marcadas como feitas esta semana (ver receitas-dados.js)
@@ -36,6 +35,10 @@ function dadosIniciais() {
     jejum2r: [],        // dias de jejum, por tipo, como os dias de ginásio; um dia só está numa das três listas
     jejum1r: [],
     jejum36h: [],
+    tabacoSem: [],      // dias sem tabaco e dias com consumo; um dia só está numa das duas listas
+    tabacoConsumo: [],
+    alcoolSem: [],      // o mesmo para o álcool, sem depender do tabaco
+    alcoolConsumo: [],
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
@@ -62,35 +65,6 @@ function tiposDeCompras() {
   ];
 }
 
-// Converte o dia de uma tarefa para "AAAA-MM-DD", venha em que formato vier: "2026-11-03T10:00:00Z",
-// "03/11/2026", "3-11-26", "2026/11/03" ou um instante em milissegundos. Sem conversão possível, devolve null.
-function converterDiaTarefa(valor) {
-  if (typeof valor === 'number') {
-    const instante = new Date(valor);
-    return Number.isNaN(instante.getTime()) ? null : dataParaTexto(instante);
-  }
-  if (typeof valor !== 'string') return null;
-  const texto = valor.trim();
-
-  const comHoras = /^\d{4}-\d{2}-\d{2}T/.test(texto) ? new Date(texto) : null;
-  if (comHoras) return Number.isNaN(comHoras.getTime()) ? null : dataParaTexto(comHoras);
-
-  let ano; let mes; let dia;
-  const anoPrimeiro = texto.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-  const diaPrimeiro = texto.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})$/);
-  if (anoPrimeiro) {
-    [, ano, mes, dia] = anoPrimeiro.map(Number);
-  } else if (diaPrimeiro) {
-    [, dia, mes, ano] = diaPrimeiro.map(Number);
-    if (ano < 100) ano += 2000;
-  } else {
-    return null;
-  }
-  // Rejeita dias que não existem, como 31/02.
-  const data = new Date(ano, mes - 1, dia);
-  return data.getMonth() === mes - 1 && data.getDate() === dia ? dataParaTexto(data) : null;
-}
-
 function novoId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -98,7 +72,7 @@ function novoId() {
 // Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
 // Lança um erro se não parecerem dados desta app.
 function normalizarDados(bruto) {
-  const listas = ['ginasio', 'tarefas', 'compras'];
+  const listas = ['ginasio', 'compras'];
   if (!bruto || typeof bruto !== 'object' || !listas.every((nome) => Array.isArray(bruto[nome]))) {
     throw new Error('Formato desconhecido');
   }
@@ -120,9 +94,6 @@ function normalizarDados(bruto) {
   Object.entries(aguaPorDia).forEach(([dia, litros]) => {
     if (eData(dia) && [0.5, 1, 1.5, 2].includes(litros)) limpos.agua[dia] = litros;
   });
-  limpos.tarefas = bruto.tarefas
-    .filter((t) => t && eTexto(t.texto))
-    .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true, dia: converterDiaTarefa(t.dia) }));
   limpos.compras = bruto.compras
     .filter((p) => p && eTexto(p.nome))
     .map((p) => ({
@@ -158,12 +129,14 @@ function normalizarDados(bruto) {
     limpos.tomados = { data: tomados.data, marcados: tomados.marcados.filter((c) => typeof c === 'string') };
   }
 
-  // Dados e cópias anteriores a estas listas ficam sem jejum. Um dia só fica na primeira lista em que aparecer.
-  const diasComJejum = new Set();
-  ['jejum2r', 'jejum1r', 'jejum36h'].forEach((nome) => {
-    const lista = Array.isArray(bruto[nome]) ? bruto[nome].filter(eData) : [];
-    limpos[nome] = [...new Set(lista)].filter((dia) => !diasComJejum.has(dia));
-    limpos[nome].forEach((dia) => diasComJejum.add(dia));
+  // Dados e cópias anteriores a estas listas ficam com elas vazias. Em cada grupo, um dia só fica na primeira lista em que aparecer.
+  [['jejum2r', 'jejum1r', 'jejum36h'], ['tabacoSem', 'tabacoConsumo'], ['alcoolSem', 'alcoolConsumo']].forEach((grupo) => {
+    const diasVistos = new Set();
+    grupo.forEach((nome) => {
+      const lista = Array.isArray(bruto[nome]) ? bruto[nome].filter(eData) : [];
+      limpos[nome] = [...new Set(lista)].filter((dia) => !diasVistos.has(dia));
+      limpos[nome].forEach((dia) => diasVistos.add(dia));
+    });
   });
 
   const local = bruto.localidade;

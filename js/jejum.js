@@ -34,6 +34,14 @@ function rotuloDiaJejum(texto) {
   return `${ABREVIATURAS_DIAS[(data.getDay() + 6) % 7]} ${data.getDate()}`;
 }
 
+const MESES_ABREVIADOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+// Ex.: "2026-11-12" passa a "12 nov".
+function dataAbreviada(texto) {
+  const data = textoParaData(texto);
+  return `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}`;
+}
+
 // Ex.: "2–8 nov" ou, entre dois meses, "30 nov–6 dez".
 function intervaloDatasJejum(primeiro, ultimo) {
   const mesmoMes = primeiro.slice(0, 7) === ultimo.slice(0, 7);

@@ -1,7 +1,5 @@
 // semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
-// nada, Ginásio, Cycling, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia,
-// só para consulta, e um número no canto com as tarefas por fazer desse dia. No fim da vista ficam as tarefas
-// do dia selecionado, que muda com os botões de navegação.
+// nada, Ginásio, Cycling, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia, só para consulta.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', falhado: 'Falhado' };
@@ -71,6 +69,24 @@ function mudarEstadoDia(texto) {
   desenharSemana();
 }
 
+// Um quadrado de um dia, igual em todos os menus da vista. O nome completo e o estado ficam no aria-label, para leitores de ecrã.
+function botaoDia(dia, indice, estado, descricao, aoTocar) {
+  const texto = dataParaTexto(dia);
+  const selecionado = texto === dataParaTexto(diaSelecionado);
+  const nome = formatarData(dia, { weekday: 'long', day: 'numeric', month: 'long' });
+  const botao = criar('button', {
+    type: 'button',
+    className: ['dia', texto === dataParaTexto(new Date()) && 'dia-hoje', selecionado && 'dia-selecionado'].filter(Boolean).join(' '),
+    'aria-label': `${nome}: ${descricao}${selecionado ? ', dia selecionado' : ''}`,
+    onclick: aoTocar,
+  },
+  criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[indice] }),
+  criar('span', { className: 'dia-numero', textContent: String(dia.getDate()) }),
+  criar('span', { className: 'dia-icone' }));
+  botao.dataset.estado = estado;
+  return botao;
+}
+
 function desenharSemana() {
   const dias = diasDaSemanaMostrada();
   const { ginasioMin, ginasioMax } = dados.ajustes;
@@ -78,8 +94,6 @@ function desenharSemana() {
   const diasCycling = contarNaSemana(dados.cycling);
   const total = diasGinasio + diasCycling;
   const diasFalhados = contarNaSemana(dados.falhados);
-  const hoje = dataParaTexto(new Date());
-  const selecionado = dataParaTexto(diaSelecionado);
 
   document.getElementById('semana-titulo').textContent =
     `${formatarData(dias[0], { day: 'numeric', month: 'short' })} a ${formatarData(dias[6], { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -94,30 +108,15 @@ function desenharSemana() {
   // Destaca o contador se faltar exercício, ou se dados antigos passarem o máximo.
   resumo.classList.toggle('resumo-falta', total < ginasioMin || total > ginasioMax);
 
-  // Um quadrado por dia. O nome completo e o estado ficam no aria-label, para leitores de ecrã.
   document.getElementById('semana-dias').replaceChildren(...dias.map((dia, i) => {
     const texto = dataParaTexto(dia);
     const estado = estadoDoDia(texto);
-    const nome = formatarData(dia, { weekday: 'long', day: 'numeric', month: 'long' });
     const litros = aguaDoDia(texto);
     const descricaoAgua = litros ? `, água ${rotuloAgua(litros)}` : '';
-    const porFazer = dados.tarefas.filter((t) => t.dia === texto && !t.feita).length;
-    const descricaoTarefas = porFazer ? `, ${porFazer} ${porFazer === 1 ? 'tarefa' : 'tarefas'} por fazer` : '';
-    return criar('li', {}, criar('button', {
-      type: 'button',
-      className: ['dia', texto === hoje && 'dia-hoje', texto === selecionado && 'dia-selecionado'].filter(Boolean).join(' '),
-      'aria-label': `${nome}: ${NOMES_ESTADOS[estado]}${descricaoAgua}${descricaoTarefas}${texto === selecionado ? ', dia selecionado' : ''}`,
-      onclick: () => mudarEstadoDia(texto),
-    },
-    criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[i] }),
-    criar('span', { className: 'dia-numero', textContent: String(dia.getDate()) }),
-    criar('span', { className: 'dia-icone' }),
-    ...(porFazer ? [criar('span', { className: 'dia-tarefas', textContent: String(porFazer), 'aria-hidden': 'true' })] : [])),
-    ...(litros ? [criar('span', { className: 'dia-agua', textContent: rotuloAgua(litros), 'aria-hidden': 'true' })] : []));
+    return criar('li', {},
+      botaoDia(dia, i, estado, `${NOMES_ESTADOS[estado]}${descricaoAgua}`, () => mudarEstadoDia(texto)),
+      ...(litros ? [criar('span', { className: 'dia-agua', textContent: rotuloAgua(litros), 'aria-hidden': 'true' })] : []));
   }));
-  document.querySelectorAll('#semana-dias .dia').forEach((botao, i) => {
-    botao.dataset.estado = estadoDoDia(dataParaTexto(dias[i]));
-  });
 }
 
 document.getElementById('semana-anterior').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, -7)));
@@ -125,8 +124,3 @@ document.getElementById('dia-anterior').addEventListener('click', () => selecion
 document.getElementById('semana-hoje').addEventListener('click', () => selecionarDia(somarDias(new Date(), 0)));
 document.getElementById('dia-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 1)));
 document.getElementById('semana-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 7)));
-
-desenhar.semana = () => {
-  desenharSemana();
-  desenharTarefas();
-};

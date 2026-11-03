@@ -40,14 +40,7 @@
       <p id="semana-resumo" class="resumo"></p>
       <ul id="semana-dias" class="quadrados"></ul>
 
-      <h2>Tarefas</h2>
-      <form id="tarefas-formulario" class="linha-tarefa-campos">
-        <input id="tarefas-texto" type="text" placeholder="Nova tarefa" aria-label="Nova tarefa" autocomplete="off" required>
-        <div id="tarefas-seletor-dia" class="seletor-dia-caixa"></div>
-        <button type="submit" class="botao-adicionar" aria-label="Adicionar tarefa">+</button>
-      </form>
-      <p id="tarefas-dia-selecionado" class="subtitulo"></p>
-      <div id="tarefas-lista"></div>
+      <div id="habitos"></div>
     </section>
 
     <section id="vista-suplementos" class="vista" hidden>
@@ -66,6 +59,11 @@
       </div>
       <div id="suplementos-momentos"></div>
 
+      <div class="agua">
+        <h2 id="agua-titulo">Água</h2>
+        <div id="agua-niveis" class="agua-niveis" role="group" aria-labelledby="agua-titulo"></div>
+      </div>
+
       <div id="jejum" class="jejum">
         <div class="jejum-cabecalho">
           <h2>Jejum</h2>
@@ -79,11 +77,6 @@
         <p id="jejum-resumo" class="jejum-resumo"></p>
         <ul id="jejum-dias" class="quadrados"></ul>
         <ul id="jejum-legenda" class="jejum-legenda"></ul>
-      </div>
-
-      <div class="agua">
-        <h2 id="agua-titulo">Água</h2>
-        <div id="agua-niveis" class="agua-niveis" role="group" aria-labelledby="agua-titulo"></div>
       </div>
     </section>
 
@@ -168,8 +161,8 @@
   <script src="js/tempo.js"></script>
   <script src="js/suplementos.js"></script>
   <script src="js/semana.js"></script>
+  <script src="js/habitos.js"></script>
   <script src="js/jejum.js"></script>
-  <script src="js/tarefas.js"></script>
   <script src="js/compras.js"></script>
   <script src="js/lista-semanal.js"></script>
   <script src="js/importar.js"></script>

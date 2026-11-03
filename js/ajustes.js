@@ -70,8 +70,7 @@ async function restaurarCopia(ficheiro) {
     avisar('Este ficheiro não é uma cópia válida da app. Nada foi alterado.');
     return;
   }
-  const resumo = `${novos.tarefas.length} tarefas, `
-    + `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos e ${novos.ginasio.length} dias de ginásio`;
+  const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos e ${novos.ginasio.length} dias de ginásio`;
   if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?`)) return;
   dados = novos;
   guardarDados();
