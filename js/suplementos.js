@@ -39,7 +39,12 @@ function alternarMomento(suplemento, momento) {
     suplemento.momentos = suplemento.momentos.filter((m) => m !== momento);
     limparMarcas(suplemento, momento);
   } else {
-    suplemento.momentos.push(momento);
+    // Horário livre e horários fixos não se juntam: escolher um tira o outro.
+    const ficam = momento === 'livre' ? [] : suplemento.momentos.filter((m) => m !== 'livre');
+    suplemento.momentos
+      .filter((m) => !ficam.includes(m))
+      .forEach((m) => limparMarcas(suplemento, m));
+    suplemento.momentos = [...ficam, momento];
   }
   guardarDados();
   desenharSuplementos();
@@ -60,12 +65,12 @@ function nomeTomado(suplemento, momento, marcados) {
   return criar('li', {}, botao);
 }
 
-// Quadrados M, A, J e N, usados ao adicionar e em cada linha da tabela.
+// Quadrados M, A, J, N e L, usados ao adicionar e em cada linha da tabela.
 function quadradosMomentos(estaAtivo, aoTocar, descricao) {
   return criar('div', { className: 'quadrados-momentos' }, ...MOMENTOS.map((momento) => criar('button', {
     type: 'button',
     className: 'quadrado-momento',
-    textContent: momento.nome[0],
+    textContent: momento.letra,
     'aria-pressed': String(estaAtivo(momento.id)),
     'aria-label': `${descricao}: ${momento.nome}`,
     onclick: () => aoTocar(momento.id),
@@ -92,8 +97,14 @@ function desenharNovosMomentos() {
   document.getElementById('suplementos-novos-momentos').replaceChildren(quadradosMomentos(
     (momento) => novosMomentos.has(momento),
     (momento) => {
-      if (novosMomentos.has(momento)) novosMomentos.delete(momento);
-      else novosMomentos.add(momento);
+      if (novosMomentos.has(momento)) {
+        novosMomentos.delete(momento);
+      } else {
+        // Horário livre e horários fixos não se juntam: escolher um tira o outro.
+        if (momento === 'livre') novosMomentos.clear();
+        else novosMomentos.delete('livre');
+        novosMomentos.add(momento);
+      }
       desenharNovosMomentos();
     },
     'Novo suplemento',
@@ -110,7 +121,7 @@ function desenharSuplementos() {
     const doMomento = ordenados.filter((s) => s.momentos.includes(momento.id));
     if (doMomento.length === 0) return;
     caixa.append(
-      criar('h3', { className: 'momento-titulo', textContent: momento.nome }),
+      criar('h3', { className: momento.id === 'livre' ? 'momento-titulo momento-livre' : 'momento-titulo', textContent: momento.nome }),
       criar('ul', { className: 'suplementos-nomes' }, ...doMomento.map((s) => nomeTomado(s, momento.id, marcados))),
     );
   });
@@ -140,7 +151,7 @@ document.getElementById('suplementos-formulario').addEventListener('submit', (ev
     return;
   }
   if (novosMomentos.size === 0) {
-    avisar('Toca em M, A, J ou N para escolher pelo menos um momento.');
+    avisar('Toca em M, A, J, N ou L para escolher pelo menos um momento.');
     return;
   }
   dados.suplementos.push({

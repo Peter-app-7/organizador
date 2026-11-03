@@ -70,7 +70,7 @@ document.getElementById('compras-formulario').addEventListener('submit', (evento
   const campo = document.getElementById('compras-nome');
   const nome = campo.value.trim();
   if (!nome) return;
-  dados.compras.push({ id: novoId(), nome, tipo: seletorTipo.value, comprar: true });
+  dados.compras.push({ id: novoId(), nome: primeiraMaiuscula(nome), tipo: seletorTipo.value, comprar: true });
   guardarDados();
   campo.value = '';
   desenharCompras();

@@ -8,10 +8,11 @@ const TIPOS_COMPRAS = [
 ];
 
 const MOMENTOS = [
-  { id: 'manha', nome: 'Manhã' },
-  { id: 'almoco', nome: 'Almoço' },
-  { id: 'jantar', nome: 'Jantar' },
-  { id: 'noite', nome: 'Noite' },
+  { id: 'manha', nome: 'Manhã', letra: 'M' },
+  { id: 'almoco', nome: 'Almoço', letra: 'A' },
+  { id: 'jantar', nome: 'Jantar', letra: 'J' },
+  { id: 'noite', nome: 'Noite', letra: 'N' },
+  { id: 'livre', nome: 'Horário livre', letra: 'L' }, // sem hora marcada: não se junta aos outros momentos
 ];
 
 // Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.compras()...
@@ -26,10 +27,10 @@ function dadosIniciais() {
     cycling: [],        // dias de cycling, no mesmo formato
     falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das três listas
     agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
-    tarefas: [],        // { id, texto, feita }
+    tarefas: [],        // { id, texto, feita, dia }; "dia" é opcional, ex.: "2026-11-02", ou null
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
-    suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] }
+    suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] } ou { ..., momentos: ["livre"] }
     tomados: { data: null, marcados: [] }, // marcas do dia indicado em "data"
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
@@ -40,6 +41,12 @@ function dadosIniciais() {
 // Texto sem maiúsculas nem acentos, para comparar nomes (ex.: "Maçãs" e "macas").
 function chaveTexto(texto) {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+// Primeira letra em maiúscula; o resto do texto fica como foi escrito.
+function primeiraMaiuscula(texto) {
+  const limpo = texto.trim();
+  return limpo.charAt(0).toLocaleUpperCase('pt-PT') + limpo.slice(1);
 }
 
 // Todos os tipos de produto, com "Outros" sempre em último.
@@ -82,12 +89,12 @@ function normalizarDados(bruto) {
   });
   limpos.tarefas = bruto.tarefas
     .filter((t) => t && eTexto(t.texto))
-    .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true }));
+    .map((t) => ({ id: idValido(t.id), texto: t.texto, feita: t.feita === true, dia: eData(t.dia) ? t.dia : null }));
   limpos.compras = bruto.compras
     .filter((p) => p && eTexto(p.nome))
     .map((p) => ({
       id: idValido(p.id),
-      nome: p.nome,
+      nome: primeiraMaiuscula(p.nome),
       tipo: eTexto(p.tipo) ? p.tipo.trim() : 'Outros',
       comprar: p.comprar === true,
     }));

@@ -89,7 +89,7 @@ function analisarLista(texto) {
     }
     if (!grupoAtual) grupoAtual = abrirGrupo('Outros');
     if (!grupoAtual.produtos.some((nome) => chaveTexto(nome) === chave)) {
-      grupoAtual.produtos.push(linha.texto);
+      grupoAtual.produtos.push(primeiraMaiuscula(linha.texto));
     }
   });
 

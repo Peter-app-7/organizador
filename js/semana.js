@@ -1,6 +1,6 @@
 // semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
 // nada, Ginásio, Cycling, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia,
-// só para consulta. No fim da vista ficam as tarefas.
+// só para consulta, e um número no canto com as tarefas por fazer desse dia. No fim da vista ficam as tarefas.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', falhado: 'Falhado' };
@@ -88,15 +88,18 @@ function desenharSemana() {
     const nome = formatarData(dia, { weekday: 'long', day: 'numeric', month: 'long' });
     const litros = aguaDoDia(texto);
     const descricaoAgua = litros ? `, água ${rotuloAgua(litros)}` : '';
+    const porFazer = dados.tarefas.filter((t) => t.dia === texto && !t.feita).length;
+    const descricaoTarefas = porFazer ? `, ${porFazer} ${porFazer === 1 ? 'tarefa' : 'tarefas'} por fazer` : '';
     return criar('li', {}, criar('button', {
       type: 'button',
       className: texto === hoje ? 'dia dia-hoje' : 'dia',
-      'aria-label': `${nome}: ${NOMES_ESTADOS[estado]}${descricaoAgua}`,
+      'aria-label': `${nome}: ${NOMES_ESTADOS[estado]}${descricaoAgua}${descricaoTarefas}`,
       onclick: () => mudarEstadoDia(texto),
     },
     criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[i] }),
     criar('span', { className: 'dia-numero', textContent: String(dia.getDate()) }),
-    criar('span', { className: 'dia-icone' })),
+    criar('span', { className: 'dia-icone' }),
+    ...(porFazer ? [criar('span', { className: 'dia-tarefas', textContent: String(porFazer), 'aria-hidden': 'true' })] : [])),
     ...(litros ? [criar('span', { className: 'dia-agua', textContent: rotuloAgua(litros), 'aria-hidden': 'true' })] : []));
   }));
   document.querySelectorAll('#semana-dias .dia').forEach((botao, i) => {
@@ -106,15 +109,15 @@ function desenharSemana() {
 
 document.getElementById('semana-anterior').addEventListener('click', () => {
   semanaMostrada = somarDias(semanaMostrada, -7);
-  desenharSemana();
+  desenhar.semana();
 });
 document.getElementById('semana-seguinte').addEventListener('click', () => {
   semanaMostrada = somarDias(semanaMostrada, 7);
-  desenharSemana();
+  desenhar.semana();
 });
 document.getElementById('semana-hoje').addEventListener('click', () => {
   semanaMostrada = semanaDeHoje();
-  desenharSemana();
+  desenhar.semana();
 });
 
 desenhar.semana = () => {

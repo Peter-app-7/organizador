@@ -78,6 +78,11 @@ input[type="text"], input[type="date"], input[type="time"], input[type="number"]
   border-radius: 8px;
 }
 
+/* No iPhone, o campo de data vazio ou centrado desalinha-se: fica igual aos outros campos.
+   O toque continua a abrir o seletor de data do sistema. */
+input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { min-height: 1.4em; text-align: left; }
+
 button { cursor: pointer; }
 button:disabled { opacity: .6; }
 
@@ -134,6 +139,10 @@ button:disabled { opacity: .6; }
   border-radius: 8px;
 }
 .linha-texto { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* O texto da tarefa é um botão: tocar abre a edição. */
+.tarefa-texto { min-height: 36px; margin: 0; padding: 0; text-align: left; background: none; border: 0; }
+.tarefa-dia { display: block; font-size: .8rem; color: var(--texto-suave); }
+.tarefa-atrasada { color: var(--alerta); }
 .linha-feita .linha-texto { text-decoration: line-through; color: var(--texto-suave); }
 .linha input[type="checkbox"] { width: 22px; height: 22px; flex: none; }
 .botao-apagar { background: none; border: 0; color: var(--texto-suave); min-width: 44px; min-height: 44px; font-size: 1.1rem; flex: none; }
@@ -161,12 +170,29 @@ button:disabled { opacity: .6; }
   align-items: center;
   justify-content: center;
   gap: 1px;
+  position: relative;
   width: 100%;
   min-height: 66px;
   margin: 0;
   padding: 5px 0;
   background: var(--cartao);
   border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+/* Número de tarefas por fazer, no canto do quadrado, sem alterar o tamanho do dia. */
+.dia-tarefas {
+  position: absolute;
+  top: -5px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-size: .65rem;
+  font-weight: 700;
+  line-height: 14px;
+  color: var(--destaque-texto);
+  background: var(--destaque);
+  border: 1px solid var(--cartao);
   border-radius: 8px;
 }
 .dia-nome { font-size: .7rem; }
@@ -230,6 +256,14 @@ button:disabled { opacity: .6; }
 }
 .agua-nivel[aria-pressed="true"] { font-weight: 700; color: var(--sobre-azul); background: var(--azul); border-color: var(--azul); }
 
+/* --- Editar uma tarefa --- */
+.linha-edicao { display: block; padding: 10px 12px; }
+.linha-edicao .formulario { margin: 0; }
+.campo-com-botao { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.campo-com-botao .botao-pequeno { min-height: 44px; }
+.botoes-edicao { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.botoes-edicao button { margin: 0; }
+
 /* --- Compras: sim/não --- */
 .sim-nao { display: flex; flex: none; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; }
 .sim-nao button { min-width: 44px; min-height: 40px; background: none; border: 0; }
@@ -252,6 +286,8 @@ button:disabled { opacity: .6; }
   border-radius: 8px;
 }
 .momento-titulo { margin: 10px 0 0; font-size: .8rem; font-weight: 700; color: var(--texto); }
+/* O horário livre fica separado dos horários fixos. */
+.momento-livre { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--linha); }
 
 /* Nomes do dia, lado a lado. A margem negativa alinha o texto com o título, mantendo a zona de toque. */
 .suplementos-nomes { display: flex; flex-wrap: wrap; list-style: none; margin: 0 0 0 -8px; padding: 0; }
@@ -305,6 +341,12 @@ button:disabled { opacity: .6; }
   background: var(--destaque);
   border: 0;
   border-radius: 6px;
+}
+
+/* Em ecrãs muito estreitos, os cinco quadrados não deixam espaço: o nome passa para cima. */
+@media (max-width: 359px) {
+  .linha-tabela { grid-template-columns: minmax(0, 1fr) 32px; }
+  .linha-tabela > .nome-tabela, .linha-tabela > input[type="text"] { grid-column: 1 / -1; }
 }
 
 /* --- Importar lista --- */
