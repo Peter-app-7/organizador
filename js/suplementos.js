@@ -207,7 +207,7 @@ function desenharAgua() {
 
 // Altura que sobra entre o cabeçalho do tempo e a barra de baixo. A vista ocupa exatamente esse espaço:
 // o Jejum e a Água ficam sempre visíveis e, se faltar espaço, só os horários fazem scroll.
-const ALTURA_MINIMA_SUPLEMENTOS = 360; // em ecrãs mais baixos, como na horizontal, a página faz scroll
+const ALTURA_MINIMA_SUPLEMENTOS = 380; // em ecrãs mais baixos, como na horizontal, a página faz scroll
 const cabecalhoTempo = document.querySelector('.tempo');
 const barraNavegacao = document.querySelector('.navegacao');
 
