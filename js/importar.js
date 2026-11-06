@@ -96,14 +96,24 @@ function analisarLista(texto) {
   return { grupos, ignoradas };
 }
 
-function jaExisteProduto(nome, tipo) {
-  return dados.compras.some((p) => chaveTexto(p.nome) === chaveTexto(nome) && chaveTexto(p.tipo) === chaveTexto(tipo));
+// Produtos a acrescentar: os que ainda não estão na lista, seja qual for o tipo em que lá estejam,
+// comparados como no botão "Adicionar" (sem maiúsculas, acentos nem quantidade), e sem repetir dentro do texto.
+function produtosNovos(analise) {
+  const vistos = new Set(dados.compras.map((p) => chaveProduto(p.nome)));
+  const novos = [];
+  analise.grupos.forEach((grupo) => {
+    grupo.produtos.forEach((nome) => {
+      const chave = chaveProduto(nome);
+      if (vistos.has(chave)) return;
+      vistos.add(chave);
+      novos.push({ nome, tipo: grupo.tipo });
+    });
+  });
+  return novos;
 }
 
 function contarNovos(analise) {
-  return analise.grupos.reduce((total, grupo) => (
-    total + grupo.produtos.filter((nome) => !jaExisteProduto(nome, grupo.tipo)).length
-  ), 0);
+  return produtosNovos(analise).length;
 }
 
 // Acrescenta à lista atual. Um produto que já exista fica como está.
@@ -112,11 +122,9 @@ function gravarImportacao(analise) {
     if (!tiposDeCompras().some((tipo) => chaveTexto(tipo) === chaveTexto(grupo.tipo))) {
       dados.tiposCompras.push(grupo.tipo);
     }
-    grupo.produtos.forEach((nome) => {
-      if (!jaExisteProduto(nome, grupo.tipo)) {
-        dados.compras.push({ id: novoId(), nome, tipo: grupo.tipo, comprar: false });
-      }
-    });
+  });
+  produtosNovos(analise).forEach(({ nome, tipo }) => {
+    dados.compras.push({ id: novoId(), nome, tipo, comprar: false });
   });
   guardarDados();
 }

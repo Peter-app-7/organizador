@@ -88,7 +88,7 @@
       <div id="compras-gerir" hidden>
       <form id="compras-formulario" class="formulario">
         <label>Produto
-          <input id="compras-nome" type="text" placeholder="Ex.: leite" required>
+          <input id="compras-nome" type="text" placeholder="Ex.: leite" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
         </label>
         <label>Tipo <select id="compras-tipo"></select></label>
         <button type="submit" class="botao-principal">Adicionar</button>
@@ -104,6 +104,10 @@
         <div id="importar-previa"></div>
       </details>
       </div>
+      <div class="compras-estado">
+        <p id="compras-contador" class="resumo"></p>
+        <button id="compras-limpar" type="button" class="botao-pequeno">Limpar comprados</button>
+      </div>
       <label class="opcao">
         <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
       </label>
@@ -118,6 +122,25 @@
       </div>
       <p id="receitas-contador" class="resumo"></p>
       <div id="receitas-lista"></div>
+    </section>
+
+    <section id="vista-mes" class="vista" hidden>
+      <div class="titulo-com-botao titulo-vista">
+        <h1>Mês</h1>
+        <button id="mes-hoje" type="button" class="botao-pequeno" hidden>Este mês</button>
+      </div>
+      <div class="mes-navegacao">
+        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
+        <h2 id="mes-titulo" aria-live="polite"></h2>
+        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
+      </div>
+      <p id="mes-lembrete" class="mes-lembrete" hidden>
+        <span id="mes-lembrete-texto"></span>
+        <button id="mes-exportar" type="button" class="botao-discreto">Exportar dados</button>
+      </p>
+      <div id="mes-cartoes"></div>
+      <h2><label id="mes-notas-titulo" for="mes-notas">Notas do mês</label></h2>
+      <textarea id="mes-notas" rows="5" placeholder="O que correu bem? O que mudar no próximo mês?"></textarea>
     </section>
 
     <section id="vista-ajustes" class="vista" hidden>
@@ -137,10 +160,10 @@
         <label>Máximo <input id="ajuste-max" type="number" min="1" max="5" inputmode="numeric"></label>
       </div>
       <h2>Cópia de segurança</h2>
-      <p>Os dados ficam só neste aparelho. Guarda uma cópia de vez em quando, por exemplo no iCloud Drive.</p>
+      <p>Os dados ficam só neste aparelho e perdem-se se apagares a app. Exporta uma cópia pelo menos uma vez por mês, por exemplo para o iCloud Drive.</p>
       <p id="copia-estado" class="subtitulo"></p>
-      <button id="copia-exportar" type="button" class="botao-principal">Exportar cópia</button>
-      <label class="botao-secundario">Restaurar a partir de uma cópia
+      <button id="copia-exportar" type="button" class="botao-principal">Exportar dados</button>
+      <label class="botao-secundario">Importar dados
         <input id="copia-importar" type="file" accept=".json,application/json" hidden>
       </label>
       <p class="nota">Previsão do tempo: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
@@ -154,6 +177,7 @@
     <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
     <button type="button" data-vista="compras">🛒<span>Compras</span></button>
     <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
+    <button type="button" data-vista="mes">📊<span>Mês</span></button>
   </nav>
 
   <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
@@ -170,6 +194,7 @@
   <script src="js/receitas.js"></script>
   <script src="js/localidade.js"></script>
   <script src="js/ajustes.js"></script>
+  <script src="js/mes.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

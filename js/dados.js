@@ -22,7 +22,7 @@ const aoAbrir = [];
 
 function dadosIniciais() {
   return {
-    versao: 1,
+    versao: 2,
     ginasio: [],        // dias marcados, ex.: "2026-11-02"
     cycling: [],        // dias de cycling, no mesmo formato
     falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das três listas
@@ -42,6 +42,8 @@ function dadosIniciais() {
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
+    notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }
+    comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
   };
 }
 
@@ -70,12 +72,14 @@ function novoId() {
 }
 
 // Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
-// Lança um erro se não parecerem dados desta app.
-function normalizarDados(bruto) {
+// Lança um erro se não parecerem dados desta app. Com "tolerante" (ao abrir a app), aceita dados
+// a que falte alguma lista e fica com ela vazia, em vez de perder tudo o resto.
+function normalizarDados(original, tolerante = false) {
   const listas = ['ginasio', 'compras'];
-  if (!bruto || typeof bruto !== 'object' || !listas.every((nome) => Array.isArray(bruto[nome]))) {
-    throw new Error('Formato desconhecido');
-  }
+  if (!original || typeof original !== 'object' || Array.isArray(original)) throw new Error('Formato desconhecido');
+  if (!tolerante && !listas.every((nome) => Array.isArray(original[nome]))) throw new Error('Formato desconhecido');
+  const bruto = { ...original };
+  listas.forEach((nome) => { if (!Array.isArray(bruto[nome])) bruto[nome] = []; });
 
   const eData = (t) => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t);
   const eTexto = (t) => typeof t === 'string' && t.trim() !== '';
@@ -157,7 +161,19 @@ function normalizarDados(bruto) {
   if (Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 1 && max <= 5 && min <= max) {
     limpos.ajustes = { ginasioMin: min, ginasioMax: max };
   }
-  if (typeof bruto.ultimaCopia === 'string') limpos.ultimaCopia = bruto.ultimaCopia;
+  if (typeof bruto.ultimaCopia === 'string' && !Number.isNaN(Date.parse(bruto.ultimaCopia))) {
+    limpos.ultimaCopia = bruto.ultimaCopia;
+  }
+
+  // Dados e cópias anteriores à vista Mês não têm notas nem histórico de compras: ficam vazios.
+  const notas = bruto.notasMes && typeof bruto.notasMes === 'object' ? bruto.notasMes : {};
+  Object.entries(notas).forEach(([mes, texto]) => {
+    if (/^\d{4}-\d{2}$/.test(mes) && typeof texto === 'string' && texto.trim()) limpos.notasMes[mes] = texto;
+  });
+  const feitas = bruto.comprasFeitas && typeof bruto.comprasFeitas === 'object' ? bruto.comprasFeitas : {};
+  Object.entries(feitas).forEach(([dia, numero]) => {
+    if (eData(dia) && Number.isInteger(numero) && numero > 0) limpos.comprasFeitas[dia] = numero;
+  });
   return limpos;
 }
 
@@ -165,7 +181,7 @@ function carregarDados() {
   let texto = null;
   try {
     texto = localStorage.getItem(CHAVE_DADOS);
-    return texto ? normalizarDados(JSON.parse(texto)) : dadosIniciais();
+    return texto ? normalizarDados(JSON.parse(texto), true) : dadosIniciais();
   } catch (erro) {
     // Dados ilegíveis: guardamos o original à parte para não se perder ao gravar por cima.
     try {
@@ -212,6 +228,16 @@ function formatarData(data, opcoes) {
 }
 
 // --- Criar elementos no ecrã ---
+// Corre uma função de desenho sem deixar um erro apagar o resto do ecrã.
+function correrSemFalhar(funcao) {
+  try {
+    funcao();
+  } catch (erro) {
+    console.error(erro);
+    avisar('Algo correu mal ao mostrar esta parte. Os dados guardados não foram alterados.');
+  }
+}
+
 // Usa textContent (nunca innerHTML), para o texto escrito aparecer sempre como simples texto.
 function criar(etiqueta, propriedades = {}, ...filhos) {
   const elemento = document.createElement(etiqueta);

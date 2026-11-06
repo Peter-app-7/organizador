@@ -32,16 +32,50 @@ function linhaProduto(produto) {
     })] : []));
 }
 
+// Tipo em que o produto aparece: compara sem maiúsculas nem acentos, e um tipo desconhecido vai para "Outros",
+// para nenhum produto ficar escondido. Não muda o que está guardado.
+function tipoMostrado(produto, tipos) {
+  return tipos.find((tipo) => chaveTexto(tipo) === chaveTexto(produto.tipo)) || 'Outros';
+}
+
+function contarParaComprar() {
+  return dados.compras.filter((p) => p.comprar).length;
+}
+
+function desenharContadorCompras() {
+  const numero = contarParaComprar();
+  document.getElementById('compras-contador').textContent = numero === 0
+    ? 'Nada por comprar'
+    : `${numero} ${numero === 1 ? 'produto' : 'produtos'} por comprar`;
+  document.getElementById('compras-limpar').hidden = numero === 0;
+}
+
+// Depois das compras: os produtos marcados "Sim" passam a "Não". Nenhum produto sai da lista.
+function limparComprados() {
+  const numero = contarParaComprar();
+  if (numero === 0) return;
+  const texto = numero === 1 ? 'o produto marcado' : `os ${numero} produtos marcados`;
+  if (!confirm(`Já compraste tudo? ${primeiraMaiuscula(texto)} com "Sim" passam a "Não". Os produtos continuam na lista.`)) return;
+  dados.compras.forEach((p) => { p.comprar = false; });
+  const hoje = dataParaTexto(new Date());
+  dados.comprasFeitas[hoje] = (dados.comprasFeitas[hoje] || 0) + numero;
+  guardarDados();
+  desenharCompras();
+  avisar(`${numero} ${numero === 1 ? 'produto passou' : 'produtos passaram'} para "Não".`);
+}
+
 function desenharCompras() {
   const soComprar = document.getElementById('compras-filtro').checked;
   const visiveis = dados.compras.filter((p) => !soComprar || p.comprar);
   const caixa = document.getElementById('compras-lista');
   caixa.replaceChildren();
 
+  desenharContadorCompras();
   atualizarSeletorTipo();
-  tiposDeCompras().forEach((tipo) => {
+  const tipos = tiposDeCompras();
+  tipos.forEach((tipo) => {
     const produtos = visiveis
-      .filter((p) => p.tipo === tipo)
+      .filter((p) => tipoMostrado(p, tipos) === tipo)
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' })); // ignora maiúsculas e acentos
     if (produtos.length === 0) return;
     caixa.append(
@@ -51,7 +85,7 @@ function desenharCompras() {
   });
 
   if (visiveis.length === 0) {
-    const mensagem = soComprar ? 'Nada para comprar.' : 'A lista está vazia.';
+    const mensagem = soComprar ? 'Nada para comprar.' : 'A lista está vazia. Toca em Editar para acrescentar produtos.';
     caixa.append(criar('p', { className: 'vazio', textContent: mensagem }));
   }
 }
@@ -68,13 +102,27 @@ function atualizarSeletorTipo() {
 document.getElementById('compras-formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();
   const campo = document.getElementById('compras-nome');
-  const nome = campo.value.trim();
+  const nome = primeiraMaiuscula(campo.value.replace(/\s+/g, ' '));
   if (!nome) return;
-  dados.compras.push({ id: novoId(), nome: primeiraMaiuscula(nome), tipo: seletorTipo.value, comprar: true });
-  guardarDados();
+  // Não duplica: compara sem maiúsculas, acentos nem quantidade, em qualquer tipo (ver lista-semanal.js).
+  const existente = dados.compras.find((p) => chaveProduto(p.nome) === chaveProduto(nome));
+  if (existente) {
+    if (existente.comprar) {
+      avisar(`"${existente.nome}" já está na lista para comprar.`);
+    } else {
+      existente.comprar = true;
+      guardarDados();
+      avisar(`"${existente.nome}" já estava na lista: passou para "Sim".`);
+    }
+  } else {
+    dados.compras.push({ id: novoId(), nome, tipo: seletorTipo.value, comprar: true });
+    guardarDados();
+  }
   campo.value = '';
+  campo.focus(); // o teclado fica aberto para o produto seguinte
   desenharCompras();
 });
+document.getElementById('compras-limpar').addEventListener('click', limparComprados);
 document.getElementById('compras-filtro').addEventListener('change', desenharCompras);
 document.getElementById('compras-editar').addEventListener('click', (evento) => {
   comprasAEditar = !comprasAEditar;

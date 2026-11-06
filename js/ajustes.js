@@ -8,6 +8,27 @@ function desenharAjustes() {
   estado.textContent = dados.ultimaCopia
     ? `Última cópia: ${new Date(dados.ultimaCopia).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}`
     : 'Ainda não foi feita nenhuma cópia neste aparelho.';
+  estado.classList.toggle('resumo-falta', copiaEmFalta());
+}
+
+const DIAS_ENTRE_COPIAS = 30;
+
+// Dias desde a última cópia exportada; null se nunca houve nenhuma.
+function diasDesdeCopia() {
+  if (!dados.ultimaCopia) return null;
+  return Math.floor((Date.now() - Date.parse(dados.ultimaCopia)) / (24 * 60 * 60 * 1000));
+}
+
+function copiaEmFalta() {
+  const dias = diasDesdeCopia();
+  return dias === null || dias > DIAS_ENTRE_COPIAS;
+}
+
+// Texto do lembrete, ou null se a cópia estiver em dia.
+function textoLembreteCopia() {
+  if (!copiaEmFalta()) return null;
+  const dias = diasDesdeCopia();
+  return dias === null ? 'Ainda não há cópia de segurança dos dados.' : `Última cópia de segurança há ${dias} dias.`;
 }
 
 // Mantém os limites válidos: de 0 a 5, com o mínimo nunca acima do máximo.
@@ -41,7 +62,9 @@ function descarregarFicheiro(ficheiro) {
 
 async function exportarCopia() {
   const nome = `organizador-copia-${dataParaTexto(new Date())}.json`;
-  const ficheiro = new File([JSON.stringify(dados, null, 2)], nome, { type: 'application/json' });
+  // Os dados vão tal como estão, com a data da cópia e a versão; "app" e "exportadoEm" são ignorados ao importar.
+  const copia = { app: 'organizador', exportadoEm: new Date().toISOString(), ...dados };
+  const ficheiro = new File([JSON.stringify(copia, null, 2)], nome, { type: 'application/json' });
 
   // No iPhone abre o menu Partilhar (ex.: "Guardar em Ficheiros"); no Mac descarrega o ficheiro.
   const temToque = navigator.maxTouchPoints > 0;
@@ -58,25 +81,32 @@ async function exportarCopia() {
 
   dados.ultimaCopia = new Date().toISOString();
   guardarDados();
-  desenharAjustes();
-  avisar('Cópia exportada.');
+  if (desenhar[vistaAtual]) correrSemFalhar(desenhar[vistaAtual]);
+  avisar('Dados exportados.');
 }
 
 async function restaurarCopia(ficheiro) {
   let novos;
   try {
-    novos = normalizarDados(JSON.parse(await ficheiro.text()));
+    if (ficheiro.size > 5 * 1024 * 1024) throw new Error('Ficheiro grande demais');
+    const bruto = JSON.parse(await ficheiro.text());
+    if (bruto && bruto.app !== undefined && bruto.app !== 'organizador') throw new Error('Ficheiro de outra app');
+    novos = normalizarDados(bruto);
   } catch (erro) {
     avisar('Este ficheiro não é uma cópia válida da app. Nada foi alterado.');
     return;
   }
   const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos e ${novos.ginasio.length} dias de ginásio`;
   if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?`)) return;
+  // Guarda os dados de antes à parte, para não se perderem se a cópia escolhida for a errada.
+  try {
+    localStorage.setItem(CHAVE_DADOS + '-antes-de-importar', JSON.stringify(dados));
+  } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
   dados = novos;
   guardarDados();
   desenharAjustes();
   atualizarTempo(); // a cópia pode ter outra localidade
-  avisar('Cópia restaurada.');
+  avisar('Dados importados.');
 }
 
 document.getElementById('ajuste-min').addEventListener('change', () => alterarLimite('min'));
