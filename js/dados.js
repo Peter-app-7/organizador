@@ -42,7 +42,8 @@ function dadosIniciais() {
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
-    notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }
+    notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }; já não aparecem na app,
+                        // mas continuam guardadas e nas cópias de segurança, para não se perder o que foi escrito
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
   };
 }

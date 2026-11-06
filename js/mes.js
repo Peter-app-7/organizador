@@ -1,5 +1,5 @@
-// mes.js: vista Mês. Revisão de um mês com os dados que a app já regista, comparação com o mês anterior,
-// gastos em compras (ver gastos.js) e notas do mês. Os suplementos tomados e as receitas não entram: a app só guarda os de hoje e os desta semana.
+// mes.js: vista Mês. Revisão de um mês com os dados que a app já regista, comparação com o mês anterior
+// e gastos em compras (ver gastos.js). Os suplementos tomados e as receitas não entram: a app só guarda os de hoje e os desta semana.
 
 // Mês mostrado, a contar do atual: 0 é este, -1 o anterior, 1 o seguinte.
 let mesDeslocamento = 0;
@@ -153,16 +153,6 @@ function desenharLembreteCopia() {
   if (texto) document.getElementById('mes-lembrete-texto').textContent = texto;
 }
 
-function desenharNotasMes(mes) {
-  const campo = document.getElementById('mes-notas');
-  const chave = chaveMes(mes);
-  // Enquanto se escreve, não se mexe no texto (ex.: a app voltou a ficar visível).
-  if (document.activeElement === campo && campo.dataset.mes === chave) return;
-  campo.dataset.mes = chave;
-  campo.value = dados.notasMes[chave] || '';
-  document.getElementById('mes-notas-titulo').textContent = `Notas de ${NOMES_MESES[mes.getMonth()]}`;
-}
-
 function desenharMes() {
   const mes = inicioDoMes(mesDeslocamento);
   const anterior = inicioDoMes(mesDeslocamento - 1);
@@ -183,7 +173,6 @@ function desenharMes() {
   // Com um registo de gastos a ser editado, não se mexe nele (ex.: a app voltou a ficar visível).
   const caixaGastos = document.getElementById('mes-gastos');
   if (!(caixaGastos.contains(document.activeElement) && caixaGastos.dataset.mes === chaveMes(mes))) desenharGastosMes(mes);
-  desenharNotasMes(mes);
 }
 
 function mudarMes(deslocamento) {
@@ -191,14 +180,6 @@ function mudarMes(deslocamento) {
   desenharMes();
 }
 
-const campoNotas = document.getElementById('mes-notas');
-campoNotas.addEventListener('input', () => {
-  const chave = campoNotas.dataset.mes;
-  if (!chave) return;
-  if (campoNotas.value.trim()) dados.notasMes[chave] = campoNotas.value;
-  else delete dados.notasMes[chave];
-  guardarDados();
-});
 document.getElementById('mes-anterior').addEventListener('click', () => mudarMes(mesDeslocamento - 1));
 document.getElementById('mes-seguinte').addEventListener('click', () => mudarMes(mesDeslocamento + 1));
 document.getElementById('mes-hoje').addEventListener('click', () => mudarMes(0));
