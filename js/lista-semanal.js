@@ -98,10 +98,7 @@ function planoListaSemanal() {
 
 // Devolve o tipo tal como a app o conhece; se for novo, passa a existir.
 function tipoDeCompras(nome) {
-  const conhecido = tiposDeCompras().find((tipo) => chaveTexto(tipo) === chaveTexto(nome));
-  if (conhecido) return conhecido;
-  dados.tiposCompras.push(nome);
-  return nome;
+  return garantirCategoriaCompras(nome);
 }
 
 function contarProdutos(numero) {

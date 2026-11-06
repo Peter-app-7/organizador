@@ -72,6 +72,8 @@ function desenharCompras() {
 
   desenharContadorCompras();
   atualizarSeletorTipo();
+  const caixaCategorias = document.getElementById('compras-categorias-caixa');
+  if (comprasAEditar && caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharCategoriasCompras();
   const tipos = tiposDeCompras();
   tipos.forEach((tipo) => {
     const produtos = visiveis
@@ -130,6 +132,81 @@ document.getElementById('compras-editar').addEventListener('click', (evento) => 
   evento.currentTarget.textContent = comprasAEditar ? 'Fechar' : 'Editar';
   evento.currentTarget.setAttribute('aria-expanded', String(comprasAEditar));
   desenharCompras();
+});
+
+// --- Categorias (no modo de edição) ---
+const estadoCategoriasCompras = { aRenomear: null };
+
+function produtosDaCategoria(categoria) {
+  return dados.compras.filter((p) => chaveTexto(p.tipo) === chaveTexto(categoria));
+}
+
+function itensCategoriasCompras() {
+  return categoriasCompras.map((nome) => {
+    const numero = produtosDaCategoria(nome).length;
+    return {
+      chave: nome,
+      nome,
+      // "Outros" é para onde vão os produtos sem categoria conhecida: não se renomeia nem apaga.
+      podeRenomear: nome !== 'Outros',
+      podeApagar: nome !== 'Outros',
+      detalhe: `${numero} ${numero === 1 ? 'produto' : 'produtos'}`,
+    };
+  });
+}
+
+function criarCategoriaCompras(nome) {
+  garantirCategoriaCompras(nome);
+  guardarDados();
+  desenharCompras();
+  return null;
+}
+
+// Os produtos da categoria passam para o novo nome; o resto (nome, sim/não) fica como estava.
+function renomearCategoriaCompras(antiga, nova) {
+  const indice = categoriasCompras.indexOf(antiga);
+  if (indice === -1) return 'Esta categoria já não existe.';
+  produtosDaCategoria(antiga).forEach((p) => { p.tipo = nova; });
+  categoriasCompras[indice] = nova;
+  acertarTiposCompras();
+  guardarCategoriasCompras();
+  guardarDados();
+  desenharCompras();
+  if (antiga !== nova) avisar(`Categoria "${antiga}" passou a "${nova}".`);
+  return null;
+}
+
+// Só apaga categorias vazias: nenhum produto muda de categoria sem o Peter decidir.
+function apagarCategoriaCompras(nome) {
+  const numero = produtosDaCategoria(nome).length;
+  if (numero > 0) {
+    const texto = numero === 1 ? 'tem 1 produto' : `tem ${numero} produtos`;
+    avisar(`Não apagada: "${nome}" ${texto}. Só se apagam categorias vazias.`);
+    return false;
+  }
+  categoriasCompras = categoriasCompras.filter((tipo) => tipo !== nome);
+  acertarTiposCompras();
+  guardarCategoriasCompras();
+  guardarDados();
+  desenharCompras();
+  avisar(`Categoria "${nome}" apagada.`);
+  return true;
+}
+
+function desenharCategoriasCompras() {
+  desenharGestorCategorias(document.getElementById('compras-categorias'), {
+    obterItens: itensCategoriasCompras,
+    estado: estadoCategoriasCompras,
+    prefixo: 'compras-categoria',
+    aoCriar: criarCategoriaCompras,
+    aoRenomear: renomearCategoriaCompras,
+    aoApagar: apagarCategoriaCompras,
+  });
+}
+
+document.getElementById('compras-categorias-caixa').addEventListener('toggle', (evento) => {
+  if (evento.target.open) desenharCategoriasCompras();
+  else estadoCategoriasCompras.aRenomear = null;
 });
 
 desenhar.compras = desenharCompras;

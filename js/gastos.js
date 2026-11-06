@@ -1,4 +1,4 @@
-// gastos.js: registo do que se gasta em cada ida às compras. Formulário na vista Compras e histórico na vista Mês.
+// gastos.js: registo do que se gasta em cada ida às compras. Formulário na vista Compras; a lista fica em Despesas mensais.
 // Os registos ficam numa chave própria do localStorage, à parte dos outros dados, e entram nas cópias de segurança.
 
 const CHAVE_GASTOS = 'organizador-gastos';
@@ -191,7 +191,7 @@ function abrirRegisto() {
           return;
         }
         fecharRegisto();
-        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê o histórico no separador Mês.`);
+        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Despesas.`);
       },
       aoCancelar: fecharRegisto,
     }),
@@ -205,88 +205,4 @@ botaoRegistar.addEventListener('click', () => {
   else fecharRegisto();
 });
 
-// --- Vista Mês: secção "Gastos em compras" ---
-let gastoAEditar = null; // id do registo aberto para editar
-
-function somaCentimos(lista) {
-  return lista.reduce((soma, g) => soma + g.centimos, 0);
-}
-
-function linhaGasto(registo, desenharDeNovo) {
-  if (registo.id === gastoAEditar) {
-    return criar('li', { className: 'gasto-editar' }, formularioGasto({
-      registo,
-      aoGuardar: (alterado) => {
-        const antigo = { ...registo };
-        Object.assign(registo, alterado);
-        if (!guardarGastos()) {
-          Object.assign(registo, antigo);
-          return;
-        }
-        gastoAEditar = null;
-        desenharDeNovo();
-        avisar('Registo alterado.');
-      },
-      aoCancelar: () => { gastoAEditar = null; desenharDeNovo(); },
-      aoApagar: () => {
-        if (!confirm(`Apagar o registo de ${formatarEuros(registo.centimos)} em ${registo.loja}?`)) return;
-        const antes = gastos;
-        gastos = gastos.filter((g) => g.id !== registo.id);
-        if (!guardarGastos()) {
-          gastos = antes;
-          return;
-        }
-        gastoAEditar = null;
-        desenharDeNovo();
-        avisar('Registo apagado.');
-      },
-    }));
-  }
-  const data = textoParaData(registo.data);
-  return criar('li', {}, criar('button', {
-    type: 'button',
-    className: 'gasto-linha',
-    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${registo.loja}, ${formatarEuros(registo.centimos)}. Tocar para editar ou apagar.`,
-    onclick: () => { gastoAEditar = registo.id; desenharDeNovo(); },
-  },
-  criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
-  criar('span', { className: 'gasto-loja', textContent: registo.loja }),
-  criar('span', { className: 'gasto-valor', textContent: formatarEuros(registo.centimos) })));
-}
-
-function desenharGastosMes(mes) {
-  const chave = chaveMes(mes);
-  const doMes = gastos
-    .filter((g) => g.data.startsWith(`${chave}-`))
-    // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro.
-    .map((g, i) => ({ g, i }))
-    .sort((a, b) => b.g.data.localeCompare(a.g.data) || b.i - a.i)
-    .map(({ g }) => g);
-  const doAno = gastos.filter((g) => g.data.startsWith(`${mes.getFullYear()}-`));
-  const total = somaCentimos(doMes);
-  const redesenhar = () => desenharGastosMes(mes);
-
-  const porLoja = new Map();
-  doMes.forEach((g) => porLoja.set(g.loja, (porLoja.get(g.loja) || 0) + g.centimos));
-  const lojas = [...porLoja.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-PT'));
-
-  const partes = [
-    criar('div', { className: 'mes-cartao gastos-total' },
-      criar('p', { className: 'mes-valor', textContent: formatarEuros(total) }),
-      criar('p', { className: 'mes-legenda', textContent: `gasto em ${NOMES_MESES[mes.getMonth()]} · ${doMes.length} ${doMes.length === 1 ? 'ida às compras' : 'idas às compras'}` }),
-      ...(lojas.length ? [criar('ul', { className: 'gastos-lojas' }, ...lojas.map(([loja, centimos]) => criar('li', {},
-        criar('span', { className: 'gasto-loja', textContent: loja }),
-        criar('span', { className: 'gasto-valor', textContent: formatarEuros(centimos) }))))] : []),
-      criar('p', { className: 'mes-pormenor', textContent: `Total de ${mes.getFullYear()}: ${formatarEuros(somaCentimos(doAno))}` })),
-  ];
-  if (doMes.length) {
-    partes.push(criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaGasto(g, redesenhar))));
-  } else {
-    partes.push(criar('div', { className: 'mes-vazio' },
-      criar('p', { className: 'mes-vazio-titulo', textContent: `Sem compras registadas em ${NOMES_MESES[mes.getMonth()]}.` }),
-      criar('p', { textContent: 'Usa "Registar compras" na vista Compras.' })));
-  }
-  const caixa = document.getElementById('mes-gastos');
-  caixa.dataset.mes = chave;
-  caixa.replaceChildren(...partes);
-}
+// A lista e a edição destes registos estão no separador Despesas mensais (despesas.js), na categoria Supermercado.

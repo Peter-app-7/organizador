@@ -118,13 +118,10 @@ function contarNovos(analise) {
 
 // Acrescenta à lista atual. Um produto que já exista fica como está.
 function gravarImportacao(analise) {
-  analise.grupos.forEach((grupo) => {
-    if (!tiposDeCompras().some((tipo) => chaveTexto(tipo) === chaveTexto(grupo.tipo))) {
-      dados.tiposCompras.push(grupo.tipo);
-    }
-  });
+  // As categorias que ainda não existem passam a existir, no fim da lista (antes de "Outros").
+  analise.grupos.forEach((grupo) => garantirCategoriaCompras(grupo.tipo));
   produtosNovos(analise).forEach(({ nome, tipo }) => {
-    dados.compras.push({ id: novoId(), nome, tipo, comprar: false });
+    dados.compras.push({ id: novoId(), nome, tipo: garantirCategoriaCompras(tipo), comprar: false });
   });
   guardarDados();
 }

@@ -2,6 +2,8 @@
 // e tem pequenas funções usadas pelas outras partes da app.
 
 const CHAVE_DADOS = 'organizador-dados';
+// Categorias das Compras, numa chave própria: começam com estas (as de sempre) e editam-se no ecrã.
+const CHAVE_CATEGORIAS_COMPRAS = 'organizador-categorias-compras';
 const TIPOS_COMPRAS = [
   'Frutas e legumes', 'Carne e peixe', 'Laticínios e ovos', 'Mercearia',
   'Bebidas', 'Congelados', 'Limpeza', 'Higiene', 'Outros',
@@ -59,13 +61,9 @@ function primeiraMaiuscula(texto) {
   return limpo.charAt(0).toLocaleUpperCase('pt-PT') + limpo.slice(1);
 }
 
-// Todos os tipos de produto, com "Outros" sempre em último.
+// Todas as categorias das Compras, pela ordem guardada, com "Outros" sempre em último.
 function tiposDeCompras() {
-  return [
-    ...TIPOS_COMPRAS.filter((tipo) => tipo !== 'Outros'),
-    ...dados.tiposCompras,
-    'Outros',
-  ];
+  return [...categoriasCompras];
 }
 
 function novoId() {
@@ -193,6 +191,85 @@ function carregarDados() {
 }
 
 let dados = carregarDados();
+
+// --- Categorias das Compras (chave organizador-categorias-compras) ---
+// Lista limpa: só textos, sem repetidos (sem contar maiúsculas e acentos) e com "Outros" no fim.
+function normalizarCategoriasCompras(lista) {
+  const vistas = new Set([chaveTexto('Outros')]);
+  const limpas = [];
+  lista.forEach((nome) => {
+    if (typeof nome !== 'string' || !nome.trim()) return;
+    const limpo = nome.replace(/\s+/g, ' ').trim();
+    if (vistas.has(chaveTexto(limpo))) return;
+    vistas.add(chaveTexto(limpo));
+    limpas.push(limpo);
+  });
+  return [...limpas, 'Outros'];
+}
+
+// Junta as categorias que os dados usam e ainda não estão na lista (ex.: depois de importar uma cópia),
+// antes de "Outros", para nenhum produto ficar sem a sua categoria. Não muda o tipo de nenhum produto.
+function completarCategoriasCompras(lista) {
+  const conhecidas = new Set(lista.map(chaveTexto));
+  const novas = [];
+  [...dados.tiposCompras, ...dados.compras.map((p) => p.tipo)].forEach((tipo) => {
+    if (conhecidas.has(chaveTexto(tipo))) return;
+    conhecidas.add(chaveTexto(tipo));
+    novas.push(tipo);
+  });
+  if (novas.length === 0) return lista;
+  return normalizarCategoriasCompras([...lista.slice(0, -1), ...novas]);
+}
+
+// Na primeira vez, a lista começa com as categorias de sempre e as criadas antes nesta app, pela mesma ordem.
+function carregarCategoriasCompras() {
+  let texto = null;
+  try {
+    texto = localStorage.getItem(CHAVE_CATEGORIAS_COMPRAS);
+    if (texto) {
+      const bruto = JSON.parse(texto);
+      if (!Array.isArray(bruto.categorias)) throw new Error('Formato desconhecido');
+      return completarCategoriasCompras(normalizarCategoriasCompras(bruto.categorias));
+    }
+  } catch (erro) {
+    try {
+      if (texto) localStorage.setItem(CHAVE_CATEGORIAS_COMPRAS + '-danificados', texto);
+    } catch (erroAoGuardar) { /* sem espaço ou sem acesso */ }
+  }
+  return completarCategoriasCompras(normalizarCategoriasCompras(TIPOS_COMPRAS.filter((tipo) => tipo !== 'Outros')));
+}
+
+let categoriasCompras = carregarCategoriasCompras();
+
+function guardarCategoriasCompras() {
+  try {
+    localStorage.setItem(CHAVE_CATEGORIAS_COMPRAS, JSON.stringify({ versao: 1, categorias: categoriasCompras }));
+  } catch (erro) {
+    avisar('Não foi possível guardar. Exporta uma cópia de segurança.');
+  }
+}
+// Na primeira vez, a lista inicial fica logo guardada no aparelho.
+try {
+  if (!localStorage.getItem(CHAVE_CATEGORIAS_COMPRAS)) guardarCategoriasCompras();
+} catch (erro) { /* sem acesso: a lista volta a ser feita da mesma forma da próxima vez */ }
+
+// "tiposCompras" (nos dados de sempre) continua a ter as categorias que não são as predefinidas,
+// para as cópias antigas e para a app voltar a encontrá-las.
+function acertarTiposCompras() {
+  const predefinidas = new Set(TIPOS_COMPRAS.map(chaveTexto));
+  dados.tiposCompras = categoriasCompras.filter((tipo) => !predefinidas.has(chaveTexto(tipo)));
+}
+
+// Devolve a categoria tal como a app a conhece; se for nova, passa a existir, no fim da lista (antes de "Outros").
+function garantirCategoriaCompras(nome) {
+  const conhecida = categoriasCompras.find((tipo) => chaveTexto(tipo) === chaveTexto(nome));
+  if (conhecida) return conhecida;
+  const limpo = primeiraMaiuscula(nome.replace(/\s+/g, ' '));
+  categoriasCompras = normalizarCategoriasCompras([...categoriasCompras.slice(0, -1), limpo]);
+  if (!dados.tiposCompras.some((tipo) => chaveTexto(tipo) === chaveTexto(limpo))) dados.tiposCompras.push(limpo);
+  guardarCategoriasCompras();
+  return limpo;
+}
 
 function guardarDados() {
   try {
