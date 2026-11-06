@@ -1,5 +1,5 @@
-// mes.js: vista Mês. Revisão de um mês com os dados que a app já regista, comparação com o mês anterior
-// e notas do mês. Os suplementos tomados e as receitas não entram: a app só guarda os de hoje e os desta semana.
+// mes.js: vista Mês. Revisão de um mês com os dados que a app já regista, comparação com o mês anterior,
+// gastos em compras (ver gastos.js) e notas do mês. Os suplementos tomados e as receitas não entram: a app só guarda os de hoje e os desta semana.
 
 // Mês mostrado, a contar do atual: 0 é este, -1 o anterior, 1 o seguinte.
 let mesDeslocamento = 0;
@@ -180,6 +180,9 @@ function desenharMes() {
       criar('p', { className: 'mes-vazio-titulo', textContent: `Nada registado em ${NOMES_MESES[mes.getMonth()]}.` }),
       criar('p', { textContent: 'Os dias marcados na Semana e nos Suplementos aparecem aqui.' })));
   }
+  // Com um registo de gastos a ser editado, não se mexe nele (ex.: a app voltou a ficar visível).
+  const caixaGastos = document.getElementById('mes-gastos');
+  if (!(caixaGastos.contains(document.activeElement) && caixaGastos.dataset.mes === chaveMes(mes))) desenharGastosMes(mes);
   desenharNotasMes(mes);
 }
 

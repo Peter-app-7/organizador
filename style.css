@@ -72,7 +72,7 @@ input, select, textarea { font-size: 16px; }
 /* Ao escrever, o iPhone traz o campo para a vista: esta margem deixa-o fora do cabeçalho fixo e da barra de baixo. */
 input, select, textarea { scroll-margin: 140px 0 100px; }
 
-input[type="text"], input[type="time"], input[type="number"], select, textarea {
+input[type="text"], input[type="time"], input[type="number"], input[type="date"], select, textarea {
   display: block;
   width: 100%;
   min-width: 0;
@@ -446,6 +446,44 @@ button:disabled { opacity: .6; }
 .mes-vazio { margin: 14px 0 0; padding: 20px 16px; text-align: center; color: var(--texto-suave); background: var(--cartao); border: 1px dashed var(--linha); border-radius: 8px; }
 .mes-vazio p { margin: 0; }
 .mes-vazio .mes-vazio-titulo { margin-bottom: 4px; font-weight: 600; color: var(--texto); }
+
+/* --- Gastos: formulário (Compras) e histórico (Mês) --- */
+/* No iPhone, o campo de data tem aspeto e largura próprios: assim fica igual aos outros campos. */
+input[type="date"] { -webkit-appearance: none; appearance: none; text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
+/* Ao escrever, o botão de guardar também deve ficar acima do teclado. */
+.formulario-gasto input { scroll-margin-bottom: 170px; }
+.gastos-registo { margin: 4px 0 16px; padding: 4px 12px 2px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
+.gastos-registo h2 { margin: 10px 0 8px; }
+.formulario-gasto { margin-bottom: 10px; }
+.formulario-gasto .botao-secundario { margin-top: 0; }
+.erro-campo { margin: 4px 0 0; font-size: .85rem; font-weight: 600; color: var(--vermelho); }
+input[aria-invalid="true"] { border-color: var(--vermelho); }
+.botao-apagar-registo { min-height: 44px; background: none; border: 0; color: var(--vermelho); font-weight: 600; }
+
+.gastos-total { margin-top: 0; }
+.gastos-lojas { list-style: none; margin: 8px 0 0; padding: 0; font-size: .85rem; }
+.gastos-lojas li { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; border-top: 1px solid var(--linha); }
+.gastos-lista { list-style: none; margin: 8px 0 0; padding: 0; }
+.gastos-lista > li { margin-bottom: 6px; }
+.gasto-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 6px 12px;
+  text-align: left;
+  background: var(--cartao);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.gasto-data { flex: none; width: 3.6em; font-size: .85rem; color: var(--texto-suave); }
+.gasto-loja { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.gasto-valor { flex: none; font-weight: 600; white-space: nowrap; }
+.gasto-editar { padding: 4px 12px 2px; background: var(--cartao); border: 1px solid var(--destaque); border-radius: 8px; }
+.gasto-editar .formulario-gasto { margin: 8px 0; }
 
 /* --- Receitas --- */
 .receita {

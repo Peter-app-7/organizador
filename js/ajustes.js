@@ -63,7 +63,8 @@ function descarregarFicheiro(ficheiro) {
 async function exportarCopia() {
   const nome = `organizador-copia-${dataParaTexto(new Date())}.json`;
   // Os dados vão tal como estão, com a data da cópia e a versão; "app" e "exportadoEm" são ignorados ao importar.
-  const copia = { app: 'organizador', exportadoEm: new Date().toISOString(), ...dados };
+  // Os gastos vêm da sua própria chave (ver gastos.js) e vão juntos no mesmo ficheiro.
+  const copia = { app: 'organizador', exportadoEm: new Date().toISOString(), ...dados, gastos };
   const ficheiro = new File([JSON.stringify(copia, null, 2)], nome, { type: 'application/json' });
 
   // No iPhone abre o menu Partilhar (ex.: "Guardar em Ficheiros"); no Mac descarrega o ficheiro.
@@ -87,23 +88,32 @@ async function exportarCopia() {
 
 async function restaurarCopia(ficheiro) {
   let novos;
+  let novosGastos = null; // null: a cópia não tem gastos (é anterior a eles) e os deste aparelho ficam como estão
   try {
     if (ficheiro.size > 5 * 1024 * 1024) throw new Error('Ficheiro grande demais');
     const bruto = JSON.parse(await ficheiro.text());
     if (bruto && bruto.app !== undefined && bruto.app !== 'organizador') throw new Error('Ficheiro de outra app');
     novos = normalizarDados(bruto);
+    if (Array.isArray(bruto.gastos)) novosGastos = normalizarGastos(bruto.gastos);
   } catch (erro) {
     avisar('Este ficheiro não é uma cópia válida da app. Nada foi alterado.');
     return;
   }
-  const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos e ${novos.ginasio.length} dias de ginásio`;
-  if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?`)) return;
+  const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos, ${novos.ginasio.length} dias de ginásio`
+    + (novosGastos ? ` e ${novosGastos.length} registos de gastos` : '');
+  const notaGastos = novosGastos ? '' : '\nEsta cópia não tem gastos: os gastos registados neste aparelho ficam como estão.';
+  if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?${notaGastos}`)) return;
   // Guarda os dados de antes à parte, para não se perderem se a cópia escolhida for a errada.
   try {
     localStorage.setItem(CHAVE_DADOS + '-antes-de-importar', JSON.stringify(dados));
+    if (novosGastos) localStorage.setItem(CHAVE_GASTOS + '-antes-de-importar', JSON.stringify({ versao: 1, registos: gastos }));
   } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
   dados = novos;
   guardarDados();
+  if (novosGastos) {
+    gastos = novosGastos;
+    guardarGastos();
+  }
   desenharAjustes();
   atualizarTempo(); // a cópia pode ter outra localidade
   avisar('Dados importados.');
