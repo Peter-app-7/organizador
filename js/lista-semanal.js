@@ -1,4 +1,4 @@
-// lista-semanal.js: botão "Adicionar lista semanal" da vista Compras.
+// lista-semanal.js: botão "Adicionar lista semanal" da lista de produtos (vista Gastos).
 
 // Para mudar a lista, basta editar aqui: ['Produto', 'quantidade'], dentro do tipo de produto.
 const LISTA_SEMANAL = [

@@ -1,4 +1,4 @@
-// importar.js: "Importar lista" na vista Compras. Lê texto colado, com títulos de categorias
+// importar.js: "Importar lista" na lista de produtos da vista Gastos. Lê texto colado, com títulos de categorias
 // seguidos de produtos, mostra como foi interpretado e só depois grava.
 
 // Início de linha: "*", "-", "1." e caixas como "[ ]" ou "☐", sozinhos ou combinados.

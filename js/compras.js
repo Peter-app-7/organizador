@@ -1,4 +1,4 @@
-// compras.js: vista Compras. Lista da casa, por tipo de produto, com sim/não para comprar.
+// compras.js: lista de produtos da vista Gastos. Lista da casa, por tipo de produto, com sim/não para comprar.
 
 let comprasAEditar = false;
 
@@ -48,6 +48,9 @@ function desenharContadorCompras() {
     ? 'Nada por comprar'
     : `${numero} ${numero === 1 ? 'produto' : 'produtos'} por comprar`;
   document.getElementById('compras-limpar').hidden = numero === 0;
+  // Com a lista recolhida, o número fica visível ao lado de "Produtos".
+  const recolhidos = document.getElementById('produtos-corpo').hidden;
+  document.getElementById('produtos-resumo').textContent = recolhidos && numero > 0 ? `· ${numero} por comprar` : '';
 }
 
 // Depois das compras: os produtos marcados "Sim" passam a "Não". Nenhum produto sai da lista.
@@ -208,5 +211,3 @@ document.getElementById('compras-categorias-caixa').addEventListener('toggle', (
   if (evento.target.open) desenharCategoriasCompras();
   else estadoCategoriasCompras.aRenomear = null;
 });
-
-desenhar.compras = desenharCompras;

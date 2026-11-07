@@ -17,7 +17,7 @@ const MOMENTOS = [
   { id: 'livre', nome: 'Horário livre', letra: 'L' }, // sem hora marcada: não se junta aos outros momentos
 ];
 
-// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.compras()...
+// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.gastos()...
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
 const aoAbrir = [];

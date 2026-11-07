@@ -415,22 +415,33 @@ button:disabled { opacity: .6; }
 .compras-estado .resumo { margin: 0; }
 #compras-limpar { min-height: 44px; }
 
-/* --- Despesas mensais (vista "mes") --- */
+/* --- Vista Gastos: lembrete da cópia, botão para recolher os produtos e Despesas mensais --- */
+#gastos-exportar { min-height: 44px; }
+.produtos-cabecalho { margin-top: 8px; }
+.produtos-alternar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
+  background: none;
+  border: 0;
+}
+.produtos-seta { display: inline-block; width: 1em; color: var(--destaque); }
+.produtos-resumo { font-size: .85rem; font-weight: 400; color: var(--texto-suave); }
+.despesas-cabecalho { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--linha); }
+.titulo-com-botao h3.despesas-subtitulo { margin: 0; }
 .mes-navegacao { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
 .mes-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
 .mes-navegacao h2 { margin: 0; text-align: center; }
 .mes-navegacao h2::first-letter { text-transform: uppercase; }
 #mes-hoje { min-height: 44px; }
 
-.mes-lembrete {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: 8px;
-  margin: 10px 0 0;
-  font-size: .85rem;
-  color: var(--alerta);
-}
+.mes-lembrete { margin: -4px 0 8px; font-size: .85rem; color: var(--alerta); }
 
 .mes-cartao { min-width: 0; padding: 10px 12px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
 .mes-valor { margin: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
@@ -586,14 +597,14 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
   left: 0; right: 0; bottom: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding-bottom: env(safe-area-inset-bottom);
   background: var(--cartao);
   border-top: 1px solid var(--linha);
 }
 .navegacao button { min-height: 60px; padding: 0 2px; background: none; border: 0; font-size: 1.2rem; color: var(--texto-suave); }
 .navegacao span { display: block; font-size: .7rem; white-space: nowrap; }
-/* Cinco separadores no ecrã mais estreito (320 px): "Suplementos" e "Despesas" têm de caber em 64 px. */
+/* No ecrã mais estreito (320 px), "Suplementos" tem de caber em 80 px. */
 @media (max-width: 359px) { .navegacao span { font-size: .62rem; letter-spacing: -.01em; } }
 .navegacao button[aria-current="page"] { color: var(--destaque); font-weight: 700; }
 

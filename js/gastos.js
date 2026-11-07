@@ -1,4 +1,4 @@
-// gastos.js: registo do que se gasta em cada ida às compras. Formulário na vista Compras; a lista fica em Despesas mensais.
+// gastos.js: registo do que se gasta em cada ida às compras. Formulário na lista de produtos da vista Gastos; a lista fica em Despesas mensais, na mesma vista.
 // Os registos ficam numa chave própria do localStorage, à parte dos outros dados, e entram nas cópias de segurança.
 
 const CHAVE_GASTOS = 'organizador-gastos';
@@ -170,7 +170,7 @@ if (window.visualViewport) {
   });
 }
 
-// --- Vista Compras: botão "Registar compras" ---
+// --- Vista Gastos, lista de produtos: botão "Registar compras" ---
 const caixaRegisto = document.getElementById('gastos-registo');
 const botaoRegistar = document.getElementById('gastos-registar');
 
@@ -191,7 +191,12 @@ function abrirRegisto() {
           return;
         }
         fecharRegisto();
-        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Despesas.`);
+        // As Despesas mensais estão na mesma vista: mostram logo o novo registo, no mês dele.
+        const [ano, mes] = novo.data.split('-').map(Number);
+        const hoje = new Date();
+        mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
+        correrSemFalhar(desenharMes);
+        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Despesas mensais.`);
       },
       aoCancelar: fecharRegisto,
     }),
@@ -205,4 +210,4 @@ botaoRegistar.addEventListener('click', () => {
   else fecharRegisto();
 });
 
-// A lista e a edição destes registos estão no separador Despesas mensais (despesas.js), na categoria Supermercado.
+// A lista e a edição destes registos estão nas Despesas mensais (despesas.js), na categoria Supermercado.

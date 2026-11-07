@@ -1,4 +1,4 @@
-// despesas.js: secção "Gastos" do separador Despesas mensais. Gastos gerais, por categoria, com as categorias editáveis.
+// despesas.js: secção Despesas mensais da vista Gastos. Gastos gerais, por categoria, com as categorias editáveis.
 // Os gastos gerais e as categorias ficam em chaves próprias. Os registos de "Registar compras" (gastos.js) continuam
 // na chave deles e aparecem aqui na categoria Supermercado, sem serem alterados.
 

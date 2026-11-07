@@ -13,6 +13,7 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#212529">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -80,45 +81,75 @@
       </div>
     </section>
 
-    <section id="vista-compras" class="vista" hidden>
+    <section id="vista-gastos" class="vista" hidden>
       <div class="titulo-com-botao titulo-vista">
-        <h1>Compras</h1>
+        <h1>Gastos</h1>
+        <button id="gastos-exportar" type="button" class="botao-pequeno">Exportar dados</button>
+      </div>
+      <p id="mes-lembrete" class="mes-lembrete" hidden></p>
+
+      <div class="titulo-com-botao produtos-cabecalho">
+        <button id="produtos-alternar" type="button" class="produtos-alternar" aria-expanded="true" aria-controls="produtos-corpo">
+          <span class="produtos-seta" aria-hidden="true">▾</span> Produtos <span id="produtos-resumo" class="produtos-resumo"></span>
+        </button>
         <button id="compras-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="compras-gerir">Editar</button>
       </div>
-      <div id="compras-gerir" hidden>
-      <form id="compras-formulario" class="formulario">
-        <label>Produto
-          <input id="compras-nome" type="text" placeholder="Ex.: leite" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
-        </label>
-        <label>Categoria <select id="compras-tipo"></select></label>
-        <button type="submit" class="botao-principal">Adicionar</button>
-      </form>
-      <details id="importar-caixa" class="gerir">
-        <summary>Importar lista</summary>
-        <form id="importar-formulario" class="formulario">
-          <label>Cola aqui a lista: títulos das categorias seguidos dos produtos, um por linha.
-            <textarea id="importar-texto" rows="8" required></textarea>
+      <div id="produtos-corpo">
+        <div id="compras-gerir" hidden>
+        <form id="compras-formulario" class="formulario">
+          <label>Produto
+            <input id="compras-nome" type="text" placeholder="Ex.: leite" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
           </label>
-          <button type="submit" class="botao-principal">Pré-visualizar</button>
+          <label>Categoria <select id="compras-tipo"></select></label>
+          <button type="submit" class="botao-principal">Adicionar</button>
         </form>
-        <div id="importar-previa"></div>
-      </details>
-      <details id="compras-categorias-caixa" class="gerir">
-        <summary>Categorias</summary>
-        <div id="compras-categorias"></div>
-      </details>
+        <details id="importar-caixa" class="gerir">
+          <summary>Importar lista</summary>
+          <form id="importar-formulario" class="formulario">
+            <label>Cola aqui a lista: títulos das categorias seguidos dos produtos, um por linha.
+              <textarea id="importar-texto" rows="8" required></textarea>
+            </label>
+            <button type="submit" class="botao-principal">Pré-visualizar</button>
+          </form>
+          <div id="importar-previa"></div>
+        </details>
+        <details id="compras-categorias-caixa" class="gerir">
+          <summary>Categorias</summary>
+          <div id="compras-categorias"></div>
+        </details>
+        </div>
+        <div class="compras-estado">
+          <p id="compras-contador" class="resumo"></p>
+          <button id="compras-limpar" type="button" class="botao-pequeno">Limpar comprados</button>
+        </div>
+        <label class="opcao">
+          <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
+        </label>
+        <button id="compras-lista-semanal" type="button" class="botao-discreto">Adicionar lista semanal</button>
+        <button id="gastos-registar" type="button" class="botao-discreto" aria-expanded="false" aria-controls="gastos-registo">Registar compras</button>
+        <div id="gastos-registo" class="gastos-registo" hidden></div>
+        <div id="compras-lista"></div>
       </div>
-      <div class="compras-estado">
-        <p id="compras-contador" class="resumo"></p>
-        <button id="compras-limpar" type="button" class="botao-pequeno">Limpar comprados</button>
+
+      <div class="titulo-com-botao despesas-cabecalho">
+        <h2>Despesas mensais</h2>
+        <button id="mes-hoje" type="button" class="botao-pequeno" hidden>Este mês</button>
       </div>
-      <label class="opcao">
-        <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
-      </label>
-      <button id="compras-lista-semanal" type="button" class="botao-discreto">Adicionar lista semanal</button>
-      <button id="gastos-registar" type="button" class="botao-discreto" aria-expanded="false" aria-controls="gastos-registo">Registar compras</button>
-      <div id="gastos-registo" class="gastos-registo" hidden></div>
-      <div id="compras-lista"></div>
+      <div class="mes-navegacao">
+        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
+        <h2 id="mes-titulo" aria-live="polite"></h2>
+        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
+      </div>
+      <div class="titulo-com-botao">
+        <h3 class="despesas-subtitulo">Gastos do mês</h3>
+        <button id="despesas-registar" type="button" class="botao-pequeno botao-pequeno-principal" aria-expanded="false" aria-controls="despesas-registo">Registar gasto</button>
+      </div>
+      <div id="despesas-registo" class="gastos-registo" hidden></div>
+      <div id="mes-gastos"></div>
+      <details id="despesas-categorias-caixa" class="gerir">
+        <summary>Categorias de gastos</summary>
+        <div id="despesas-categorias"></div>
+      </details>
     </section>
 
     <section id="vista-receitas" class="vista" hidden>
@@ -128,32 +159,6 @@
       </div>
       <p id="receitas-contador" class="resumo"></p>
       <div id="receitas-lista"></div>
-    </section>
-
-    <section id="vista-mes" class="vista" hidden>
-      <div class="titulo-com-botao titulo-vista">
-        <h1>Despesas mensais</h1>
-        <button id="mes-hoje" type="button" class="botao-pequeno" hidden>Este mês</button>
-      </div>
-      <div class="mes-navegacao">
-        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
-        <h2 id="mes-titulo" aria-live="polite"></h2>
-        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
-      </div>
-      <p id="mes-lembrete" class="mes-lembrete" hidden>
-        <span id="mes-lembrete-texto"></span>
-        <button id="mes-exportar" type="button" class="botao-discreto">Exportar dados</button>
-      </p>
-      <div class="titulo-com-botao">
-        <h2>Gastos</h2>
-        <button id="despesas-registar" type="button" class="botao-pequeno botao-pequeno-principal" aria-expanded="false" aria-controls="despesas-registo">Registar gasto</button>
-      </div>
-      <div id="despesas-registo" class="gastos-registo" hidden></div>
-      <div id="mes-gastos"></div>
-      <details id="despesas-categorias-caixa" class="gerir">
-        <summary>Categorias de gastos</summary>
-        <div id="despesas-categorias"></div>
-      </details>
     </section>
 
     <section id="vista-ajustes" class="vista" hidden>
@@ -189,8 +194,7 @@
     <button type="button" data-vista="semana">📅<span>Semana</span></button>
     <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
     <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
-    <button type="button" data-vista="compras">🛒<span>Compras</span></button>
-    <button type="button" data-vista="mes" aria-label="Despesas mensais">🪙<span>Despesas</span></button>
+    <button type="button" data-vista="gastos">💶<span>Gastos</span></button>
   </nav>
 
   <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
