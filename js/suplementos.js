@@ -1,9 +1,9 @@
-// suplementos.js: vista Suplementos. Lista diária, por momento do dia, e a água de hoje por baixo.
+// suplementos.js: vista Suplementos. Lista diária, por momento do dia, e o Jejum por baixo (jejum.js).
+// A água foi retirada do ecrã (10 nov 2026): o histórico continua guardado em dados.agua e nas cópias de segurança.
 // Os nomes são escritos na app e ficam só nos dados guardados no aparelho.
 
 // Momentos escolhidos para o novo suplemento, antes de o adicionar.
 const novosMomentos = new Set();
-const NIVEIS_AGUA = [0.5, 1, 1.5, 2];
 
 // As marcas são guardadas com a data: noutro dia já não contam, por isso limpam-se sozinhas.
 function marcadosDeHoje() {
@@ -135,7 +135,6 @@ function desenharSuplementos() {
 
   desenharNovosMomentos();
   document.getElementById('suplementos-lista').replaceChildren(...ordenados.map(linhaTabela));
-  desenharAgua();
 }
 
 document.getElementById('suplementos-editar').addEventListener('click', (evento) => {
@@ -169,34 +168,3 @@ document.getElementById('suplementos-formulario').addEventListener('submit', (ev
   desenharSuplementos();
 });
 
-// A água é guardada por data: aqui mexe-se sempre na de hoje, e a Semana mostra a de cada dia.
-function aguaDoDia(texto) {
-  return dados.agua[texto] || 0;
-}
-
-function rotuloAgua(litros) {
-  return `${String(litros).replace('.', ',')} L`;
-}
-
-// Tocar num nível marca o total até esse valor; tocar no nível já marcado volta ao anterior.
-function tocarNivelAgua(litros) {
-  const hoje = dataParaTexto(new Date());
-  const novo = aguaDoDia(hoje) === litros ? litros - 0.5 : litros;
-  if (novo > 0) dados.agua[hoje] = novo;
-  else delete dados.agua[hoje];
-  guardarDados();
-  desenharAgua();
-}
-
-function desenharAgua() {
-  const atual = aguaDoDia(dataParaTexto(new Date()));
-  document.getElementById('agua-niveis').replaceChildren(...NIVEIS_AGUA.map((litros) => criar('button', {
-    type: 'button',
-    className: 'agua-nivel',
-    textContent: rotuloAgua(litros),
-    'aria-pressed': String(litros <= atual),
-    onclick: () => tocarNivelAgua(litros),
-  })));
-}
-
-desenhar.suplementos = desenharSuplementos;

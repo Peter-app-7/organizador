@@ -1,6 +1,6 @@
 // mes.js: vista Gastos. Junta a lista de produtos (compras.js) e as Despesas mensais (seletor de mês e despesas.js),
 // com o botão "Exportar dados" sempre visível e o lembrete da cópia de segurança.
-// Os hábitos (exercício, jejum e água) não aparecem aqui: estão nas vistas Semana e Suplementos.
+// O exercício e o jejum não aparecem aqui: estão nas vistas Semana e Suplementos.
 
 // Mês mostrado, a contar do atual: 0 é este, -1 o anterior, 1 o seguinte.
 let mesDeslocamento = 0;

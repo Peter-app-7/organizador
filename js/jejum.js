@@ -1,5 +1,5 @@
-// jejum.js: secção Jejum da vista Semana, por baixo dos dias de ginásio e com o mesmo modelo deles.
-// Tem a sua própria navegação por semanas (‹ Hoje ›), independente da do ginásio.
+// jejum.js: secção Jejum da vista Suplementos, por baixo dos horários, com o mesmo modelo dos dias de exercício da Semana.
+// Tem a sua própria navegação por semanas (‹ Hoje ›), independente da da Semana. Os quadrados são os de botaoDiaLinha (semana.js).
 // Sete quadrados, de segunda a domingo. Tocar muda o estado do dia: sem jejum, 2R, 1R, 36h e de volta a sem jejum.
 
 // A ordem desta lista é a ordem dos toques. "lista" é o sítio dos dados onde ficam os dias desse tipo.
@@ -84,7 +84,6 @@ function mudarSemanaJejum(semanas) {
 
 function desenharJejum() {
   const dias = diasDoJejum();
-  const hoje = dataParaTexto(new Date());
   const contar = (tipo) => dias.filter((dia) => dados[tipo.lista].includes(dia)).length;
   const [dois, um, trinta] = TIPOS_JEJUM.map(contar);
   const total = dois + um + trinta;
@@ -98,19 +97,15 @@ function desenharJejum() {
   );
 
   document.getElementById('jejum-dias').replaceChildren(...dias.map((texto, i) => {
-    const data = textoParaData(texto);
     const tipo = tipoJejumDoDia(texto);
-    const nome = formatarData(data, { weekday: 'long', day: 'numeric', month: 'long' });
-    const botao = criar('button', {
-      type: 'button',
-      className: texto === hoje ? 'dia dia-hoje' : 'dia',
-      'aria-label': `${nome}: ${tipo ? tipo.nome : 'sem jejum'}`,
-      onclick: () => mudarJejumDia(texto),
-    },
-    criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[i] }),
-    criar('span', { className: 'dia-numero', textContent: String(data.getDate()) }),
-    // No lugar do ícone do ginásio, com a mesma altura.
-    criar('span', { className: 'dia-jejum', textContent: tipo ? tipo.curto : '' }));
+    const botao = botaoDiaLinha({
+      texto,
+      indice: i,
+      descricao: tipo ? tipo.nome : 'sem jejum',
+      // No lugar do ícone do exercício, com a mesma altura.
+      rodape: criar('span', { className: 'dia-jejum', textContent: tipo ? tipo.curto : '' }),
+      aoTocar: () => mudarJejumDia(texto),
+    });
     botao.dataset.jejum = tipo ? tipo.id : 'nenhum';
     return criar('li', {}, botao);
   }));
@@ -125,3 +120,8 @@ function desenharJejum() {
 document.getElementById('jejum-anterior').addEventListener('click', () => mudarSemanaJejum(jejumSemanas - 1));
 document.getElementById('jejum-hoje').addEventListener('click', () => mudarSemanaJejum(0));
 document.getElementById('jejum-seguinte').addEventListener('click', () => mudarSemanaJejum(jejumSemanas + 1));
+
+desenhar.suplementos = () => {
+  desenharSuplementos();
+  desenharJejum();
+};

@@ -1,8 +1,17 @@
-// semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
-// nada, Ginásio, Cycling, Natação, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia, só para consulta.
+// semana.js: vista Semana. Navegação por semanas e resumo do exercício no topo e, por baixo, um menu para cada
+// categoria (Ginásio, Cycling e Natação), cada um com os seus sete quadrados, de segunda a domingo.
+// Cada dia tem um só estado (um dia conta uma vez): num menu, tocar muda o dia de nada para essa categoria,
+// depois para Falhado e de volta a nada. Falhado é do dia (sem exercício), por isso aparece nos três menus.
+// Um dia já marcado noutra categoria aparece esbatido, com o ícone dela, e não muda: avisa onde o desmarcar.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', natacao: 'Natação', falhado: 'Falhado' };
+// Os menus de exercício, por esta ordem. "lista" é o sítio dos dados onde ficam os dias dessa categoria.
+const CATEGORIAS_EXERCICIO = [
+  { id: 'ginasio', lista: 'ginasio', titulo: 'Ginásio' },
+  { id: 'cycling', lista: 'cycling', titulo: 'Cycling' },
+  { id: 'natacao', lista: 'natacao', titulo: 'Natação' },
+];
 
 function somarDias(data, dias) {
   return new Date(data.getFullYear(), data.getMonth(), data.getDate() + dias);
@@ -46,56 +55,86 @@ function estadoDoDia(texto) {
   return 'nada';
 }
 
-function mudarEstadoDia(texto) {
+function totalExercicio() {
+  return CATEGORIAS_EXERCICIO.reduce((soma, c) => soma + contarNaSemana(dados[c.lista]), 0);
+}
+
+// Toque num dia do menu de uma categoria: nada -> categoria -> Falhado -> nada.
+function mudarEstadoDia(categoria, texto) {
   const estado = estadoDoDia(texto);
+
+  // Um dia só conta uma vez: se já tem outra categoria, não muda.
+  if (estado !== 'nada' && estado !== 'falhado' && estado !== categoria.id) {
+    avisar(`${rotuloDiaJejum(texto)} já tem ${NOMES_ESTADOS[estado]}. Desmarca-o primeiro no menu ${NOMES_ESTADOS[estado]}.`);
+    return;
+  }
 
   // Os limites são do exercício total, sem os dias falhados: um dia vazio não pode ser marcado
   // se o máximo já foi atingido.
   if (estado === 'nada') {
-    const total = contarNaSemana(dados.ginasio) + contarNaSemana(dados.cycling) + contarNaSemana(dados.natacao);
+    const total = totalExercicio();
     if (total >= dados.ajustes.ginasioMax) {
       avisar(`Já tens ${total} dias de exercício: o máximo é ${dados.ajustes.ginasioMax}.`);
       return;
     }
   }
 
-  dados.ginasio = dados.ginasio.filter((dia) => dia !== texto);
-  dados.cycling = dados.cycling.filter((dia) => dia !== texto);
-  dados.natacao = dados.natacao.filter((dia) => dia !== texto);
+  CATEGORIAS_EXERCICIO.forEach((c) => {
+    dados[c.lista] = dados[c.lista].filter((dia) => dia !== texto);
+  });
   dados.falhados = dados.falhados.filter((dia) => dia !== texto);
-  if (estado === 'nada') dados.ginasio.push(texto);
-  if (estado === 'ginasio') dados.cycling.push(texto);
-  if (estado === 'cycling') dados.natacao.push(texto);
-  if (estado === 'natacao') dados.falhados.push(texto);
+  if (estado === 'nada') dados[categoria.lista].push(texto);
+  if (estado === categoria.id) dados.falhados.push(texto);
 
   guardarDados();
   desenharSemana();
 }
 
-// Um quadrado de um dia, igual em todos os menus da vista. O nome completo e o estado ficam no aria-label, para leitores de ecrã.
-function botaoDia(dia, indice, estado, descricao, aoTocar) {
-  const texto = dataParaTexto(dia);
-  const selecionado = texto === dataParaTexto(diaSelecionado);
-  const nome = formatarData(dia, { weekday: 'long', day: 'numeric', month: 'long' });
-  const botao = criar('button', {
+// Quadrado compacto de um dia, o mesmo da linha de dias do Jejum: nome do dia, número e, por baixo, o rodapé
+// (o tipo de jejum ou o ícone do exercício). Contorno no dia de hoje e, se pedido, o traço do dia selecionado.
+// O nome completo e o estado ficam no aria-label, para leitores de ecrã.
+function botaoDiaLinha({ texto, indice, descricao, rodape, aoTocar, selecionado = false }) {
+  const data = textoParaData(texto);
+  const nome = formatarData(data, { weekday: 'long', day: 'numeric', month: 'long' });
+  return criar('button', {
     type: 'button',
     className: ['dia', texto === dataParaTexto(new Date()) && 'dia-hoje', selecionado && 'dia-selecionado'].filter(Boolean).join(' '),
     'aria-label': `${nome}: ${descricao}${selecionado ? ', dia selecionado' : ''}`,
     onclick: aoTocar,
   },
   criar('span', { className: 'dia-nome', textContent: ABREVIATURAS_DIAS[indice] }),
-  criar('span', { className: 'dia-numero', textContent: String(dia.getDate()) }),
-  criar('span', { className: 'dia-icone' }));
-  botao.dataset.estado = estado;
-  return botao;
+  criar('span', { className: 'dia-numero', textContent: String(data.getDate()) }),
+  rodape);
+}
+
+function menuExercicio(categoria, dias) {
+  const numero = contarNaSemana(dados[categoria.lista]);
+  const selecionado = dataParaTexto(diaSelecionado);
+  return criar('div', { className: 'exercicio-menu', id: `exercicio-${categoria.id}` },
+    criar('div', { className: 'exercicio-cabecalho' },
+      criar('h2', { textContent: categoria.titulo }),
+      criar('span', { className: 'exercicio-contagem', textContent: `${numero} ${numero === 1 ? 'dia' : 'dias'}` })),
+    criar('ul', { className: 'quadrados exercicio-dias' }, ...dias.map((dia, i) => {
+      const texto = dataParaTexto(dia);
+      const estado = estadoDoDia(texto);
+      const outra = estado !== 'nada' && estado !== 'falhado' && estado !== categoria.id;
+      const descricao = outra ? `${NOMES_ESTADOS[estado]}, marcado no menu ${NOMES_ESTADOS[estado]}`
+        : `${categoria.titulo}, ${estado === 'nada' ? 'por marcar' : NOMES_ESTADOS[estado]}`;
+      const botao = botaoDiaLinha({
+        texto, indice: i, descricao, selecionado: texto === selecionado,
+        rodape: criar('span', { className: 'dia-icone' }),
+        aoTocar: () => mudarEstadoDia(categoria, texto),
+      });
+      botao.dataset.estado = outra ? 'outro' : estado;
+      if (outra) botao.dataset.outro = estado;
+      return criar('li', {}, botao);
+    })));
 }
 
 function desenharSemana() {
   const dias = diasDaSemanaMostrada();
   const { ginasioMin, ginasioMax } = dados.ajustes;
-  const diasGinasio = contarNaSemana(dados.ginasio);
-  const diasCycling = contarNaSemana(dados.cycling);
-  const diasNatacao = contarNaSemana(dados.natacao);
+  const [diasGinasio, diasCycling, diasNatacao] = CATEGORIAS_EXERCICIO.map((c) => contarNaSemana(dados[c.lista]));
   const total = diasGinasio + diasCycling + diasNatacao;
   const diasFalhados = contarNaSemana(dados.falhados);
 
@@ -112,15 +151,7 @@ function desenharSemana() {
   // Destaca o contador se faltar exercício, ou se dados antigos passarem o máximo.
   resumo.classList.toggle('resumo-falta', total < ginasioMin || total > ginasioMax);
 
-  document.getElementById('semana-dias').replaceChildren(...dias.map((dia, i) => {
-    const texto = dataParaTexto(dia);
-    const estado = estadoDoDia(texto);
-    const litros = aguaDoDia(texto);
-    const descricaoAgua = litros ? `, água ${rotuloAgua(litros)}` : '';
-    return criar('li', {},
-      botaoDia(dia, i, estado, `${NOMES_ESTADOS[estado]}${descricaoAgua}`, () => mudarEstadoDia(texto)),
-      ...(litros ? [criar('span', { className: 'dia-agua', textContent: rotuloAgua(litros), 'aria-hidden': 'true' })] : []));
-  }));
+  document.getElementById('exercicio-menus').replaceChildren(...CATEGORIAS_EXERCICIO.map((c) => menuExercicio(c, dias)));
 }
 
 document.getElementById('semana-anterior').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, -7)));
@@ -129,9 +160,6 @@ document.getElementById('semana-hoje').addEventListener('click', () => seleciona
 document.getElementById('dia-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 1)));
 document.getElementById('semana-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 7)));
 
-// A vista Semana tem os dias de ginásio e, por baixo, o Jejum (jejum.js).
-// O Tabaco e o Álcool foram retirados do ecrã; os dias já marcados continuam guardados e nas cópias de segurança.
-desenhar.semana = () => {
-  desenharSemana();
-  desenharJejum();
-};
+// O Tabaco e o Álcool foram retirados do ecrã, e a água também (10 nov 2026); os dias já marcados continuam
+// guardados e nas cópias de segurança. O Jejum está na vista Suplementos (jejum.js).
+desenhar.semana = desenharSemana;
