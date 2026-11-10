@@ -136,7 +136,7 @@ campoDiaInicio.addEventListener('change', () => {
 });
 
 // --- Recolher e mostrar a lista de produtos ---
-// A escolha fica só neste aparelho, numa chave própria (não entra na cópia de segurança).
+// A escolha fica numa chave própria e vai na cópia de segurança, em "preferencias".
 const CHAVE_PRODUTOS_RECOLHIDOS = 'organizador-produtos-recolhidos';
 
 function lerProdutosRecolhidos() {
