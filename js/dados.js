@@ -24,11 +24,14 @@ const aoAbrir = [];
 
 function dadosIniciais() {
   return {
-    versao: 2,
-    ginasio: [],        // dias marcados, ex.: "2026-11-02"
-    cycling: [],        // dias de cycling, no mesmo formato
-    natacao: [],        // dias de natação, no mesmo formato (dados e cópias antigas não têm esta lista: fica vazia)
-    falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das quatro listas
+    versao: 3,          // 3: cada categoria de exercício tem os seus dias feitos e falhados (ver migrarExercicio)
+    ginasio: [],        // dias de ginásio feitos, ex.: "2026-11-02"
+    cycling: [],        // dias de cycling feitos, no mesmo formato
+    natacao: [],        // dias de natação feitos, no mesmo formato (dados e cópias antigas não têm esta lista: fica vazia)
+                        // Um dia pode estar em mais do que uma destas três listas (ex.: ginásio e natação no mesmo dia).
+    falhadosGinasio: [], // dias falhados de cada categoria; em cada categoria, um dia é feito ou falhado, não os dois
+    falhadosCycling: [],
+    falhadosNatacao: [],
     agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
@@ -73,6 +76,29 @@ function novoId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// Exercício por categoria. Até à versão 2, cada dia tinha um só estado: ginásio, cycling, natação ou falhado
+// (os falhados, numa lista "falhados", sem categoria). Na versão 3, cada categoria tem os seus dias feitos e falhados,
+// independentes das outras. Migração: os dias feitos ficam na sua categoria e os falhados antigos passam para o Ginásio.
+// Só lê "falhados" em dados anteriores à versão 3: correr outra vez sobre dados já migrados não muda nada.
+const CATEGORIAS_DADOS_EXERCICIO = [
+  { feitos: 'ginasio', falhados: 'falhadosGinasio' },
+  { feitos: 'cycling', falhados: 'falhadosCycling' },
+  { feitos: 'natacao', falhados: 'falhadosNatacao' },
+];
+
+function migrarExercicio(bruto, eData) {
+  const lista = (nome) => (Array.isArray(bruto[nome]) ? [...new Set(bruto[nome].filter(eData))] : []);
+  const antigo = bruto.versao !== 3;
+  const resultado = {};
+  CATEGORIAS_DADOS_EXERCICIO.forEach(({ feitos, falhados }) => {
+    resultado[feitos] = lista(feitos);
+    const origem = antigo ? (feitos === 'ginasio' ? lista('falhados') : []) : lista(falhados);
+    // Na mesma categoria, um dia feito não pode estar também falhado: fica o feito.
+    resultado[falhados] = origem.filter((dia) => !resultado[feitos].includes(dia));
+  });
+  return resultado;
+}
+
 // Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
 // Lança um erro se não parecerem dados desta app. Com "tolerante" (ao abrir a app), aceita dados
 // a que falte alguma lista e fica com ela vazia, em vez de perder tudo o resto.
@@ -88,15 +114,7 @@ function normalizarDados(original, tolerante = false) {
   const idValido = (id) => (typeof id === 'string' && id ? id : novoId());
 
   const limpos = dadosIniciais();
-  limpos.ginasio = [...new Set(bruto.ginasio.filter(eData))];
-  const cycling = Array.isArray(bruto.cycling) ? bruto.cycling.filter(eData) : [];
-  limpos.cycling = [...new Set(cycling)].filter((dia) => !limpos.ginasio.includes(dia));
-  const natacao = Array.isArray(bruto.natacao) ? bruto.natacao.filter(eData) : [];
-  limpos.natacao = [...new Set(natacao)]
-    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia));
-  const falhados = Array.isArray(bruto.falhados) ? bruto.falhados.filter(eData) : [];
-  limpos.falhados = [...new Set(falhados)]
-    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia) && !limpos.natacao.includes(dia));
+  Object.assign(limpos, migrarExercicio(bruto, eData));
   // Dados e cópias antigas guardavam só um dia, em { data, litros }: passa a ser uma entrada do histórico.
   const agua = bruto.agua && typeof bruto.agua === 'object' ? bruto.agua : {};
   const aguaPorDia = eData(agua.data) ? { [agua.data]: agua.litros } : agua;
@@ -187,11 +205,28 @@ function normalizarDados(original, tolerante = false) {
   return limpos;
 }
 
+// Texto do aviso da migração do exercício (versão 3), mostrado uma vez ao abrir a app; null se não houve migração.
+let avisoMigracao = null;
+
 function carregarDados() {
   let texto = null;
   try {
     texto = localStorage.getItem(CHAVE_DADOS);
-    return texto ? normalizarDados(JSON.parse(texto), true) : dadosIniciais();
+    if (!texto) return dadosIniciais();
+    const bruto = JSON.parse(texto);
+    const limpos = normalizarDados(bruto, true);
+    if (bruto && bruto.versao !== 3) {
+      // Antes de migrar, guarda os dados tal como estavam (só a primeira vez, para nunca se perder o original).
+      // Uma falha aqui (ex.: sem espaço) não pode fazer os dados parecer danificados: fica só sem esta cópia.
+      try {
+        if (!localStorage.getItem(CHAVE_DADOS + '-antes-da-migracao')) localStorage.setItem(CHAVE_DADOS + '-antes-da-migracao', texto);
+      } catch (erroAoGuardar) { /* sem espaço: os dados de antes continuam nas cópias de segurança exportadas */ }
+      const falhados = limpos.falhadosGinasio.length;
+      avisoMigracao = falhados > 0
+        ? `Exercício atualizado: ${falhados} ${falhados === 1 ? 'dia falhado passou' : 'dias falhados passaram'} para o Ginásio.`
+        : 'Exercício atualizado: cada menu tem agora os seus dias.';
+    }
+    return limpos;
   } catch (erro) {
     // Dados ilegíveis: guardamos o original à parte para não se perder ao gravar por cima.
     try {
@@ -202,6 +237,8 @@ function carregarDados() {
 }
 
 let dados = carregarDados();
+// A migração fica logo guardada, para correr uma só vez.
+if (avisoMigracao) guardarDados();
 
 // --- Categorias das Compras (chave organizador-categorias-compras) ---
 // Lista limpa: só textos, sem repetidos (sem contar maiúsculas e acentos) e com "Outros" no fim.

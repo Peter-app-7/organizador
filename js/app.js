@@ -48,3 +48,4 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catc
 
 aoAbrir.forEach(correrSemFalhar);
 mostrarVista('semana');
+if (avisoMigracao) avisar(avisoMigracao);

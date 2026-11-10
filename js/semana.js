@@ -1,16 +1,17 @@
 // semana.js: vista Semana. Navegação por semanas e resumo do exercício no topo e, por baixo, um menu para cada
 // categoria (Ginásio, Cycling e Natação), cada um com os seus sete quadrados, de segunda a domingo.
-// Cada dia tem um só estado (um dia conta uma vez): num menu, tocar muda o dia de nada para essa categoria,
-// depois para Falhado e de volta a nada. Falhado é do dia (sem exercício), por isso aparece nos três menus.
-// Um dia já marcado noutra categoria aparece esbatido, com o ícone dela, e não muda: avisa onde o desmarcar.
+// Os menus são independentes: cada um guarda, para cada dia, o seu estado (por marcar, feito ou falhado), e tocar
+// muda só esse menu: por marcar -> feito -> falhado -> por marcar. Um dia pode ter várias categorias feitas.
+// O mínimo e o máximo contam dias distintos com pelo menos uma categoria feita; os falhados não contam.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', natacao: 'Natação', falhado: 'Falhado' };
-// Os menus de exercício, por esta ordem. "lista" é o sítio dos dados onde ficam os dias dessa categoria.
+const NOMES_ESTADOS = { nada: 'por marcar', feito: 'feito', falhado: 'falhado' };
+// Os menus de exercício, por esta ordem. "lista" e "falhados" são os sítios dos dados onde ficam os dias feitos e
+// os dias falhados dessa categoria. "estado" é o data-estado do quadrado feito (dá a cor e o ícone).
 const CATEGORIAS_EXERCICIO = [
-  { id: 'ginasio', lista: 'ginasio', titulo: 'Ginásio' },
-  { id: 'cycling', lista: 'cycling', titulo: 'Cycling' },
-  { id: 'natacao', lista: 'natacao', titulo: 'Natação' },
+  { id: 'ginasio', lista: 'ginasio', falhados: 'falhadosGinasio', titulo: 'Ginásio', resumo: 'ginásio' },
+  { id: 'cycling', lista: 'cycling', falhados: 'falhadosCycling', titulo: 'Cycling', resumo: 'cycling' },
+  { id: 'natacao', lista: 'natacao', falhados: 'falhadosNatacao', titulo: 'Natação', resumo: 'natação' },
 ];
 
 function somarDias(data, dias) {
@@ -47,44 +48,37 @@ function contarNaSemana(lista) {
   return diasDaSemanaMostrada().filter((dia) => lista.includes(dataParaTexto(dia))).length;
 }
 
-function estadoDoDia(texto) {
-  if (dados.ginasio.includes(texto)) return 'ginasio';
-  if (dados.cycling.includes(texto)) return 'cycling';
-  if (dados.natacao.includes(texto)) return 'natacao';
-  if (dados.falhados.includes(texto)) return 'falhado';
+// Estado de um dia num menu: 'nada', 'feito' ou 'falhado'.
+function estadoDoDia(categoria, texto) {
+  if (dados[categoria.lista].includes(texto)) return 'feito';
+  if (dados[categoria.falhados].includes(texto)) return 'falhado';
   return 'nada';
 }
 
-function totalExercicio() {
-  return CATEGORIAS_EXERCICIO.reduce((soma, c) => soma + contarNaSemana(dados[c.lista]), 0);
+// Dias distintos da semana mostrada com pelo menos uma categoria feita.
+function diasDeExercicio() {
+  return diasDaSemanaMostrada().map(dataParaTexto)
+    .filter((texto) => CATEGORIAS_EXERCICIO.some((c) => dados[c.lista].includes(texto)));
 }
 
-// Toque num dia do menu de uma categoria: nada -> categoria -> Falhado -> nada.
+// Toque num dia do menu de uma categoria: por marcar -> feito -> falhado -> por marcar. Só muda este menu.
 function mudarEstadoDia(categoria, texto) {
-  const estado = estadoDoDia(texto);
+  const estado = estadoDoDia(categoria, texto);
 
-  // Um dia só conta uma vez: se já tem outra categoria, não muda.
-  if (estado !== 'nada' && estado !== 'falhado' && estado !== categoria.id) {
-    avisar(`${rotuloDiaJejum(texto)} já tem ${NOMES_ESTADOS[estado]}. Desmarca-o primeiro no menu ${NOMES_ESTADOS[estado]}.`);
-    return;
-  }
-
-  // Os limites são do exercício total, sem os dias falhados: um dia vazio não pode ser marcado
-  // se o máximo já foi atingido.
+  // Os limites contam dias distintos de exercício, sem os falhados: um dia novo não pode ser marcado se o máximo
+  // já foi atingido. Um dia que já conta (feito noutra categoria) não gasta outro dia.
   if (estado === 'nada') {
-    const total = totalExercicio();
-    if (total >= dados.ajustes.ginasioMax) {
-      avisar(`Já tens ${total} dias de exercício: o máximo é ${dados.ajustes.ginasioMax}.`);
+    const dias = diasDeExercicio();
+    if (!dias.includes(texto) && dias.length >= dados.ajustes.ginasioMax) {
+      avisar(`Já tens ${dias.length} dias de exercício: o máximo é ${dados.ajustes.ginasioMax}.`);
       return;
     }
   }
 
-  CATEGORIAS_EXERCICIO.forEach((c) => {
-    dados[c.lista] = dados[c.lista].filter((dia) => dia !== texto);
-  });
-  dados.falhados = dados.falhados.filter((dia) => dia !== texto);
+  dados[categoria.lista] = dados[categoria.lista].filter((dia) => dia !== texto);
+  dados[categoria.falhados] = dados[categoria.falhados].filter((dia) => dia !== texto);
   if (estado === 'nada') dados[categoria.lista].push(texto);
-  if (estado === categoria.id) dados.falhados.push(texto);
+  if (estado === 'feito') dados[categoria.falhados].push(texto);
 
   guardarDados();
   desenharSemana();
@@ -116,17 +110,14 @@ function menuExercicio(categoria, dias) {
       criar('span', { className: 'exercicio-contagem', textContent: `${numero} ${numero === 1 ? 'dia' : 'dias'}` })),
     criar('ul', { className: 'quadrados exercicio-dias' }, ...dias.map((dia, i) => {
       const texto = dataParaTexto(dia);
-      const estado = estadoDoDia(texto);
-      const outra = estado !== 'nada' && estado !== 'falhado' && estado !== categoria.id;
-      const descricao = outra ? `${NOMES_ESTADOS[estado]}, marcado no menu ${NOMES_ESTADOS[estado]}`
-        : `${categoria.titulo}, ${estado === 'nada' ? 'por marcar' : NOMES_ESTADOS[estado]}`;
+      const estado = estadoDoDia(categoria, texto);
       const botao = botaoDiaLinha({
-        texto, indice: i, descricao, selecionado: texto === selecionado,
+        texto, indice: i, descricao: `${categoria.titulo}, ${NOMES_ESTADOS[estado]}`, selecionado: texto === selecionado,
         rodape: criar('span', { className: 'dia-icone' }),
         aoTocar: () => mudarEstadoDia(categoria, texto),
       });
-      botao.dataset.estado = outra ? 'outro' : estado;
-      if (outra) botao.dataset.outro = estado;
+      // A cor e o ícone vêm do data-estado: o da categoria (feito), 'falhado' ou 'nada'.
+      botao.dataset.estado = estado === 'feito' ? categoria.id : estado;
       return criar('li', {}, botao);
     })));
 }
@@ -134,9 +125,9 @@ function menuExercicio(categoria, dias) {
 function desenharSemana() {
   const dias = diasDaSemanaMostrada();
   const { ginasioMin, ginasioMax } = dados.ajustes;
-  const [diasGinasio, diasCycling, diasNatacao] = CATEGORIAS_EXERCICIO.map((c) => contarNaSemana(dados[c.lista]));
-  const total = diasGinasio + diasCycling + diasNatacao;
-  const diasFalhados = contarNaSemana(dados.falhados);
+  const total = diasDeExercicio().length;
+  const porCategoria = CATEGORIAS_EXERCICIO.map((c) => `${contarNaSemana(dados[c.lista])} ${c.resumo}`);
+  const diasFalhados = CATEGORIAS_EXERCICIO.reduce((soma, c) => soma + contarNaSemana(dados[c.falhados]), 0);
 
   document.getElementById('semana-titulo').textContent =
     `${formatarData(dias[0], { day: 'numeric', month: 'short' })} a ${formatarData(dias[6], { day: 'numeric', month: 'short', year: 'numeric' })}`
@@ -146,7 +137,7 @@ function desenharSemana() {
   resumo.replaceChildren(
     `Exercício: ${total} de ${ginasioMin} mínimo · máximo ${ginasioMax}`,
     ' ',
-    criar('span', { className: 'resumo-divisao', textContent: `${diasGinasio} ginásio · ${diasCycling} cycling · ${diasNatacao} natação · ${diasFalhados} ${diasFalhados === 1 ? 'falhado' : 'falhados'}` }),
+    criar('span', { className: 'resumo-divisao', textContent: `${porCategoria.join(' · ')} · ${diasFalhados} ${diasFalhados === 1 ? 'falhado' : 'falhados'}` }),
   );
   // Destaca o contador se faltar exercício, ou se dados antigos passarem o máximo.
   resumo.classList.toggle('resumo-falta', total < ginasioMin || total > ginasioMax);
