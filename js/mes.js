@@ -115,9 +115,6 @@ function mostrarErroDiaInicio(mensagem) {
 
 function desenharDiaInicio() {
   if (document.activeElement !== campoDiaInicio) campoDiaInicio.value = diaInicioGastos();
-  document.getElementById('despesas-dia-inicio-nota').textContent = diaInicioGastos() === 1
-    ? 'Dia 1: os gastos agrupam-se por mês de calendário.'
-    : 'As datas dos gastos não mudam.';
 }
 
 campoDiaInicio.addEventListener('input', () => mostrarErroDiaInicio(null));
