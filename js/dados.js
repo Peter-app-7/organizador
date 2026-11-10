@@ -37,7 +37,8 @@ function dadosIniciais() {
     jejum2r: [],        // dias de jejum, por tipo, como os dias de ginásio; um dia só está numa das três listas
     jejum1r: [],
     jejum36h: [],
-    tabacoSem: [],      // dias sem tabaco e dias com consumo; um dia só está numa das duas listas
+    tabacoSem: [],      // dias sem tabaco e dias com consumo; um dia só está numa das duas listas.
+                        // O Tabaco e o Álcool já não aparecem na app, mas os dias marcados continuam guardados e nas cópias.
     tabacoConsumo: [],
     alcoolSem: [],      // o mesmo para o álcool, sem depender do tabaco
     alcoolConsumo: [],
@@ -47,6 +48,7 @@ function dadosIniciais() {
     notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }; já não aparecem na app,
                         // mas continuam guardadas e nas cópias de segurança, para não se perder o que foi escrito
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
+    cartaoImportados: {}, // gastos do cartão já importados, por marca "data|comerciante|cêntimos", ex.: { "2026-11-03|continente|2350": 1 }
   };
 }
 
@@ -172,6 +174,11 @@ function normalizarDados(original, tolerante = false) {
   const feitas = bruto.comprasFeitas && typeof bruto.comprasFeitas === 'object' ? bruto.comprasFeitas : {};
   Object.entries(feitas).forEach(([dia, numero]) => {
     if (eData(dia) && Number.isInteger(numero) && numero > 0) limpos.comprasFeitas[dia] = numero;
+  });
+  // Dados e cópias anteriores à importação do cartão não têm esta lista: fica vazia.
+  const cartao = bruto.cartaoImportados && typeof bruto.cartaoImportados === 'object' ? bruto.cartaoImportados : {};
+  Object.entries(cartao).forEach(([marca, numero]) => {
+    if (marca && Number.isInteger(numero) && numero > 0) limpos.cartaoImportados[marca] = numero;
   });
   return limpos;
 }

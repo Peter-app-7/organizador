@@ -65,6 +65,8 @@ function normalizarDespesas(lista, categorias) {
         categoria: idsCategorias.has(d.categoria) ? d.categoria : 'outros',
         centimos: d.centimos,
         nota: typeof d.nota === 'string' ? d.nota.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) : '',
+        // Marca dos gastos importados do cartão (ver importarGastosCartao): só existe nesses.
+        ...(typeof d.cartao === 'string' && d.cartao ? { cartao: d.cartao } : {}),
       };
     });
 }
@@ -447,3 +449,148 @@ document.getElementById('despesas-categorias-caixa').addEventListener('toggle', 
 try {
   if (!localStorage.getItem(CHAVE_CATEGORIAS_DESPESAS)) guardarCategoriasDespesas();
 } catch (erro) { /* sem acesso: a lista volta a ser feita da mesma forma da próxima vez */ }
+
+// --- Importar gastos do cartão ---
+// Ficheiro de texto (ex.: gastos-cartao.txt, escolhido no iCloud Drive), uma linha por gasto: "AAAA-MM-DD;Comerciante;Montante".
+// O montante aceita vírgula ou ponto, com ou sem € e espaços. Cada linha passa a um gasto em "Por categorizar",
+// com o comerciante como nota. Cada linha importada tem uma marca "data|comerciante|cêntimos", guardada no gasto
+// ("cartao") e contada em dados.cartaoImportados: ao importar outra vez, as linhas já importadas não se repetem,
+// mesmo que o gasto tenha sido apagado ou alterado entretanto. Linhas iguais no mesmo ficheiro contam uma a uma
+// (duas compras iguais no mesmo dia entram as duas).
+const CATEGORIA_POR_CATEGORIZAR = 'Por categorizar';
+const FICHEIRO_CARTAO_MAXIMO = 1024 * 1024; // 1 MB
+
+// Devolve { data, nota, centimos, marca } ou null se a linha estiver mal formada.
+function lerLinhaCartao(linha) {
+  const partes = linha.split(';');
+  if (partes.length < 3) return null;
+  const data = partes[0].trim();
+  // O comerciante pode ter ";" no nome: fica tudo o que está entre a data e o montante.
+  const comerciante = partes.slice(1, -1).join(';').replace(/\s+/g, ' ').trim();
+  const valor = lerValor(partes[partes.length - 1]);
+  if (!dataValida(data) || valor.erro) return null;
+  return {
+    data,
+    nota: (comerciante || 'Sem nome').slice(0, NOTA_MAXIMA),
+    centimos: valor.centimos,
+    marca: `${data}|${chaveTexto(comerciante)}|${valor.centimos}`,
+  };
+}
+
+function lerFicheiroCartao(texto) {
+  // Sem a marca BOM do início e sem as linhas vazias do fim (o "Enter" depois da última linha não conta).
+  const linhas = texto.replace(/^\uFEFF/, '').replace(/\s+$/, '');
+  if (!linhas) return { validas: [], ignoradas: 0 };
+  const validas = [];
+  let ignoradas = 0;
+  linhas.split(/\r\n|\r|\n/).forEach((linha) => {
+    const lida = linha.trim() ? lerLinhaCartao(linha) : null;
+    if (lida) validas.push(lida);
+    else ignoradas += 1;
+  });
+  return { validas, ignoradas };
+}
+
+// Id da categoria "Por categorizar"; se ainda não existir, é criada antes de Outros. Devolve null se não der para guardar.
+function garantirCategoriaPorCategorizar() {
+  const existente = categoriasDespesas.find((c) => chaveTexto(c.nome) === chaveTexto(CATEGORIA_POR_CATEGORIZAR));
+  if (existente) return existente.id;
+  const id = categoriasDespesas.some((c) => c.id === 'por-categorizar') ? novoId() : 'por-categorizar';
+  const antes = categoriasDespesas;
+  categoriasDespesas = [...categoriasDespesas.slice(0, -1), { id, nome: CATEGORIA_POR_CATEGORIZAR }, categoriasDespesas[categoriasDespesas.length - 1]];
+  if (!guardarCategoriasDespesas()) {
+    categoriasDespesas = antes;
+    return null;
+  }
+  return id;
+}
+
+function mostrarResultadoCartao(texto) {
+  const resultado = document.getElementById('despesas-importar-resultado');
+  resultado.textContent = texto;
+  resultado.hidden = false;
+}
+
+async function importarGastosCartao(ficheiro) {
+  let lido;
+  try {
+    if (ficheiro.size > FICHEIRO_CARTAO_MAXIMO) throw new Error('Ficheiro grande demais');
+    lido = lerFicheiroCartao(await ficheiro.text());
+  } catch (erro) {
+    mostrarResultadoCartao('Não foi possível ler este ficheiro. Nada foi alterado.');
+    return;
+  }
+  const { validas, ignoradas } = lido;
+  const textoIgnoradas = `${ignoradas} ${ignoradas === 1 ? 'linha ignorada' : 'linhas ignoradas'}`;
+  if (validas.length === 0) {
+    mostrarResultadoCartao(ignoradas === 0
+      ? 'O ficheiro está vazio. Nada foi importado.'
+      : `Nenhum gasto válido no ficheiro (${textoIgnoradas}). Cada linha deve ser "AAAA-MM-DD;Comerciante;Montante".`);
+    return;
+  }
+
+  // Quantas linhas com cada marca já foram importadas: cada linha do ficheiro "gasta" uma delas; as que sobram são novas.
+  // Conta pelo registo e pelos gastos com a marca (o maior dos dois), para servir também depois de importar uma cópia antiga.
+  const nosGastos = new Map();
+  despesas.forEach((d) => {
+    if (d.cartao) nosGastos.set(d.cartao, (nosGastos.get(d.cartao) || 0) + 1);
+  });
+  const jaImportados = new Map();
+  new Set([...nosGastos.keys(), ...Object.keys(dados.cartaoImportados)]).forEach((marca) => {
+    jaImportados.set(marca, Math.max(nosGastos.get(marca) || 0, dados.cartaoImportados[marca] || 0));
+  });
+  const novas = [];
+  let repetidas = 0;
+  validas.forEach((linha) => {
+    const restantes = jaImportados.get(linha.marca) || 0;
+    if (restantes > 0) {
+      jaImportados.set(linha.marca, restantes - 1);
+      repetidas += 1;
+    } else {
+      novas.push(linha);
+    }
+  });
+
+  if (novas.length > 0) {
+    const categoria = garantirCategoriaPorCategorizar();
+    if (!categoria) return; // já foi avisado de que não deu para guardar
+    const antes = despesas;
+    despesas = [...despesas, ...novas.map((linha) => ({
+      id: novoId(), data: linha.data, categoria, centimos: linha.centimos, nota: linha.nota, cartao: linha.marca,
+    }))];
+    if (!guardarDespesas()) {
+      despesas = antes;
+      return;
+    }
+    // O registo fica com o total de cada marca: o que já lá estava ou, se o ficheiro tiver mais, o número de linhas do ficheiro.
+    const noFicheiro = new Map();
+    validas.forEach((linha) => noFicheiro.set(linha.marca, (noFicheiro.get(linha.marca) || 0) + 1));
+    noFicheiro.forEach((numero, marca) => {
+      dados.cartaoImportados[marca] = Math.max(dados.cartaoImportados[marca] || 0, nosGastos.get(marca) || 0, numero);
+    });
+    guardarDados();
+    // Leva o seletor para o mês do gasto novo mais recente, para se ver logo na lista.
+    const [ano, mes] = novas.map((linha) => linha.data).sort().pop().split('-').map(Number);
+    const hoje = new Date();
+    mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
+    despesaAEditar = null;
+    fecharNovaDespesa();
+    desenharMes();
+    const caixaCategorias = document.getElementById('despesas-categorias-caixa');
+    if (caixaCategorias.open) desenharCategoriasDespesas();
+  }
+
+  const partes = [
+    `${novas.length} ${novas.length === 1 ? 'gasto novo' : 'gastos novos'}`,
+    `${repetidas} já ${repetidas === 1 ? 'importado' : 'importados'}`,
+    textoIgnoradas,
+  ];
+  const dica = novas.length > 0 ? ` Ficaram em "${nomeCategoriaDespesa(despesas[despesas.length - 1].categoria)}": toca num gasto para mudar a categoria.` : '';
+  mostrarResultadoCartao(`Importação: ${partes.join(' · ')}.${dica}`);
+}
+
+document.getElementById('despesas-importar-cartao').addEventListener('change', async (evento) => {
+  const ficheiro = evento.target.files[0];
+  evento.target.value = ''; // permite escolher o mesmo ficheiro outra vez
+  if (ficheiro) await importarGastosCartao(ficheiro);
+});

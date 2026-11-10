@@ -124,3 +124,10 @@ document.getElementById('dia-anterior').addEventListener('click', () => selecion
 document.getElementById('semana-hoje').addEventListener('click', () => selecionarDia(somarDias(new Date(), 0)));
 document.getElementById('dia-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 1)));
 document.getElementById('semana-seguinte').addEventListener('click', () => selecionarDia(somarDias(diaSelecionado, 7)));
+
+// A vista Semana tem os dias de ginásio e, por baixo, o Jejum (jejum.js).
+// O Tabaco e o Álcool foram retirados do ecrã; os dias já marcados continuam guardados e nas cópias de segurança.
+desenhar.semana = () => {
+  desenharSemana();
+  desenharJejum();
+};

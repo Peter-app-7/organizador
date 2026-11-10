@@ -1,4 +1,5 @@
-// jejum.js: secção Jejum da vista Suplementos, com o mesmo modelo dos dias de ginásio da vista Semana.
+// jejum.js: secção Jejum da vista Semana, por baixo dos dias de ginásio e com o mesmo modelo deles.
+// Tem a sua própria navegação por semanas (‹ Hoje ›), independente da do ginásio.
 // Sete quadrados, de segunda a domingo. Tocar muda o estado do dia: sem jejum, 2R, 1R, 36h e de volta a sem jejum.
 
 // A ordem desta lista é a ordem dos toques. "lista" é o sítio dos dados onde ficam os dias desse tipo.
@@ -124,8 +125,3 @@ function desenharJejum() {
 document.getElementById('jejum-anterior').addEventListener('click', () => mudarSemanaJejum(jejumSemanas - 1));
 document.getElementById('jejum-hoje').addEventListener('click', () => mudarSemanaJejum(0));
 document.getElementById('jejum-seguinte').addEventListener('click', () => mudarSemanaJejum(jejumSemanas + 1));
-
-desenhar.suplementos = () => {
-  desenharSuplementos();
-  desenharJejum();
-};

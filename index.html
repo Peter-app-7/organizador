@@ -41,7 +41,20 @@
       <p id="semana-resumo" class="resumo"></p>
       <ul id="semana-dias" class="quadrados"></ul>
 
-      <div id="habitos"></div>
+      <div id="jejum" class="jejum">
+        <div class="jejum-cabecalho">
+          <h2>Jejum</h2>
+          <div class="semana-navegacao jejum-navegacao">
+            <button id="jejum-anterior" type="button" aria-label="Semana anterior do jejum">‹</button>
+            <button id="jejum-hoje" type="button" aria-label="Voltar à semana de hoje no jejum">Hoje</button>
+            <button id="jejum-seguinte" type="button" aria-label="Semana seguinte do jejum">›</button>
+          </div>
+          <p id="jejum-titulo" class="jejum-datas"></p>
+        </div>
+        <p id="jejum-resumo" class="jejum-resumo"></p>
+        <ul id="jejum-dias" class="quadrados"></ul>
+        <ul id="jejum-legenda" class="jejum-legenda"></ul>
+      </div>
     </section>
 
     <section id="vista-suplementos" class="vista" hidden>
@@ -63,21 +76,6 @@
       <div class="agua">
         <h2 id="agua-titulo">Água</h2>
         <div id="agua-niveis" class="agua-niveis" role="group" aria-labelledby="agua-titulo"></div>
-      </div>
-
-      <div id="jejum" class="jejum">
-        <div class="jejum-cabecalho">
-          <h2>Jejum</h2>
-          <div class="semana-navegacao jejum-navegacao">
-            <button id="jejum-anterior" type="button" aria-label="Semana anterior do jejum">‹</button>
-            <button id="jejum-hoje" type="button" aria-label="Voltar à semana de hoje no jejum">Hoje</button>
-            <button id="jejum-seguinte" type="button" aria-label="Semana seguinte do jejum">›</button>
-          </div>
-          <p id="jejum-titulo" class="jejum-datas"></p>
-        </div>
-        <p id="jejum-resumo" class="jejum-resumo"></p>
-        <ul id="jejum-dias" class="quadrados"></ul>
-        <ul id="jejum-legenda" class="jejum-legenda"></ul>
       </div>
     </section>
 
@@ -145,6 +143,10 @@
         <button id="despesas-registar" type="button" class="botao-pequeno botao-pequeno-principal" aria-expanded="false" aria-controls="despesas-registo">Registar gasto</button>
       </div>
       <div id="despesas-registo" class="gastos-registo" hidden></div>
+      <label class="botao-discreto botao-ficheiro">Importar gastos do cartão
+        <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
+      </label>
+      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
       <div id="mes-gastos"></div>
       <details id="despesas-categorias-caixa" class="gerir">
         <summary>Categorias de gastos</summary>
@@ -193,8 +195,8 @@
   <nav class="navegacao" aria-label="Vistas">
     <button type="button" data-vista="semana">📅<span>Semana</span></button>
     <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
-    <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
     <button type="button" data-vista="gastos">💶<span>Gastos</span></button>
+    <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
   </nav>
 
   <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
@@ -203,7 +205,6 @@
   <script src="js/tempo.js"></script>
   <script src="js/suplementos.js"></script>
   <script src="js/semana.js"></script>
-  <script src="js/habitos.js"></script>
   <script src="js/jejum.js"></script>
   <script src="js/compras.js"></script>
   <script src="js/lista-semanal.js"></script>

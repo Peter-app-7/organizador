@@ -237,8 +237,8 @@ button:disabled { opacity: .6; }
   border-radius: 6px;
 }
 
-/* --- Jejum: usa os quadrados e a navegação da Semana, com uma cor por tipo --- */
-#vista-suplementos .jejum { margin: 28px 0 16px; }
+/* --- Jejum (vista Semana, por baixo do ginásio): usa os quadrados e a navegação da Semana, com uma cor por tipo --- */
+.jejum { margin: 24px 0 0; }
 /* Duas colunas laterais iguais: o grupo ‹ Hoje › fica centrado no ecrã, seja qual for o texto dos lados. */
 .jejum-cabecalho { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 6px; }
 .jejum-cabecalho h2 { margin: 0; }
@@ -313,7 +313,7 @@ button:disabled { opacity: .6; }
 #vista-suplementos { margin-bottom: -19px; }
 #vista-suplementos .titulo-vista { margin: 0 0 6px; }
 #suplementos-editar { min-height: 44px; }
-/* A Água fica por baixo dos horários; o Jejum é o último e não encosta à barra de baixo. */
+/* A Água fica por baixo dos horários e é a última secção da vista. */
 #vista-suplementos .agua { margin: 16px 0 0; }
 /* O título de cada horário é uma pequena etiqueta, da largura do texto. Não se toca. */
 #suplementos-momentos .momento-titulo {
@@ -621,3 +621,8 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
   border-radius: 8px;
   text-align: center;
 }
+
+/* --- Despesas mensais: importar gastos do cartão --- */
+/* A etiqueta funciona como botão: tocar abre o seletor de ficheiros do iPhone. */
+.botao-ficheiro { display: flex; align-items: center; width: fit-content; cursor: pointer; }
+.importar-resultado { margin: 0 0 8px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; overflow-wrap: anywhere; }
