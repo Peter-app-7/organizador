@@ -3,6 +3,7 @@
 let vistaAtual = 'semana';
 
 function mostrarVista(nome) {
+  if (nome !== vistaAtual && aoEntrar[nome]) correrSemFalhar(aoEntrar[nome]);
   vistaAtual = nome;
   // Para o CSS: na vista Gastos, os avisos ficam acima da barra fixa do total.
   document.body.dataset.vista = nome;

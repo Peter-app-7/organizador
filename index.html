@@ -86,10 +86,13 @@
 
       <div class="mes-navegacao">
         <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
-        <h2 id="mes-titulo" aria-live="polite"></h2>
+        <div class="mes-nome">
+          <h2 id="mes-titulo" aria-live="polite"></h2>
+          <p id="mes-intervalo" class="mes-intervalo"></p>
+        </div>
         <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
       </div>
-      <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar a este mês</button>
+      <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar ao período de hoje</button>
 
       <div class="titulo-com-botao bloco-gastos">
         <h2>Mercearia</h2>
@@ -148,6 +151,12 @@
       <div id="mes-gastos"></div>
       <details id="despesas-categorias-caixa" class="gerir">
         <summary>Categorias de gastos</summary>
+        <div class="dia-inicio">
+          <label for="despesas-dia-inicio">Dia em que começa o mês de gastos</label>
+          <input id="despesas-dia-inicio" type="number" min="1" max="28" step="1" inputmode="numeric" enterkeyhint="done" aria-describedby="despesas-dia-inicio-erro despesas-dia-inicio-nota">
+          <p id="despesas-dia-inicio-erro" class="erro-campo" hidden></p>
+          <p id="despesas-dia-inicio-nota" class="nota-previa"></p>
+        </div>
         <div id="despesas-categorias"></div>
         <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
         <div id="despesas-comerciantes"></div>

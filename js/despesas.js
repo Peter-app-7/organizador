@@ -244,7 +244,7 @@ function fecharNovaDespesa() {
 function abrirNovaDespesa() {
   if (despesaAEditar) {
     despesaAEditar = null;
-    desenharDespesasMes(inicioDoMes(mesDeslocamento));
+    desenharDespesasMes(periodoDoDeslocamento(mesDeslocamento));
   }
   caixaNovaDespesa.replaceChildren(
     criar('h3', { className: 'despesas-registo-titulo', textContent: 'Registar gasto' }),
@@ -256,10 +256,8 @@ function abrirNovaDespesa() {
           return;
         }
         fecharNovaDespesa();
-        // Leva o seletor para o mês do gasto, para se ver logo na lista.
-        const [ano, mes] = novo.data.split('-').map(Number);
-        const hoje = new Date();
-        mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
+        // Leva o seletor para o período do gasto, para se ver logo na lista.
+        mesDeslocamento = deslocamentoDaData(novo.data);
         desenharMes();
         avisar(`Registado: ${formatarEuros(novo.centimos)} em ${nomeCategoriaDespesa(novo.categoria)}.`);
       },
@@ -312,6 +310,15 @@ function linhaDespesa(item, desenharDeNovo) {
         // Mudar a categoria de um gasto do cartão ensina a app a categoria desse comerciante (comerciantes.js).
         const lembrou = item.origem === 'despesa' && item.registo.cartao && alterado.categoria !== antes.categoria
           ? lembrarComerciante(item.registo, antes) : null;
+        // Com outra data, o gasto pode passar para outro período: o seletor vai atrás dele.
+        const deslocamento = deslocamentoDaData(item.registo.data);
+        if (deslocamento !== mesDeslocamento) {
+          mesDeslocamento = deslocamento;
+          desenharMes();
+          const periodo = periodoDaData(item.registo.data);
+          avisar(`${lembrou || 'Gasto alterado.'} Passou para ${primeiraMaiuscula(NOMES_MESES[periodo.mes])} de ${periodo.ano}.`);
+          return;
+        }
         desenharDeNovo();
         avisar(lembrou || 'Gasto alterado.');
       },
@@ -344,29 +351,29 @@ function linhaDespesa(item, desenharDeNovo) {
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
 }
 
-// Barra fixa no fundo da vista: o nome do mês e o total de tudo o que se gastou nele (mercearia e gastos gerais).
+// Barra fixa no fundo da vista: o nome do período e o total de tudo o que se gastou nele (mercearia e gastos gerais).
 // O ano só aparece quando não é o atual.
-function desenharTotalMes(mes, total) {
-  const nome = primeiraMaiuscula(NOMES_MESES[mes.getMonth()]);
+function desenharTotalMes(periodo, total) {
+  const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
   document.getElementById('gastos-total-mes').textContent =
-    mes.getFullYear() === new Date().getFullYear() ? nome : `${nome} ${mes.getFullYear()}`;
+    periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`;
   document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
 }
 
-function desenharDespesasMes(mes) {
-  const chave = chaveMes(mes);
+// Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos.
+function desenharDespesasMes(periodo) {
   const doMes = todosOsGastos()
-    .filter((g) => g.data.startsWith(`${chave}-`))
+    .filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim)
     // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro (os ids começam pela hora).
     .sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
-  const redesenhar = () => desenharDespesasMes(mes);
+  const redesenhar = () => desenharDespesasMes(periodo);
 
   const caixa = document.getElementById('mes-gastos');
-  caixa.dataset.mes = chave;
+  caixa.dataset.mes = periodo.chave;
   caixa.replaceChildren(doMes.length
     ? criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaDespesa(g, redesenhar)))
-    : criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[mes.getMonth()]}.` }));
-  desenharTotalMes(mes, somaCentimos(doMes));
+    : criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
+  desenharTotalMes(periodo, somaCentimos(doMes));
 }
 
 // --- Categorias de gastos ---
@@ -387,7 +394,7 @@ function itensCategoriasDespesas() {
 }
 
 function aposMudarCategorias() {
-  correrSemFalhar(() => desenharDespesasMes(inicioDoMes(mesDeslocamento)));
+  correrSemFalhar(() => desenharDespesasMes(periodoDoDeslocamento(mesDeslocamento)));
   correrSemFalhar(desenharComerciantes);
   // Um formulário aberto tem a lista de categorias antiga: fecha-se, sem perder nada já guardado.
   fecharNovaDespesa();
@@ -605,10 +612,8 @@ async function importarGastosCartao(ficheiro) {
       dados.cartaoImportados[marca] = Math.max(dados.cartaoImportados[marca] || 0, nosGastos.get(marca) || 0, numero);
     });
     guardarDados();
-    // Leva o seletor para o mês do gasto novo mais recente, para se ver logo na lista.
-    const [ano, mes] = novas.map((linha) => linha.data).sort().pop().split('-').map(Number);
-    const hoje = new Date();
-    mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
+    // Leva o seletor para o período do gasto novo mais recente, para se ver logo na lista.
+    mesDeslocamento = deslocamentoDaData(novas.map((linha) => linha.data).sort().pop());
     despesaAEditar = null;
     fecharNovaDespesa();
     desenharMes();

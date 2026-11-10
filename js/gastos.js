@@ -191,10 +191,8 @@ function abrirRegisto() {
           return;
         }
         fecharRegisto();
-        // As Despesas mensais estão na mesma vista: mostram logo o novo registo, no mês dele.
-        const [ano, mes] = novo.data.split('-').map(Number);
-        const hoje = new Date();
-        mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
+        // "Gastos do mês" está na mesma vista: mostra logo o novo registo, no período dele.
+        mesDeslocamento = deslocamentoDaData(novo.data);
         correrSemFalhar(desenharMes);
         avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos do mês.`);
       },

@@ -449,6 +449,13 @@ body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bott
 .mes-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
 .mes-navegacao h2 { margin: 0; text-align: center; }
 .mes-navegacao h2::first-letter { text-transform: uppercase; }
+.mes-nome { min-width: 0; text-align: center; }
+.mes-intervalo { margin: 2px 0 0; font-size: .8rem; line-height: 1.2; color: var(--texto-suave); }
+/* "Dia em que começa o mês de gastos", no topo de "Categorias de gastos". */
+.dia-inicio { margin: 0 0 12px; }
+.dia-inicio label { font-size: .9rem; color: var(--texto-suave); }
+.dia-inicio input { max-width: 120px; }
+.dia-inicio .nota-previa { margin: 4px 0 0; }
 #mes-hoje { min-height: 44px; }
 
 .mes-lembrete { margin: -4px 0 8px; font-size: .85rem; color: var(--alerta); }

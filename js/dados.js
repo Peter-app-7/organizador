@@ -21,6 +21,8 @@ const MOMENTOS = [
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
 const aoAbrir = [];
+// Funções a correr quando se entra numa vista vinda de outra (ex.: a vista Gastos volta ao período de hoje).
+const aoEntrar = {};
 
 function dadosIniciais() {
   return {
@@ -48,6 +50,7 @@ function dadosIniciais() {
     alcoolConsumo: [],
     localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
     ajustes: { ginasioMin: 3, ginasioMax: 5 },
+    diaInicioGastos: 21, // dia em que começa o "mês de gastos" (1 a 28); com 1, é o mês de calendário
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
     notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }; já não aparecem na app,
                         // mas continuam guardadas e nas cópias de segurança, para não se perder o que foi escrito
@@ -183,6 +186,10 @@ function normalizarDados(original, tolerante = false) {
   const max = Number(ajustes.ginasioMax);
   if (Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 1 && max <= 5 && min <= max) {
     limpos.ajustes = { ginasioMin: min, ginasioMax: max };
+  }
+  // Dados e cópias anteriores a esta definição ficam com o dia 21 (o ordenado entra a 21).
+  if (Number.isInteger(bruto.diaInicioGastos) && bruto.diaInicioGastos >= 1 && bruto.diaInicioGastos <= 28) {
+    limpos.diaInicioGastos = bruto.diaInicioGastos;
   }
   if (typeof bruto.ultimaCopia === 'string' && !Number.isNaN(Date.parse(bruto.ultimaCopia))) {
     limpos.ultimaCopia = bruto.ultimaCopia;
