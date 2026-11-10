@@ -1,8 +1,8 @@
 // semana.js: vista Semana. Sete quadrados, de segunda a domingo. Tocar num quadrado muda o estado do dia:
-// nada, Ginásio, Cycling, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia, só para consulta.
+// nada, Ginásio, Cycling, Natação, Falhado e de volta a nada. Por baixo de cada dia aparece a água desse dia, só para consulta.
 
 const ABREVIATURAS_DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', falhado: 'Falhado' };
+const NOMES_ESTADOS = { nada: 'sem atividade', ginasio: 'Ginásio', cycling: 'Cycling', natacao: 'Natação', falhado: 'Falhado' };
 
 function somarDias(data, dias) {
   return new Date(data.getFullYear(), data.getMonth(), data.getDate() + dias);
@@ -41,6 +41,7 @@ function contarNaSemana(lista) {
 function estadoDoDia(texto) {
   if (dados.ginasio.includes(texto)) return 'ginasio';
   if (dados.cycling.includes(texto)) return 'cycling';
+  if (dados.natacao.includes(texto)) return 'natacao';
   if (dados.falhados.includes(texto)) return 'falhado';
   return 'nada';
 }
@@ -51,7 +52,7 @@ function mudarEstadoDia(texto) {
   // Os limites são do exercício total, sem os dias falhados: um dia vazio não pode ser marcado
   // se o máximo já foi atingido.
   if (estado === 'nada') {
-    const total = contarNaSemana(dados.ginasio) + contarNaSemana(dados.cycling);
+    const total = contarNaSemana(dados.ginasio) + contarNaSemana(dados.cycling) + contarNaSemana(dados.natacao);
     if (total >= dados.ajustes.ginasioMax) {
       avisar(`Já tens ${total} dias de exercício: o máximo é ${dados.ajustes.ginasioMax}.`);
       return;
@@ -60,10 +61,12 @@ function mudarEstadoDia(texto) {
 
   dados.ginasio = dados.ginasio.filter((dia) => dia !== texto);
   dados.cycling = dados.cycling.filter((dia) => dia !== texto);
+  dados.natacao = dados.natacao.filter((dia) => dia !== texto);
   dados.falhados = dados.falhados.filter((dia) => dia !== texto);
   if (estado === 'nada') dados.ginasio.push(texto);
   if (estado === 'ginasio') dados.cycling.push(texto);
-  if (estado === 'cycling') dados.falhados.push(texto);
+  if (estado === 'cycling') dados.natacao.push(texto);
+  if (estado === 'natacao') dados.falhados.push(texto);
 
   guardarDados();
   desenharSemana();
@@ -92,7 +95,8 @@ function desenharSemana() {
   const { ginasioMin, ginasioMax } = dados.ajustes;
   const diasGinasio = contarNaSemana(dados.ginasio);
   const diasCycling = contarNaSemana(dados.cycling);
-  const total = diasGinasio + diasCycling;
+  const diasNatacao = contarNaSemana(dados.natacao);
+  const total = diasGinasio + diasCycling + diasNatacao;
   const diasFalhados = contarNaSemana(dados.falhados);
 
   document.getElementById('semana-titulo').textContent =
@@ -103,7 +107,7 @@ function desenharSemana() {
   resumo.replaceChildren(
     `Exercício: ${total} de ${ginasioMin} mínimo · máximo ${ginasioMax}`,
     ' ',
-    criar('span', { className: 'resumo-divisao', textContent: `${diasGinasio} ginásio · ${diasCycling} cycling · ${diasFalhados} ${diasFalhados === 1 ? 'falhado' : 'falhados'}` }),
+    criar('span', { className: 'resumo-divisao', textContent: `${diasGinasio} ginásio · ${diasCycling} cycling · ${diasNatacao} natação · ${diasFalhados} ${diasFalhados === 1 ? 'falhado' : 'falhados'}` }),
   );
   // Destaca o contador se faltar exercício, ou se dados antigos passarem o máximo.
   resumo.classList.toggle('resumo-falta', total < ginasioMin || total > ginasioMax);

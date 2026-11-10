@@ -27,7 +27,8 @@ function dadosIniciais() {
     versao: 2,
     ginasio: [],        // dias marcados, ex.: "2026-11-02"
     cycling: [],        // dias de cycling, no mesmo formato
-    falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das três listas
+    natacao: [],        // dias de natação, no mesmo formato (dados e cópias antigas não têm esta lista: fica vazia)
+    falhados: [],       // dias de exercício falhado, no mesmo formato; um dia só está numa das quatro listas
     agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
@@ -90,9 +91,12 @@ function normalizarDados(original, tolerante = false) {
   limpos.ginasio = [...new Set(bruto.ginasio.filter(eData))];
   const cycling = Array.isArray(bruto.cycling) ? bruto.cycling.filter(eData) : [];
   limpos.cycling = [...new Set(cycling)].filter((dia) => !limpos.ginasio.includes(dia));
+  const natacao = Array.isArray(bruto.natacao) ? bruto.natacao.filter(eData) : [];
+  limpos.natacao = [...new Set(natacao)]
+    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia));
   const falhados = Array.isArray(bruto.falhados) ? bruto.falhados.filter(eData) : [];
   limpos.falhados = [...new Set(falhados)]
-    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia));
+    .filter((dia) => !limpos.ginasio.includes(dia) && !limpos.cycling.includes(dia) && !limpos.natacao.includes(dia));
   // Dados e cópias antigas guardavam só um dia, em { data, litros }: passa a ser uma entrada do histórico.
   const agua = bruto.agua && typeof bruto.agua === 'object' ? bruto.agua : {};
   const aguaPorDia = eData(agua.data) ? { [agua.data]: agua.litros } : agua;

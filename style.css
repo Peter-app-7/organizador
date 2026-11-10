@@ -18,6 +18,8 @@
   --sobre-alerta: #ffffff;
   --roxo: #6b3fc0;
   --sobre-roxo: #ffffff;
+  --ciano: #0e7490;
+  --sobre-ciano: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +41,8 @@
     --sobre-alerta: #2a1403;
     --roxo: #c4a7f5;
     --sobre-roxo: #1d0f3a;
+    --ciano: #22d3ee;
+    --sobre-ciano: #062a30;
   }
 }
 
@@ -193,6 +197,7 @@ button:disabled { opacity: .6; }
 }
 .dia[data-estado="ginasio"] { background: var(--azul); border-color: var(--azul); color: var(--sobre-azul); }
 .dia[data-estado="cycling"], .dia[data-estado="sem"] { background: var(--verde); border-color: var(--verde); color: var(--sobre-verde); }
+.dia[data-estado="natacao"] { background: var(--ciano); border-color: var(--ciano); color: var(--sobre-ciano); }
 .dia[data-estado="falhado"], .dia[data-estado="consumo"] { background: var(--vermelho); border-color: var(--vermelho); color: var(--sobre-vermelho); }
 /* Os ícones são desenhados aqui e usam a cor do texto do quadrado.
    Ficam invisíveis, mas a ocupar espaço, se o dia não tiver atividade. */
@@ -211,6 +216,10 @@ button:disabled { opacity: .6; }
 .dia[data-estado="cycling"] .dia-icone {
   visibility: visible;
   --icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='5.5' cy='16.5' r='4'/%3E%3Ccircle cx='18.5' cy='16.5' r='4'/%3E%3Cpath d='M5.5 16.5 9.5 9h6.5l2.5 7.5M9.5 9l3.5 7.5H5.5M14.5 5H17l-1 4'/%3E%3C/svg%3E");
+}
+.dia[data-estado="natacao"] .dia-icone {
+  visibility: visible;
+  --icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='17' cy='6' r='2.5' fill='black'/%3E%3Cpath d='M4 11.5 9.5 8l3.5 3.5M2 16c2 1.5 3.5 1.5 5 0s3-1.5 5 0 3.5 1.5 5 0 3-1.5 5 0M2 20.5c2 1.5 3.5 1.5 5 0s3-1.5 5 0 3.5 1.5 5 0 3-1.5 5 0'/%3E%3C/svg%3E");
 }
 
 .dia[data-estado="falhado"] .dia-icone, .dia[data-estado="consumo"] .dia-icone {
