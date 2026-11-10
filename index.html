@@ -77,6 +77,22 @@
     <section id="vista-gastos" class="vista" hidden>
       <div class="titulo-com-botao titulo-vista">
         <h1>Gastos</h1>
+        <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do iPhone. -->
+        <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
+          <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
+        </label>
+      </div>
+      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
+
+      <div class="mes-navegacao">
+        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
+        <h2 id="mes-titulo" aria-live="polite"></h2>
+        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
+      </div>
+      <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar a este mês</button>
+
+      <div class="titulo-com-botao bloco-gastos">
+        <h2>Mercearia</h2>
         <button id="gastos-exportar" type="button" class="botao-pequeno">Exportar dados</button>
       </div>
       <p id="mes-lembrete" class="mes-lembrete" hidden></p>
@@ -124,29 +140,24 @@
         <div id="compras-lista"></div>
       </div>
 
-      <div class="titulo-com-botao despesas-cabecalho">
-        <h2>Despesas mensais</h2>
-        <button id="mes-hoje" type="button" class="botao-pequeno" hidden>Este mês</button>
-      </div>
-      <div class="mes-navegacao">
-        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
-        <h2 id="mes-titulo" aria-live="polite"></h2>
-        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
-      </div>
-      <div class="titulo-com-botao">
-        <h3 class="despesas-subtitulo">Gastos do mês</h3>
+      <div class="titulo-com-botao bloco-gastos despesas-cabecalho">
+        <h2>Gastos do mês</h2>
         <button id="despesas-registar" type="button" class="botao-pequeno botao-pequeno-principal" aria-expanded="false" aria-controls="despesas-registo">Registar gasto</button>
       </div>
       <div id="despesas-registo" class="gastos-registo" hidden></div>
-      <label class="botao-discreto botao-ficheiro">Importar gastos do cartão
-        <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
-      </label>
-      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
       <div id="mes-gastos"></div>
       <details id="despesas-categorias-caixa" class="gerir">
         <summary>Categorias de gastos</summary>
         <div id="despesas-categorias"></div>
+        <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
+        <div id="despesas-comerciantes"></div>
       </details>
+
+      <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
+      <div id="gastos-total-barra" class="gastos-total-barra" aria-live="polite">
+        <span id="gastos-total-mes" class="gastos-total-mes"></span>
+        <span id="gastos-total-valor" class="gastos-total-valor"></span>
+      </div>
     </section>
 
     <section id="vista-receitas" class="vista" hidden>
@@ -210,6 +221,7 @@
   <script src="js/ajustes.js"></script>
   <script src="js/gastos.js"></script>
   <script src="js/despesas.js"></script>
+  <script src="js/comerciantes.js"></script>
   <script src="js/mes.js"></script>
   <script src="js/app.js"></script>
 </body>

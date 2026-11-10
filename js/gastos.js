@@ -196,7 +196,7 @@ function abrirRegisto() {
         const hoje = new Date();
         mesDeslocamento = (ano - hoje.getFullYear()) * 12 + (mes - 1 - hoje.getMonth());
         correrSemFalhar(desenharMes);
-        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Despesas mensais.`);
+        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos do mês.`);
       },
       aoCancelar: fecharRegisto,
     }),

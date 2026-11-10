@@ -417,7 +417,33 @@ button:disabled { opacity: .6; }
 }
 .produtos-seta { display: inline-block; width: 1em; color: var(--destaque); }
 .produtos-resumo { font-size: .85rem; font-weight: 400; color: var(--texto-suave); }
-.despesas-cabecalho { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--linha); }
+/* Blocos Mercearia e "Gastos do mês": bem separados do que está por cima. */
+.titulo-com-botao.bloco-gastos { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--linha); }
+#despesas-importar-botao { min-height: 44px; }
+.mes-hoje { display: block; min-height: 44px; margin: 8px auto 0; }
+.mes-vazio-curto { margin: 8px 0 0; font-size: .9rem; color: var(--texto-suave); }
+#despesas-comerciantes { margin-bottom: 8px; }
+
+/* Barra fixa do total do mês, acima da barra de separadores (60 px + contorno + zona segura). */
+#vista-gastos { padding-bottom: 60px; }
+.gastos-total-barra {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(61px + env(safe-area-inset-bottom));
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px max(16px, calc((100% - 568px) / 2));
+  background: var(--cartao);
+  border-top: 1px solid var(--linha);
+}
+.gastos-total-mes { min-width: 0; font-weight: 600; color: var(--texto-suave); }
+.gastos-total-valor { flex: none; font-size: 1.35rem; font-weight: 700; color: var(--texto); }
+/* Na vista Gastos, os avisos ficam acima da barra do total. */
+body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bottom)); }
 .titulo-com-botao h3.despesas-subtitulo { margin: 0; }
 .mes-navegacao { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
 .mes-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
@@ -427,14 +453,7 @@ button:disabled { opacity: .6; }
 
 .mes-lembrete { margin: -4px 0 8px; font-size: .85rem; color: var(--alerta); }
 
-.mes-cartao { min-width: 0; padding: 10px 12px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
-.mes-valor { margin: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
-.mes-legenda { margin: 2px 0 0; font-size: .8rem; color: var(--texto-suave); }
-.mes-pormenor { margin: 6px 0 0; font-size: .75rem; line-height: 1.3; color: var(--texto-suave); }
 
-.mes-vazio { margin: 14px 0 0; padding: 20px 16px; text-align: center; color: var(--texto-suave); background: var(--cartao); border: 1px dashed var(--linha); border-radius: 8px; }
-.mes-vazio p { margin: 0; }
-.mes-vazio .mes-vazio-titulo { margin-bottom: 4px; font-weight: 600; color: var(--texto); }
 
 /* --- Gastos: formulários (Compras e Despesas) e lista (Despesas) --- */
 /* No iPhone, o campo de data tem aspeto e largura próprios: assim fica igual aos outros campos. */
@@ -450,16 +469,9 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 input[aria-invalid="true"] { border-color: var(--vermelho); }
 .botao-apagar-registo { min-height: 44px; background: none; border: 0; color: var(--vermelho); font-weight: 600; }
 
-.gastos-total { margin-top: 0; }
 .despesas-registo-titulo { margin: 10px 0 8px; font-size: 1rem; color: var(--texto); }
 #despesas-registar { min-height: 44px; }
 /* Total por categoria: nome e valor numa linha e, por baixo, a barra em proporção do total do mês. */
-.despesas-categorias { list-style: none; margin: 10px 0 0; padding: 0; font-size: .85rem; }
-.despesas-categorias li { padding: 5px 0 6px; border-top: 1px solid var(--linha); }
-.despesa-categoria-linha { display: flex; justify-content: space-between; gap: 8px; }
-.despesa-categoria-linha .gasto-categoria { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.despesa-barra { display: block; height: 6px; margin-top: 4px; overflow: hidden; background: var(--linha); border-radius: 3px; }
-.despesa-barra span { display: block; height: 100%; background: var(--destaque); border-radius: 3px; }
 .gastos-lista { list-style: none; margin: 8px 0 0; padding: 0; }
 .gastos-lista > li { margin-bottom: 6px; }
 .gasto-linha {
@@ -609,4 +621,4 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 /* --- Despesas mensais: importar gastos do cartão --- */
 /* A etiqueta funciona como botão: tocar abre o seletor de ficheiros do iPhone. */
 .botao-ficheiro { display: flex; align-items: center; width: fit-content; cursor: pointer; }
-.importar-resultado { margin: 0 0 8px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; overflow-wrap: anywhere; }
+.importar-resultado { margin: 0 0 12px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; overflow-wrap: anywhere; }

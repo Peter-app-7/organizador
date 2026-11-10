@@ -73,6 +73,7 @@ async function exportarCopia() {
     categoriasCompras,
     despesas,
     categoriasDespesas,
+    regrasComerciantes,
   };
   const ficheiro = new File([JSON.stringify(copia, null, 2)], nome, { type: 'application/json' });
 
@@ -102,6 +103,7 @@ async function restaurarCopia(ficheiro) {
   let novasCategoriasCompras = null;
   let novasCategoriasDespesas = null;
   let novasDespesas = null;
+  let novasRegras = null;
   try {
     if (ficheiro.size > 5 * 1024 * 1024) throw new Error('Ficheiro grande demais');
     const bruto = JSON.parse(await ficheiro.text());
@@ -113,10 +115,13 @@ async function restaurarCopia(ficheiro) {
       if (!Array.isArray(bruto.categoriasCompras)) throw new Error('Categorias das Compras inválidas');
       novasCategoriasCompras = normalizarCategoriasCompras(bruto.categoriasCompras);
     }
-    if (bruto.categoriasDespesas !== undefined) novasCategoriasDespesas = normalizarCategoriasDespesas(bruto.categoriasDespesas);
-    if (bruto.despesas !== undefined) {
-      novasDespesas = normalizarDespesas(bruto.despesas, novasCategoriasDespesas || categoriasDespesas);
+    // Uma categoria "Mercearia" feita à mão numa cópia antiga passa a ser a Mercearia da app, com os seus gastos e regras.
+    const [categoriasBrutas, despesasBrutas, regrasBrutas] = adotarMercearia(bruto.categoriasDespesas, bruto.despesas, bruto.regrasComerciantes);
+    if (categoriasBrutas !== undefined) novasCategoriasDespesas = normalizarCategoriasDespesas(categoriasBrutas);
+    if (despesasBrutas !== undefined) {
+      novasDespesas = normalizarDespesas(despesasBrutas, novasCategoriasDespesas || categoriasDespesas);
     }
+    if (regrasBrutas !== undefined) novasRegras = normalizarRegrasComerciantes(regrasBrutas, novasCategoriasDespesas || categoriasDespesas);
   } catch (erro) {
     avisar('Este ficheiro não é uma cópia válida da app. Nada foi alterado.');
     return;
@@ -124,6 +129,7 @@ async function restaurarCopia(ficheiro) {
   const extras = [];
   if (novosGastos) extras.push(`${novosGastos.length} registos de compras`);
   if (novasDespesas) extras.push(`${novasDespesas.length} gastos gerais`);
+  if (novasRegras) extras.push(`${novasRegras.length} comerciantes lembrados`);
   const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos, ${novos.ginasio.length} dias de ginásio`
     + (extras.length ? `, ${extras.join(', ')}` : '');
   const faltam = [];
@@ -140,6 +146,7 @@ async function restaurarCopia(ficheiro) {
       localStorage.setItem(CHAVE_DESPESAS + '-antes-de-importar', JSON.stringify({ versao: 1, registos: despesas }));
       localStorage.setItem(CHAVE_CATEGORIAS_DESPESAS + '-antes-de-importar', JSON.stringify({ versao: 1, categorias: categoriasDespesas }));
     }
+    if (novasRegras) localStorage.setItem(CHAVE_COMERCIANTES + '-antes-de-importar', JSON.stringify({ versao: 1, regras: regrasComerciantes }));
   } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
   dados = novos;
   guardarDados();
@@ -157,6 +164,9 @@ async function restaurarCopia(ficheiro) {
   // Os gastos deste aparelho (se a cópia não os tiver) também ficam a apontar só para categorias que existem.
   despesas = normalizarDespesas(novasDespesas || despesas, categoriasDespesas);
   guardarDespesas();
+  // Uma cópia sem regras deixa as deste aparelho, só com as categorias que ainda existem.
+  regrasComerciantes = normalizarRegrasComerciantes(novasRegras || regrasComerciantes, categoriasDespesas);
+  guardarRegrasComerciantes();
   desenharAjustes();
   atualizarTempo(); // a cópia pode ter outra localidade
   avisar('Dados importados.');

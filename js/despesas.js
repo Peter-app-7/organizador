@@ -1,13 +1,15 @@
-// despesas.js: secção Despesas mensais da vista Gastos. Gastos gerais, por categoria, com as categorias editáveis.
-// Os gastos gerais e as categorias ficam em chaves próprias. Os registos de "Registar compras" (gastos.js) continuam
-// na chave deles e aparecem aqui na categoria Supermercado, sem serem alterados.
+// despesas.js: secção "Gastos do mês" da vista Gastos. Gastos gerais, por categoria, com as categorias editáveis,
+// e a barra fixa com o total do mês. Os gastos gerais e as categorias ficam em chaves próprias. Os registos de
+// "Registar compras" (gastos.js) continuam na chave deles e aparecem aqui na categoria Mercearia, sem serem alterados.
 
 const CHAVE_DESPESAS = 'organizador-despesas';
 const CHAVE_CATEGORIAS_DESPESAS = 'organizador-categorias-despesas';
 const NOTA_MAXIMA = 120; // letras
 
-// Supermercado e Outros têm id fixo: os registos de compras vão para o primeiro e os de categorias apagadas para o segundo.
+// Mercearia e Outros têm id fixo: os registos de compras vão para a primeira e os de categorias apagadas para a segunda.
+// Supermercado era a categoria fixa dos registos de compras até 10 nov 2026; agora é uma categoria como as outras.
 const CATEGORIAS_DESPESAS_INICIAIS = [
+  { id: 'mercearia', nome: 'Mercearia' },
   { id: 'supermercado', nome: 'Supermercado' },
   { id: 'combustivel', nome: 'Combustível' },
   { id: 'restauracao', nome: 'Restauração e lazer' },
@@ -15,9 +17,9 @@ const CATEGORIAS_DESPESAS_INICIAIS = [
   { id: 'saude', nome: 'Saúde' },
   { id: 'outros', nome: 'Outros' },
 ];
-const CATEGORIAS_FIXAS = ['supermercado', 'outros'];
+const CATEGORIAS_FIXAS = ['mercearia', 'outros'];
 
-// Lista limpa: ids e nomes únicos (sem contar maiúsculas e acentos), Supermercado e Outros sempre presentes, Outros no fim.
+// Lista limpa: ids e nomes únicos (sem contar maiúsculas e acentos), Mercearia e Outros sempre presentes, Outros no fim.
 // Lança um erro se não for uma lista.
 function normalizarCategoriasDespesas(lista) {
   if (!Array.isArray(lista)) throw new Error('Formato desconhecido');
@@ -37,7 +39,7 @@ function normalizarCategoriasDespesas(lista) {
     const inicial = CATEGORIAS_DESPESAS_INICIAIS.find((c) => c.id === id);
     // Se o nome já estiver a ser usado por outra, fica com "(2)" para não se repetir.
     const nome = nomes.has(chaveTexto(inicial.nome)) ? `${inicial.nome} (2)` : inicial.nome;
-    if (id === 'supermercado') limpas.unshift({ id, nome });
+    if (id === 'mercearia') limpas.unshift({ id, nome });
     else limpas.push({ id, nome });
     ids.add(id);
     nomes.add(chaveTexto(nome));
@@ -65,6 +67,8 @@ function normalizarDespesas(lista, categorias) {
         categoria: idsCategorias.has(d.categoria) ? d.categoria : 'outros',
         centimos: d.centimos,
         nota: typeof d.nota === 'string' ? d.nota.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) : '',
+        // Nome do comerciante tal como veio no ficheiro do cartão (só nos importados a partir de 10 nov 2026).
+        ...(typeof d.comerciante === 'string' && d.comerciante.trim() ? { comerciante: d.comerciante.trim().slice(0, NOTA_MAXIMA) } : {}),
         // Marca dos gastos importados do cartão (ver importarGastosCartao): só existe nesses.
         ...(typeof d.cartao === 'string' && d.cartao ? { cartao: d.cartao } : {}),
       };
@@ -88,8 +92,36 @@ function lerChave(chave, campo) {
   }
 }
 
-let categoriasDespesas = normalizarCategoriasDespesas(lerChave(CHAVE_CATEGORIAS_DESPESAS, 'categorias') || CATEGORIAS_DESPESAS_INICIAIS);
-let despesas = normalizarDespesas(lerChave(CHAVE_DESPESAS, 'registos') || [], categoriasDespesas);
+// Uma categoria "Mercearia" criada antes à mão passa a ser a Mercearia da app (id fixo "mercearia"), com os seus gastos
+// e regras. Recebe as listas em bruto, antes de serem limpas, e devolve-as com o id trocado; sem nada a trocar, iguais.
+function adotarMercearia(categorias, ...listas) {
+  if (!Array.isArray(categorias) || categorias.some((c) => c && c.id === 'mercearia')) return [categorias, ...listas];
+  const mesma = categorias.find((c) => c && typeof c.nome === 'string' && chaveTexto(c.nome) === 'mercearia');
+  if (!mesma) return [categorias, ...listas];
+  const trocar = (item) => (item && item.categoria === mesma.id ? { ...item, categoria: 'mercearia' } : item);
+  return [
+    categorias.map((c) => (c === mesma ? { ...c, id: 'mercearia' } : c)),
+    ...listas.map((lista) => (Array.isArray(lista) ? lista.map(trocar) : lista)),
+  ];
+}
+
+const categoriasGuardadas = lerChave(CHAVE_CATEGORIAS_DESPESAS, 'categorias');
+const despesasGuardadas = lerChave(CHAVE_DESPESAS, 'registos');
+const [categoriasAdotadas, despesasAdotadas] = adotarMercearia(categoriasGuardadas, despesasGuardadas);
+let categoriasDespesas = normalizarCategoriasDespesas(categoriasAdotadas || CATEGORIAS_DESPESAS_INICIAIS);
+let despesas = normalizarDespesas(despesasAdotadas || [], categoriasDespesas);
+
+// Na primeira vez com a Mercearia: guarda uma cópia das categorias e dos gastos de antes e grava já a mudança.
+if (categoriasGuardadas && !categoriasGuardadas.some((c) => c && c.id === 'mercearia')) {
+  try {
+    [[CHAVE_CATEGORIAS_DESPESAS, { versao: 1, categorias: categoriasGuardadas }], [CHAVE_DESPESAS, { versao: 1, registos: despesasGuardadas || [] }]]
+      .forEach(([chave, valor]) => {
+        if (!localStorage.getItem(chave + '-antes-da-mercearia')) localStorage.setItem(chave + '-antes-da-mercearia', JSON.stringify(valor));
+      });
+    localStorage.setItem(CHAVE_CATEGORIAS_DESPESAS, JSON.stringify({ versao: 1, categorias: categoriasDespesas }));
+    localStorage.setItem(CHAVE_DESPESAS, JSON.stringify({ versao: 1, registos: despesas }));
+  } catch (erro) { /* sem espaço: a mudança volta a ser feita da próxima vez, da mesma forma */ }
+}
 
 function guardarChave(chave, valor) {
   try {
@@ -114,11 +146,12 @@ function nomeCategoriaDespesa(id) {
   return categoria ? categoria.nome : 'Outros';
 }
 
-// Todos os gastos num só formato: os gerais e os de "Registar compras" (em Supermercado, com a loja como nota).
+// Todos os gastos num só formato: os gerais (incluindo os importados do cartão) e os de "Registar compras"
+// (em Mercearia, com a loja como nota). Cada registo aparece uma só vez: é daqui que sai o total do mês.
 function todosOsGastos() {
   return [
     ...despesas.map((d) => ({ origem: 'despesa', id: d.id, data: d.data, categoria: d.categoria, nota: d.nota, centimos: d.centimos, registo: d })),
-    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'supermercado', nota: g.loja, centimos: g.centimos, registo: g })),
+    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'mercearia', nota: g.loja, centimos: g.centimos, registo: g })),
   ];
 }
 
@@ -142,8 +175,10 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
   const valor = campo('valor', 'Valor total (€)', criar('input', {
     type: 'text', value: registo ? valorParaCampo(registo.centimos) : '', placeholder: '0,00', inputMode: 'decimal', autocomplete: 'off', enterKeyHint: 'next',
   }));
-  const nota = campo('nota', 'Nota (opcional)', criar('input', {
-    type: 'text', value: registo ? registo.nota : '', placeholder: 'Ex.: farmácia', autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: NOTA_MAXIMA,
+  // Nos gastos importados do cartão, a nota é o nome do comerciante.
+  const doCartao = Boolean(registo && registo.cartao);
+  const nota = campo('nota', doCartao ? 'Comerciante' : 'Nota (opcional)', criar('input', {
+    type: 'text', value: registo ? registo.nota : '', placeholder: doCartao ? 'Ex.: Pingo Doce' : 'Ex.: farmácia', autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: NOTA_MAXIMA,
   }));
   const guardar = criar('button', { type: 'submit', className: 'botao-principal', textContent: registo ? 'Guardar alterações' : 'Guardar' });
   const botoes = [guardar, criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: aoCancelar })];
@@ -156,13 +191,15 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
     else parte.entrada.removeAttribute('aria-invalid');
   };
 
+  const campos = doCartao ? [nota, data, valor, categoria] : [data, categoria, valor, nota];
   const formulario = criar('form', { className: 'formulario formulario-gasto', noValidate: true },
-    data.rotulo, categoria.rotulo, valor.rotulo, nota.rotulo, ...botoes);
+    ...campos.map((parte) => parte.rotulo), ...botoes);
   formulario.addEventListener('submit', (evento) => {
     evento.preventDefault();
     const lido = lerValor(valor.entrada.value);
     const existe = categoriasDespesas.some((c) => c.id === categoria.entrada.value);
     const erros = [
+      ...(doCartao ? [[nota, nota.entrada.value.trim() ? null : 'Escreve o nome do comerciante.']] : []),
       [data, dataValida(data.entrada.value) ? null : 'Escolhe uma data válida.'],
       [categoria, existe ? null : 'Escolhe uma categoria.'],
       [valor, lido.erro || null],
@@ -183,9 +220,9 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
   [data, categoria, valor, nota].forEach((parte) => {
     parte.entrada.addEventListener('input', () => mostrarErro(parte, null));
   });
-  // "Seguinte" no teclado do valor passa para a nota, em vez de guardar logo.
+  // "Seguinte" no teclado do valor passa para a nota, em vez de guardar logo (nos do cartão, a nota vem primeiro).
   valor.entrada.addEventListener('keydown', (evento) => {
-    if (evento.key !== 'Enter') return;
+    if (evento.key !== 'Enter' || doCartao) return;
     evento.preventDefault();
     nota.entrada.focus();
   });
@@ -269,10 +306,14 @@ function linhaDespesa(item, desenharDeNovo) {
     const opcoes = {
       registo: item.registo,
       aoGuardar: (alterado) => {
+        const antes = { ...item.registo };
         if (!alterarRegisto(item, alterado)) return;
         despesaAEditar = null;
+        // Mudar a categoria de um gasto do cartão ensina a app a categoria desse comerciante (comerciantes.js).
+        const lembrou = item.origem === 'despesa' && item.registo.cartao && alterado.categoria !== antes.categoria
+          ? lembrarComerciante(item.registo, antes) : null;
         desenharDeNovo();
-        avisar('Gasto alterado.');
+        avisar(lembrou || 'Gasto alterado.');
       },
       aoCancelar: () => { despesaAEditar = null; desenharDeNovo(); },
       aoApagar: () => {
@@ -303,52 +344,29 @@ function linhaDespesa(item, desenharDeNovo) {
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
 }
 
+// Barra fixa no fundo da vista: o nome do mês e o total de tudo o que se gastou nele (mercearia e gastos gerais).
+// O ano só aparece quando não é o atual.
+function desenharTotalMes(mes, total) {
+  const nome = primeiraMaiuscula(NOMES_MESES[mes.getMonth()]);
+  document.getElementById('gastos-total-mes').textContent =
+    mes.getFullYear() === new Date().getFullYear() ? nome : `${nome} ${mes.getFullYear()}`;
+  document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
+}
+
 function desenharDespesasMes(mes) {
   const chave = chaveMes(mes);
-  const todos = todosOsGastos();
-  const doMes = todos
+  const doMes = todosOsGastos()
     .filter((g) => g.data.startsWith(`${chave}-`))
     // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro (os ids começam pela hora).
     .sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
-  const doAno = todos.filter((g) => g.data.startsWith(`${mes.getFullYear()}-`));
-  const total = somaCentimos(doMes);
   const redesenhar = () => desenharDespesasMes(mes);
-  const nomeMes = NOMES_MESES[mes.getMonth()];
 
-  // Total por categoria, do maior para o menor, com a barra em proporção do total do mês.
-  const porCategoria = categoriasDespesas
-    .map((c) => ({ nome: c.nome, centimos: somaCentimos(doMes.filter((g) => g.categoria === c.id)) }))
-    .filter((c) => c.centimos > 0)
-    .sort((a, b) => b.centimos - a.centimos);
-
-  const linhasCategoria = porCategoria.map((c) => {
-    const percentagem = Math.round((c.centimos / total) * 100);
-    const barra = criar('span', { className: 'despesa-barra', 'aria-hidden': 'true' }, criar('span', {}));
-    barra.firstChild.style.width = `${Math.max(percentagem, 1)}%`;
-    return criar('li', { 'aria-label': `${c.nome}: ${formatarEuros(c.centimos)}, ${percentagem}% do mês` },
-      criar('span', { className: 'despesa-categoria-linha', 'aria-hidden': 'true' },
-        criar('span', { className: 'gasto-categoria', textContent: c.nome }),
-        criar('span', { className: 'gasto-valor', textContent: formatarEuros(c.centimos) })),
-      barra);
-  });
-
-  const partes = [
-    criar('div', { className: 'mes-cartao gastos-total' },
-      criar('p', { className: 'mes-valor', textContent: formatarEuros(total) }),
-      criar('p', { className: 'mes-legenda', textContent: `gasto em ${nomeMes} · ${doMes.length} ${doMes.length === 1 ? 'gasto' : 'gastos'}` }),
-      ...(linhasCategoria.length ? [criar('ul', { className: 'despesas-categorias' }, ...linhasCategoria)] : []),
-      criar('p', { className: 'mes-pormenor', textContent: `Total de ${mes.getFullYear()}: ${formatarEuros(somaCentimos(doAno))}` })),
-  ];
-  if (doMes.length) {
-    partes.push(criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaDespesa(g, redesenhar))));
-  } else {
-    partes.push(criar('div', { className: 'mes-vazio' },
-      criar('p', { className: 'mes-vazio-titulo', textContent: `Sem gastos registados em ${nomeMes}.` }),
-      criar('p', { textContent: 'Toca em "Registar gasto" para acrescentar um.' })));
-  }
   const caixa = document.getElementById('mes-gastos');
   caixa.dataset.mes = chave;
-  caixa.replaceChildren(...partes);
+  caixa.replaceChildren(doMes.length
+    ? criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaDespesa(g, redesenhar)))
+    : criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[mes.getMonth()]}.` }));
+  desenharTotalMes(mes, somaCentimos(doMes));
 }
 
 // --- Categorias de gastos ---
@@ -370,6 +388,7 @@ function itensCategoriasDespesas() {
 
 function aposMudarCategorias() {
   correrSemFalhar(() => desenharDespesasMes(inicioDoMes(mesDeslocamento)));
+  correrSemFalhar(desenharComerciantes);
   // Um formulário aberto tem a lista de categorias antiga: fecha-se, sem perder nada já guardado.
   fecharNovaDespesa();
 }
@@ -422,6 +441,8 @@ function apagarCategoriaDespesa(id) {
     guardarDespesas();
     return false;
   }
+  // Os comerciantes lembrados com esta categoria são esquecidos: voltam a entrar em "Por categorizar".
+  esquecerRegrasDaCategoria(id);
   aposMudarCategorias();
   avisar(afetados.length
     ? `Categoria apagada. ${afetados.length} ${afetados.length === 1 ? 'gasto passou' : 'gastos passaram'} para "${outros}".`
@@ -441,8 +462,13 @@ function desenharCategoriasDespesas() {
 }
 
 document.getElementById('despesas-categorias-caixa').addEventListener('toggle', (evento) => {
-  if (evento.target.open) desenharCategoriasDespesas();
-  else estadoCategoriasDespesas.aRenomear = null;
+  if (evento.target.open) {
+    desenharCategoriasDespesas();
+    desenharComerciantes();
+  } else {
+    estadoCategoriasDespesas.aRenomear = null;
+    regraAEditar = null;
+  }
 });
 
 // Na primeira vez, as categorias iniciais ficam logo guardadas no aparelho.
@@ -452,8 +478,8 @@ try {
 
 // --- Importar gastos do cartão ---
 // Ficheiro de texto (ex.: gastos-cartao.txt, escolhido no iCloud Drive), uma linha por gasto: "AAAA-MM-DD;Comerciante;Montante".
-// O montante aceita vírgula ou ponto, com ou sem € e espaços. Cada linha passa a um gasto em "Por categorizar",
-// com o comerciante como nota. Cada linha importada tem uma marca "data|comerciante|cêntimos", guardada no gasto
+// O montante aceita vírgula ou ponto, com ou sem € e espaços. Cada linha passa a um gasto com o comerciante como nota,
+// na categoria lembrada para esse comerciante (comerciantes.js) ou, se for um comerciante novo, em "Por categorizar". Cada linha importada tem uma marca "data|comerciante|cêntimos", guardada no gasto
 // ("cartao") e contada em dados.cartaoImportados: ao importar outra vez, as linhas já importadas não se repetem,
 // mesmo que o gasto tenha sido apagado ou alterado entretanto. Linhas iguais no mesmo ficheiro contam uma a uma
 // (duas compras iguais no mesmo dia entram as duas).
@@ -471,6 +497,7 @@ function lerLinhaCartao(linha) {
   if (!dataValida(data) || valor.erro) return null;
   return {
     data,
+    comerciante,
     nota: (comerciante || 'Sem nome').slice(0, NOTA_MAXIMA),
     centimos: valor.centimos,
     marca: `${data}|${chaveTexto(comerciante)}|${valor.centimos}`,
@@ -551,12 +578,21 @@ async function importarGastosCartao(ficheiro) {
     }
   });
 
+  // Comerciantes já lembrados entram com a sua categoria (e o nome a mostrar, se houver); os novos, em "Por categorizar".
+  const comRegra = novas.map((linha) => ({ linha, regra: linha.comerciante ? regraDoComerciante(linha.comerciante) : null }));
+  const lembrados = comRegra.filter((n) => n.regra).length;
   if (novas.length > 0) {
-    const categoria = garantirCategoriaPorCategorizar();
-    if (!categoria) return; // já foi avisado de que não deu para guardar
+    const porCategorizar = lembrados < novas.length ? garantirCategoriaPorCategorizar() : null;
+    if (lembrados < novas.length && !porCategorizar) return; // já foi avisado de que não deu para guardar
     const antes = despesas;
-    despesas = [...despesas, ...novas.map((linha) => ({
-      id: novoId(), data: linha.data, categoria, centimos: linha.centimos, nota: linha.nota, cartao: linha.marca,
+    despesas = [...despesas, ...comRegra.map(({ linha, regra }) => ({
+      id: novoId(),
+      data: linha.data,
+      categoria: regra ? regra.categoria : porCategorizar,
+      centimos: linha.centimos,
+      nota: regra && regra.nome ? regra.nome : linha.nota,
+      cartao: linha.marca,
+      ...(linha.comerciante ? { comerciante: linha.comerciante } : {}),
     }))];
     if (!guardarDespesas()) {
       despesas = antes;
@@ -585,7 +621,11 @@ async function importarGastosCartao(ficheiro) {
     `${repetidas} já ${repetidas === 1 ? 'importado' : 'importados'}`,
     textoIgnoradas,
   ];
-  const dica = novas.length > 0 ? ` Ficaram em "${nomeCategoriaDespesa(despesas[despesas.length - 1].categoria)}": toca num gasto para mudar a categoria.` : '';
+  const semRegra = novas.length - lembrados;
+  const dicas = [];
+  if (lembrados > 0) dicas.push(`${lembrados} com a categoria lembrada do comerciante.`);
+  if (semRegra > 0) dicas.push(`${semRegra} em "${CATEGORIA_POR_CATEGORIZAR}": toca num gasto para mudar a categoria.`);
+  const dica = dicas.length ? ` ${dicas.join(' ')}` : '';
   mostrarResultadoCartao(`Importação: ${partes.join(' · ')}.${dica}`);
 }
 

@@ -1,5 +1,6 @@
-// mes.js: vista Gastos. Junta a lista de produtos (compras.js) e as Despesas mensais (seletor de mês e despesas.js),
-// com o botão "Exportar dados" sempre visível e o lembrete da cópia de segurança.
+// mes.js: vista Gastos. De cima para baixo: título com "Importar do cartão", seletor de mês, bloco Mercearia
+// (com "Exportar dados", o lembrete da cópia e a lista de produtos de compras.js), bloco "Gastos do mês" (despesas.js)
+// e a barra fixa com o total do mês.
 // O exercício e o jejum não aparecem aqui: estão nas vistas Semana e Suplementos.
 
 // Mês mostrado, a contar do atual: 0 é este, -1 o anterior, 1 o seguinte.
@@ -18,7 +19,7 @@ function chaveMes(data) {
   return dataParaTexto(data).slice(0, 7);
 }
 
-// O lembrete só aparece com a cópia em falta; o botão "Exportar dados" está sempre visível, ao lado do título.
+// O lembrete só aparece com a cópia em falta; o botão "Exportar dados" está sempre visível, ao lado de "Mercearia".
 function desenharLembreteCopia() {
   const texto = textoLembreteCopia();
   const lembrete = document.getElementById('mes-lembrete');
@@ -35,7 +36,10 @@ function desenharMes() {
   const caixaGastos = document.getElementById('mes-gastos');
   if (!(caixaGastos.contains(document.activeElement) && caixaGastos.dataset.mes === chaveMes(mes))) desenharDespesasMes(mes);
   const caixaCategorias = document.getElementById('despesas-categorias-caixa');
-  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharCategoriasDespesas();
+  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) {
+    desenharCategoriasDespesas();
+    desenharComerciantes();
+  }
 }
 
 function mudarMes(deslocamento) {
