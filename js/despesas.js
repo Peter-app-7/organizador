@@ -308,8 +308,11 @@ function linhaDespesa(item, desenharDeNovo) {
         if (!alterarRegisto(item, alterado)) return;
         despesaAEditar = null;
         // Mudar a categoria de um gasto do cartão ensina a app a categoria desse comerciante (comerciantes.js).
-        const lembrou = item.origem === 'despesa' && item.registo.cartao && alterado.categoria !== antes.categoria
-          ? lembrarComerciante(item.registo, antes) : null;
+        // Mudar só o nome de um comerciante já lembrado passa a ser o nome a mostrar nas importações seguintes.
+        const doCartao = item.origem === 'despesa' && item.registo.cartao;
+        let lembrou = null;
+        if (doCartao && alterado.categoria !== antes.categoria) lembrou = lembrarComerciante(item.registo, antes);
+        else if (doCartao && item.registo.nota !== antes.nota) lembrou = lembrarNomeDoComerciante(item.registo, antes);
         // Com outra data, o gasto pode passar para outro período: o seletor vai atrás dele.
         const deslocamento = deslocamentoDaData(item.registo.data);
         if (deslocamento !== mesDeslocamento) {

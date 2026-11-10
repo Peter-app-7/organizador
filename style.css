@@ -514,6 +514,8 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 }
 .categoria-nome { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .categoria-detalhe { display: block; font-size: .75rem; color: var(--texto-suave); }
+.categoria-detalhe.regra-para-rever { color: var(--vermelho); font-weight: 600; }
+.regras-para-rever { margin: 0 0 8px; }
 .categoria-linha .botao-pequeno, .categoria-nova .botao-pequeno, .categoria-renomear .botao-pequeno { min-height: 44px; }
 .categoria-fixa { flex: none; width: 44px; }
 .categoria-a-editar { display: block; padding: 8px 0; }

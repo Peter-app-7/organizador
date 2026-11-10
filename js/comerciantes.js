@@ -5,29 +5,72 @@
 
 const CHAVE_COMERCIANTES = 'organizador-comerciantes';
 
-// Nome do comerciante para comparar: minúsculas, sem acentos, sem números nem pontuação.
-// Ex.: "PINGO DOCE 0342 LISBOA" passa a "pingo doce lisboa".
-function chaveComerciante(texto) {
-  return chaveTexto(String(texto || '')).replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
+// Nome do comerciante normalizado: minúsculas, sem acentos, pontuação trocada por espaços e sem espaços a mais.
+// Os números ficam. Ex.: "PINGO DOCE 0342 LISBOA" passa a "pingo doce 0342 lisboa".
+function normalizarComerciante(texto) {
+  return chaveTexto(String(texto || '')).replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// O mesmo comerciante se os nomes forem iguais ou se um começar pelo outro, em palavras inteiras
-// (ex.: "pingo doce lisboa" e "pingo doce"; mas não "pingo" e "pingos").
+function contarLetras(texto) {
+  return (texto.match(/[a-z]/g) || []).length;
+}
+
+// Chave da regra: a parte do nome normalizado antes do primeiro número ("pingo doce 0342 lisboa" passa a "pingo doce").
+// Se essa parte tiver menos de 3 letras, fica o nome normalizado inteiro ("675 GRIJO" passa a "675 grijo"), para dois
+// nomes que só começam por um número não partilharem regra. Vazia ("" ou só pontuação) quer dizer: sem regra.
+function chaveComerciante(texto) {
+  const normalizado = normalizarComerciante(texto);
+  const antes = normalizado.split(/\d/)[0].trim();
+  return contarLetras(antes) >= 3 ? antes : normalizado;
+}
+
+// A chave começa por letras (pelo menos 3 antes de qualquer número)?
+function chaveComLetras(chave) {
+  return contarLetras(chave.split(/\d/)[0]) >= 3;
+}
+
+// Comparação de antes de 11 nov 2026, ainda usada entre nomes que começam por letras, para as regras antigas
+// continuarem a funcionar: sem números, e um nome pode começar pelo outro, em palavras inteiras.
+function chaveSemNumeros(texto) {
+  return normalizarComerciante(texto).replace(/[0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Iguais, ou um começa pelo outro em palavras inteiras (ex.: "pingo doce lisboa" e "pingo doce"; não "pingo" e "pingos").
 function chavesDoMesmoComerciante(a, b) {
   if (!a || !b) return false;
   return a === b || a.startsWith(`${b} `) || b.startsWith(`${a} `);
 }
 
-// Parte do nome antes do primeiro número, para a regra servir a todas as lojas da marca.
-// Ex.: "PINGO DOCE 0342 LISBOA" passa a "PINGO DOCE". Sem letras antes dos números, fica o nome todo.
+// O mesmo comerciante? Nomes sem chave nunca são. Entre nomes que começam por letras, compara como antes;
+// se algum começar por um número, as chaves têm de ser iguais, ou a mais curta tem de ter pelo menos 3 letras e a
+// outra começar por ela ("675 grijo" e "675 grijo norte" sim; "675 grijo" e "123 porto" não; "675" e "675 grijo" não).
+function mesmoComerciante(textoA, textoB) {
+  const a = chaveComerciante(textoA);
+  const b = chaveComerciante(textoB);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (chaveComLetras(a) && chaveComLetras(b)) return chavesDoMesmoComerciante(chaveSemNumeros(textoA), chaveSemNumeros(textoB));
+  const curta = a.length <= b.length ? a : b;
+  return contarLetras(curta) >= 3 && chavesDoMesmoComerciante(a, b);
+}
+
+// Nome guardado na regra: a parte antes do primeiro número, para servir a todas as lojas da marca.
+// Ex.: "PINGO DOCE 0342 LISBOA" passa a "PINGO DOCE". Com menos de 3 letras antes do número, fica o nome todo
+// (ex.: "675 GRIJO").
 function nomeBaseComerciante(texto) {
   const limpo = String(texto || '').replace(/\s+/g, ' ').trim();
   const antes = limpo.split(/\d/)[0].replace(/[\s\-–—,.;:#*/|]+$/, '').trim();
-  return chaveComerciante(antes) ? antes : limpo;
+  return chaveComLetras(normalizarComerciante(antes)) ? antes : limpo;
+}
+
+// Regra que precisa de revisão: o comerciante não tem letras nem números, por isso nunca é aplicada.
+function regraParaRever(regra) {
+  return !chaveComerciante(regra.comerciante);
 }
 
 // Regras vindas de fora (do aparelho ou de uma cópia): só as completas, sem comerciantes repetidos e com uma categoria
-// que exista. Lança um erro se não for uma lista.
+// que exista. Uma regra com o comerciante vazio ou inválido não se perde: fica, marcada para rever, e nunca se aplica.
+// Lança um erro se não for uma lista.
 function normalizarRegrasComerciantes(lista, categorias) {
   if (!Array.isArray(lista)) throw new Error('Formato desconhecido');
   const idsCategorias = new Set(categorias.map((c) => c.id));
@@ -37,9 +80,9 @@ function normalizarRegrasComerciantes(lista, categorias) {
   lista.forEach((r) => {
     if (!r || typeof r.comerciante !== 'string' || !idsCategorias.has(r.categoria)) return;
     const comerciante = r.comerciante.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA);
-    const chave = chaveComerciante(comerciante);
-    if (!chave || chaves.has(chave)) return;
-    chaves.add(chave);
+    const chave = normalizarComerciante(comerciante);
+    if (chave && chaves.has(chave)) return;
+    if (chave) chaves.add(chave);
     const id = typeof r.id === 'string' && r.id && !ids.has(r.id) ? r.id : novoId();
     ids.add(id);
     const nome = typeof r.nome === 'string' ? r.nome.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) : '';
@@ -47,6 +90,14 @@ function normalizarRegrasComerciantes(lista, categorias) {
   });
   return limpas;
 }
+
+// Cópia das regras como estavam antes da nova forma de comparar os comerciantes (só a primeira vez).
+try {
+  const guardadas = localStorage.getItem(CHAVE_COMERCIANTES);
+  if (guardadas !== null && localStorage.getItem(CHAVE_COMERCIANTES + '-antes-das-chaves-novas') === null) {
+    localStorage.setItem(CHAVE_COMERCIANTES + '-antes-das-chaves-novas', guardadas);
+  }
+} catch (erro) { /* sem espaço: as regras não mudam, por isso segue */ }
 
 let regrasComerciantes = normalizarRegrasComerciantes(lerChave(CHAVE_COMERCIANTES, 'regras') || [], categoriasDespesas);
 
@@ -56,11 +107,10 @@ function guardarRegrasComerciantes() {
 
 // A regra deste comerciante, ou null. Com várias possíveis, fica a de nome mais comprido (a mais precisa).
 function regraDoComerciante(texto) {
-  const chave = chaveComerciante(texto);
   let melhor = null;
   regrasComerciantes.forEach((regra) => {
-    const chaveRegra = chaveComerciante(regra.comerciante);
-    if (chavesDoMesmoComerciante(chave, chaveRegra) && (!melhor || chaveRegra.length > chaveComerciante(melhor.comerciante).length)) melhor = regra;
+    if (mesmoComerciante(texto, regra.comerciante)
+      && (!melhor || normalizarComerciante(regra.comerciante).length > normalizarComerciante(melhor.comerciante).length)) melhor = regra;
   });
   return melhor;
 }
@@ -76,7 +126,23 @@ function comercianteDoGasto(registo, notaAntes = registo.nota) {
   return notaAntes && notaAntes !== 'Sem nome' ? notaAntes : '';
 }
 
+// Chamada ao guardar um gasto do cartão só com outro nome (a mesma categoria): se o comerciante já é lembrado, o nome
+// novo passa a ser o nome a mostrar nas importações seguintes. Devolve o texto do aviso, ou null se não mudou a regra.
+function lembrarNomeDoComerciante(registo, antes) {
+  const regra = regraDoComerciante(comercianteDoGasto(registo, antes.nota));
+  if (!regra || regra.nome === registo.nota) return null;
+  const nomeAntes = regra.nome;
+  regra.nome = registo.nota;
+  if (!guardarRegrasComerciantes()) {
+    regra.nome = nomeAntes;
+    return null;
+  }
+  correrSemFalhar(desenharComerciantes);
+  return `Gasto alterado. As próximas importações de ${regra.comerciante} aparecem como "${regra.nome}".`;
+}
+
 // Chamada ao guardar um gasto do cartão com outra categoria. "antes" é o gasto como estava.
+// A regra fica com o nome original do cartão (para o reconhecer de novo) e, se o nome foi mudado, com o nome a mostrar.
 // Guarda (ou atualiza) a regra do comerciante e pergunta se aplica aos gastos "Por categorizar" do mesmo comerciante.
 // Devolve o texto do aviso, ou null se não havia comerciante.
 function lembrarComerciante(registo, antes) {
@@ -109,7 +175,7 @@ function lembrarComerciante(registo, antes) {
 
   const categoria = nomeCategoriaDespesa(regra.categoria);
   const iguais = porCategorizar ? despesas.filter((d) => d !== registo && d.categoria === porCategorizar
-    && chavesDoMesmoComerciante(chaveComerciante(comercianteDoGasto(d)), chaveComerciante(regra.comerciante))) : [];
+    && mesmoComerciante(comercianteDoGasto(d), regra.comerciante)) : [];
   let aplicados = 0;
   if (iguais.length > 0) {
     const texto = iguais.length === 1 ? 'Há mais 1 gasto' : `Há mais ${iguais.length} gastos`;
@@ -168,10 +234,9 @@ function formularioRegra(regra) {
   formulario.addEventListener('submit', (evento) => {
     evento.preventDefault();
     const texto = comerciante.entrada.value.replace(/\s+/g, ' ').trim();
-    const chave = chaveComerciante(texto);
-    const repetida = regrasComerciantes.find((r) => r !== regra && chaveComerciante(r.comerciante) === chave);
+    const repetida = regrasComerciantes.find((r) => r !== regra && normalizarComerciante(r.comerciante) === normalizarComerciante(texto));
     let erro = null;
-    if (!chave) erro = 'Escreve o nome do comerciante, com letras.';
+    if (!chaveComerciante(texto)) erro = 'Escreve o nome do comerciante, com letras ou números.';
     else if (repetida) erro = `Já há uma regra para "${repetida.comerciante}".`;
     mostrarErro(comerciante, erro);
     if (erro) {
@@ -200,13 +265,19 @@ function desenharComerciantes() {
     return;
   }
   const ordenadas = [...regrasComerciantes].sort((a, b) => a.comerciante.localeCompare(b.comerciante, 'pt-PT', { sensitivity: 'base' }));
-  caixa.replaceChildren(criar('ul', { className: 'lista categorias-lista' }, ...ordenadas.map((regra) => {
+  const paraRever = ordenadas.filter(regraParaRever).length;
+  caixa.replaceChildren(...(paraRever ? [criar('p', { className: 'erro-campo regras-para-rever', textContent: paraRever === 1
+    ? '1 comerciante para rever: o nome não tem letras nem números, por isso não se aplica. Toca em Editar.'
+    : `${paraRever} comerciantes para rever: o nome não tem letras nem números, por isso não se aplicam. Toca em Editar.` })] : []),
+  criar('ul', { className: 'lista categorias-lista' }, ...ordenadas.map((regra) => {
     if (regra.id === regraAEditar) return criar('li', { className: 'categoria-linha categoria-a-editar' }, formularioRegra(regra));
     const categoria = nomeCategoriaDespesa(regra.categoria);
+    const rever = regraParaRever(regra);
     return criar('li', { className: 'categoria-linha' },
       criar('span', { className: 'categoria-nome' },
-        `${regra.comerciante} → ${categoria}`,
-        ...(regra.nome ? [criar('span', { className: 'categoria-detalhe', textContent: `aparece como "${regra.nome}"` })] : [])),
+        `${regra.comerciante || '(sem nome)'} → ${categoria}`,
+        ...(regra.nome ? [criar('span', { className: 'categoria-detalhe', textContent: `aparece como "${regra.nome}"` })] : []),
+        ...(rever ? [criar('span', { className: 'categoria-detalhe regra-para-rever', textContent: 'Para rever: não se aplica' })] : [])),
       criar('button', {
         type: 'button', className: 'botao-pequeno', textContent: 'Editar', 'aria-label': `Editar ${regra.comerciante}`,
         onclick: () => { regraAEditar = regra.id; desenharComerciantes(); },
