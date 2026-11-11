@@ -2,6 +2,8 @@
 // uma regra (comerciante -> categoria, com um nome a mostrar opcional) e as importações seguintes desse comerciante
 // entram logo nessa categoria. As regras veem-se, editam-se e apagam-se em "Categorias de gastos".
 // Ficam numa chave própria e entram nas cópias de segurança como "regrasComerciantes".
+// Uma regra com "perguntar" (desde 11 nov 2026) é de um sítio com gastos de vários tipos (ex.: uma bomba de gasolina
+// com combustível e tabaco): a app lembra o comerciante, mas as importações dele entram sempre em "Por categorizar".
 
 const CHAVE_COMERCIANTES = 'organizador-comerciantes';
 
@@ -86,7 +88,8 @@ function normalizarRegrasComerciantes(lista, categorias) {
     const id = typeof r.id === 'string' && r.id && !ids.has(r.id) ? r.id : novoId();
     ids.add(id);
     const nome = typeof r.nome === 'string' ? r.nome.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) : '';
-    limpas.push({ id, comerciante, nome, categoria: r.categoria });
+    // "perguntar" só fica ligado se vier exatamente true (as regras e cópias antigas não o têm).
+    limpas.push({ id, comerciante, nome, categoria: r.categoria, perguntar: r.perguntar === true });
   });
   return limpas;
 }
@@ -115,6 +118,12 @@ function regraDoComerciante(texto) {
   return melhor;
 }
 
+// A regra a usar na importação do cartão: a do comerciante, ou null se não houver ou se estiver em "perguntar sempre".
+function regraAplicavel(texto) {
+  const regra = regraDoComerciante(texto);
+  return regra && !regra.perguntar ? regra : null;
+}
+
 function idPorCategorizar() {
   const categoria = categoriasDespesas.find((c) => chaveTexto(c.nome) === chaveTexto(CATEGORIA_POR_CATEGORIZAR));
   return categoria ? categoria.id : null;
@@ -130,7 +139,7 @@ function comercianteDoGasto(registo, notaAntes = registo.nota) {
 // novo passa a ser o nome a mostrar nas importações seguintes. Devolve o texto do aviso, ou null se não mudou a regra.
 function lembrarNomeDoComerciante(registo, antes) {
   const regra = regraDoComerciante(comercianteDoGasto(registo, antes.nota));
-  if (!regra || regra.nome === registo.nota) return null;
+  if (!regra || regra.perguntar || regra.nome === registo.nota) return null;
   const nomeAntes = regra.nome;
   regra.nome = registo.nota;
   if (!guardarRegrasComerciantes()) {
@@ -150,6 +159,8 @@ function lembrarComerciante(registo, antes) {
   if (!chaveComerciante(original)) return null;
   const porCategorizar = idPorCategorizar();
   let regra = regraDoComerciante(original);
+  // Comerciante em "perguntar sempre": cada gasto tem a sua categoria e a regra não muda.
+  if (regra && regra.perguntar) return null;
 
   // Voltar a pôr um gasto em "Por categorizar" faz esquecer o comerciante.
   if (registo.categoria === porCategorizar) {
@@ -161,16 +172,24 @@ function lembrarComerciante(registo, antes) {
 
   // Se o nome foi mudado ao mesmo tempo, passa a ser o nome a mostrar nas importações seguintes.
   const nome = registo.nota !== antes.nota ? registo.nota : (regra ? regra.nome : '');
+  const comerciante = regra ? regra.comerciante : nomeBaseComerciante(original);
+  const categoriaEscolhida = nomeCategoriaDespesa(registo.categoria);
+  // Comerciante novo ou com outra categoria: pergunta se lembra a categoria ou se passa a perguntar sempre.
+  const lembrar = regra && regra.categoria === registo.categoria ? true : confirm(`Lembrar a categoria de "${comerciante}"?\n\nOK: as próximas importações entram em "${categoriaEscolhida}".\n\nCancelar: a categoria é sempre perguntada (para sítios com gastos de vários tipos, ex.: combustível e tabaco na mesma bomba).`);
   const antesDaRegra = regra ? { ...regra } : null;
-  if (regra) Object.assign(regra, { categoria: registo.categoria, nome });
+  if (regra) Object.assign(regra, { categoria: registo.categoria, nome, perguntar: !lembrar });
   else {
-    regra = { id: novoId(), comerciante: nomeBaseComerciante(original), nome, categoria: registo.categoria };
+    regra = { id: novoId(), comerciante, nome, categoria: registo.categoria, perguntar: !lembrar };
     regrasComerciantes.push(regra);
   }
   if (!guardarRegrasComerciantes()) {
     if (antesDaRegra) Object.assign(regra, antesDaRegra);
     else regrasComerciantes = regrasComerciantes.filter((r) => r !== regra);
     return 'Gasto alterado.';
+  }
+  if (!lembrar) {
+    correrSemFalhar(desenharComerciantes);
+    return `Nas próximas importações, a categoria de ${regra.comerciante} é sempre perguntada.`;
   }
 
   const categoria = nomeCategoriaDespesa(regra.categoria);
@@ -219,9 +238,12 @@ function formularioRegra(regra) {
   const categoria = campo('categoria', 'Categoria', criar('select', {},
     ...categoriasDespesas.map((c) => criar('option', { value: c.id, textContent: c.nome }))));
   categoria.entrada.value = regra.categoria;
+  const perguntar = criar('input', { type: 'checkbox', id: 'regra-perguntar', className: 'caixa-opcao', checked: regra.perguntar });
+  const rotuloPerguntar = criar('label', { className: 'opcao-caixa', htmlFor: perguntar.id },
+    perguntar, 'Perguntar sempre a categoria (gastos de vários tipos)');
   const guardar = criar('button', { type: 'submit', className: 'botao-principal', textContent: 'Guardar' });
   const formulario = criar('form', { className: 'formulario formulario-gasto', noValidate: true },
-    comerciante.rotulo, nome.rotulo, categoria.rotulo, guardar,
+    comerciante.rotulo, nome.rotulo, categoria.rotulo, rotuloPerguntar, guardar,
     criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: () => { regraAEditar = null; desenharComerciantes(); } }));
 
   const mostrarErro = (parte, mensagem) => {
@@ -244,7 +266,9 @@ function formularioRegra(regra) {
       return;
     }
     const antes = { ...regra };
-    Object.assign(regra, { comerciante: texto, nome: nome.entrada.value.replace(/\s+/g, ' ').trim(), categoria: categoria.entrada.value });
+    Object.assign(regra, {
+      comerciante: texto, nome: nome.entrada.value.replace(/\s+/g, ' ').trim(), categoria: categoria.entrada.value, perguntar: perguntar.checked,
+    });
     if (!guardarRegrasComerciantes()) {
       Object.assign(regra, antes);
       return;
@@ -275,7 +299,7 @@ function desenharComerciantes() {
     const rever = regraParaRever(regra);
     return criar('li', { className: 'categoria-linha' },
       criar('span', { className: 'categoria-nome' },
-        `${regra.comerciante || '(sem nome)'} → ${categoria}`,
+        `${regra.comerciante || '(sem nome)'} → ${regra.perguntar ? 'perguntar sempre' : categoria}`,
         ...(regra.nome ? [criar('span', { className: 'categoria-detalhe', textContent: `aparece como "${regra.nome}"` })] : []),
         ...(rever ? [criar('span', { className: 'categoria-detalhe regra-para-rever', textContent: 'Para rever: não se aplica' })] : [])),
       criar('button', {
@@ -283,7 +307,7 @@ function desenharComerciantes() {
         onclick: () => { regraAEditar = regra.id; desenharComerciantes(); },
       }),
       botaoApagar(`o comerciante ${regra.comerciante}`, () => {
-        if (!confirm(`Esquecer "${regra.comerciante}" → ${categoria}?\n\nOs gastos já registados não mudam; as próximas importações deste comerciante entram em "${CATEGORIA_POR_CATEGORIZAR}".`)) return;
+        if (!confirm(`Esquecer "${regra.comerciante}" → ${regra.perguntar ? 'perguntar sempre' : categoria}?\n\nOs gastos já registados não mudam; as próximas importações deste comerciante entram em "${CATEGORIA_POR_CATEGORIZAR}".`)) return;
         const antes = regrasComerciantes;
         regrasComerciantes = regrasComerciantes.filter((r) => r !== regra);
         if (!guardarRegrasComerciantes()) {

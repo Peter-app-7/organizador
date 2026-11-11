@@ -471,6 +471,8 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .gastos-registo h2 { margin: 10px 0 8px; }
 .formulario-gasto { margin-bottom: 10px; }
 .formulario-gasto .botao-secundario { margin-top: 0; }
+.formulario label.opcao-caixa { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--texto); cursor: pointer; }
+.caixa-opcao { flex: none; width: 24px; height: 24px; margin: 0; accent-color: var(--destaque); }
 .erro-campo { margin: 4px 0 0; font-size: .85rem; font-weight: 600; color: var(--vermelho); }
 input[aria-invalid="true"] { border-color: var(--vermelho); }
 .botao-apagar-registo { min-height: 44px; background: none; border: 0; color: var(--vermelho); font-weight: 600; }

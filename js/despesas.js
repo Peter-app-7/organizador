@@ -588,8 +588,9 @@ async function importarGastosCartao(ficheiro) {
     }
   });
 
-  // Comerciantes já lembrados entram com a sua categoria (e o nome a mostrar, se houver); os novos, em "Por categorizar".
-  const comRegra = novas.map((linha) => ({ linha, regra: linha.comerciante ? regraDoComerciante(linha.comerciante) : null }));
+  // Comerciantes já lembrados entram com a sua categoria (e o nome a mostrar, se houver); os novos e os que estão em
+  // "perguntar sempre", em "Por categorizar".
+  const comRegra = novas.map((linha) => ({ linha, regra: linha.comerciante ? regraAplicavel(linha.comerciante) : null }));
   const lembrados = comRegra.filter((n) => n.regra).length;
   if (novas.length > 0) {
     const porCategorizar = lembrados < novas.length ? garantirCategoriaPorCategorizar() : null;
