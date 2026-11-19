@@ -1,4 +1,4 @@
-// compras.js: lista de produtos da vista Gastos. Lista da casa, por tipo de produto, com sim/não para comprar.
+// compras.js: lista de produtos da vista Mercearia. Lista da casa, por tipo de produto, com sim/não para comprar.
 
 let comprasAEditar = false;
 
@@ -129,13 +129,24 @@ document.getElementById('compras-formulario').addEventListener('submit', (evento
 });
 document.getElementById('compras-limpar').addEventListener('click', limparComprados);
 document.getElementById('compras-filtro').addEventListener('change', desenharCompras);
-document.getElementById('compras-editar').addEventListener('click', (evento) => {
-  comprasAEditar = !comprasAEditar;
+// Modo de edição: campo de novo produto, categorias, importar e o × para apagar. O "voltar" do Android também o fecha.
+function definirEdicaoCompras(aEditar) {
+  comprasAEditar = aEditar;
+  const botao = document.getElementById('compras-editar');
   document.getElementById('compras-gerir').hidden = !comprasAEditar;
-  evento.currentTarget.textContent = comprasAEditar ? 'Fechar' : 'Editar';
-  evento.currentTarget.setAttribute('aria-expanded', String(comprasAEditar));
+  botao.textContent = comprasAEditar ? 'Fechar' : 'Editar';
+  botao.setAttribute('aria-expanded', String(comprasAEditar));
+  if (comprasAEditar) {
+    abrirComVoltar('editar-compras', 'mercearia', () => definirEdicaoCompras(false));
+  } else {
+    fechadoSemVoltar('editar-compras');
+    // Uma categoria a ser renomeada fica escondida com o resto: deixa de contar para o "voltar".
+    estadoCategoriasCompras.aRenomear = null;
+    fechadoSemVoltar('renomear-compras-categoria');
+  }
   desenharCompras();
-});
+}
+document.getElementById('compras-editar').addEventListener('click', () => definirEdicaoCompras(!comprasAEditar));
 
 // --- Categorias (no modo de edição) ---
 const estadoCategoriasCompras = { aRenomear: null };
@@ -179,7 +190,7 @@ function renomearCategoriaCompras(antiga, nova) {
   return null;
 }
 
-// Só apaga categorias vazias: nenhum produto muda de categoria sem o Peter decidir.
+// Só apaga categorias vazias: nenhum produto muda de categoria sem o utilizador decidir.
 function apagarCategoriaCompras(nome) {
   const numero = produtosDaCategoria(nome).length;
   if (numero > 0) {
@@ -201,6 +212,7 @@ function desenharCategoriasCompras() {
     obterItens: itensCategoriasCompras,
     estado: estadoCategoriasCompras,
     prefixo: 'compras-categoria',
+    vista: 'mercearia',
     aoCriar: criarCategoriaCompras,
     aoRenomear: renomearCategoriaCompras,
     aoApagar: apagarCategoriaCompras,
@@ -208,6 +220,10 @@ function desenharCategoriasCompras() {
 }
 
 document.getElementById('compras-categorias-caixa').addEventListener('toggle', (evento) => {
-  if (evento.target.open) desenharCategoriasCompras();
-  else estadoCategoriasCompras.aRenomear = null;
+  if (evento.target.open) {
+    desenharCategoriasCompras();
+  } else {
+    estadoCategoriasCompras.aRenomear = null;
+    fechadoSemVoltar('renomear-compras-categoria');
+  }
 });

@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <title>Organizador</title>
 
-  <!-- Estas linhas fazem a página abrir como uma app quando está no ecrã principal do iPhone. -->
+  <!-- Estas linhas fazem a página abrir como uma app quando está no ecrã principal (iPhone e Android). -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Organizador">
   <!-- A cor da barra do sistema segue o modo claro ou escuro do aparelho. -->
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#212529">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5f7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#15181b">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png">
@@ -18,87 +19,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Previsão do tempo: fora das vistas, por isso está sempre visível. -->
-  <header class="tempo">
-    <div class="tempo-linha">
-      <div id="tempo-agora">Previsão do tempo</div>
-      <button id="botao-ajustes" class="botao-icone" type="button" aria-label="Definições e cópia de segurança">⚙️</button>
-    </div>
-    <div id="tempo-dias" class="tempo-dias"></div>
+  <!-- Acesso às Definições, no canto de cima, em todas as vistas. -->
+  <header class="topo">
+    <button id="botao-ajustes" class="botao-icone" type="button" aria-label="Definições e cópia de segurança">⚙️</button>
   </header>
 
   <main>
-    <section id="vista-semana" class="vista">
-      <h1>Semana</h1>
-      <div class="semana-navegacao">
-        <button id="semana-anterior" type="button" aria-label="Semana anterior">«</button>
-        <button id="dia-anterior" type="button" aria-label="Dia anterior">‹</button>
-        <button id="semana-hoje" type="button">Hoje</button>
-        <button id="dia-seguinte" type="button" aria-label="Dia seguinte">›</button>
-        <button id="semana-seguinte" type="button" aria-label="Semana seguinte">»</button>
+    <section id="vista-mercearia" class="vista">
+      <h1 class="titulo-vista">Mercearia</h1>
+      <!-- Só aparece quando nunca houve cópia ou passaram mais de 30 dias. "Exportar dados" está sempre nas Definições. -->
+      <div id="mercearia-lembrete" class="lembrete-copia" role="status" hidden>
+        <p id="mercearia-lembrete-texto"></p>
+        <button id="mercearia-exportar" type="button" class="botao-pequeno">Exportar dados</button>
       </div>
-      <p id="semana-titulo" class="subtitulo"></p>
-      <p id="semana-resumo" class="resumo"></p>
-      <div id="exercicio-menus"></div>
-    </section>
-
-    <section id="vista-suplementos" class="vista" hidden>
-      <div class="titulo-com-botao titulo-vista">
-        <h1>Suplementos</h1>
-        <button id="suplementos-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="suplementos-gerir">Editar</button>
-      </div>
-      <div id="suplementos-gerir" class="tabela-suplementos" hidden>
-        <h3 class="momento-titulo">Gerir suplementos</h3>
-        <form id="suplementos-formulario" class="linha-tabela">
-          <input id="suplementos-nome" type="text" placeholder="Novo suplemento" aria-label="Nome do novo suplemento" autocomplete="off" required>
-          <div id="suplementos-novos-momentos"></div>
-          <button type="submit" class="botao-adicionar" aria-label="Adicionar suplemento">+</button>
-        </form>
-        <ul id="suplementos-lista" class="lista"></ul>
-      </div>
-      <div id="suplementos-momentos"></div>
-
-      <div id="jejum" class="jejum">
-        <div class="jejum-cabecalho">
-          <h2>Jejum</h2>
-          <div class="semana-navegacao jejum-navegacao">
-            <button id="jejum-anterior" type="button" aria-label="Semana anterior do jejum">‹</button>
-            <button id="jejum-hoje" type="button" aria-label="Voltar à semana de hoje no jejum">Hoje</button>
-            <button id="jejum-seguinte" type="button" aria-label="Semana seguinte do jejum">›</button>
-          </div>
-          <p id="jejum-titulo" class="jejum-datas"></p>
-        </div>
-        <p id="jejum-resumo" class="jejum-resumo"></p>
-        <ul id="jejum-dias" class="quadrados"></ul>
-        <ul id="jejum-legenda" class="jejum-legenda"></ul>
-      </div>
-    </section>
-
-    <section id="vista-gastos" class="vista" hidden>
-      <div class="titulo-com-botao titulo-vista">
-        <h1>Gastos</h1>
-        <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do iPhone. -->
-        <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
-          <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
-        </label>
-      </div>
-      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
-
-      <div class="mes-navegacao">
-        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
-        <div class="mes-nome">
-          <h2 id="mes-titulo" aria-live="polite"></h2>
-          <p id="mes-intervalo" class="mes-intervalo"></p>
-        </div>
-        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
-      </div>
-      <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar ao período de hoje</button>
-
-      <div class="titulo-com-botao bloco-gastos">
-        <h2>Mercearia</h2>
-        <button id="gastos-exportar" type="button" class="botao-pequeno">Exportar dados</button>
-      </div>
-      <p id="mes-lembrete" class="mes-lembrete" hidden></p>
 
       <div class="titulo-com-botao produtos-cabecalho">
         <button id="produtos-alternar" type="button" class="produtos-alternar" aria-expanded="true" aria-controls="produtos-corpo">
@@ -142,6 +75,27 @@
         <div id="gastos-registo" class="gastos-registo" hidden></div>
         <div id="compras-lista"></div>
       </div>
+    </section>
+
+    <section id="vista-gastos" class="vista" hidden>
+      <div class="titulo-com-botao titulo-vista">
+        <h1>Gastos</h1>
+        <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do aparelho. -->
+        <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
+          <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
+        </label>
+      </div>
+      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
+
+      <div class="mes-navegacao">
+        <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
+        <div class="mes-nome">
+          <h2 id="mes-titulo" aria-live="polite"></h2>
+          <p id="mes-intervalo" class="mes-intervalo"></p>
+        </div>
+        <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
+      </div>
+      <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar ao período de hoje</button>
 
       <div class="titulo-com-botao bloco-gastos despesas-cabecalho">
         <h2>Gastos do mês</h2>
@@ -160,6 +114,8 @@
         <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
         <div id="despesas-comerciantes"></div>
       </details>
+      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js). -->
+      <button id="gastos-exportar-csv" type="button" class="botao-discreto gastos-exportar-csv">Exportar gastos (CSV)</button>
 
       <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
       <div id="gastos-total-barra" class="gastos-total-barra" aria-live="polite">
@@ -179,58 +135,48 @@
 
     <section id="vista-ajustes" class="vista" hidden>
       <h1>Definições</h1>
-      <h2>Localidade da previsão do tempo</h2>
-      <p id="localidade-atual" class="subtitulo"></p>
-      <form id="localidade-formulario" class="formulario">
-        <label>Procurar localidade
-          <input id="localidade-nome" type="text" placeholder="Nome da localidade" autocomplete="off" required>
-        </label>
-        <button id="localidade-procurar" type="submit" class="botao-principal">Procurar</button>
-      </form>
-      <ul id="localidade-resultados" class="lista"></ul>
-      <h2>Exercício (dias por semana)</h2>
-      <div class="campos-lado-a-lado">
-        <label>Mínimo <input id="ajuste-min" type="number" min="0" max="5" inputmode="numeric"></label>
-        <label>Máximo <input id="ajuste-max" type="number" min="1" max="5" inputmode="numeric"></label>
-      </div>
       <h2>Cópia de segurança</h2>
-      <p>Os dados ficam só neste aparelho e perdem-se se apagares a app. Exporta uma cópia pelo menos uma vez por mês, por exemplo para o iCloud Drive.</p>
+      <p>Os dados ficam só neste aparelho; cada telemóvel tem os seus. No iPhone, apagar a app do ecrã principal apaga os dados. No Android, desinstalar a app ou limpar os dados do Chrome também os apaga.</p>
+      <p>Exporta uma cópia pelo menos uma vez por mês, por exemplo para o iCloud Drive ou o Google Drive.</p>
       <p id="copia-estado" class="subtitulo"></p>
       <button id="copia-exportar" type="button" class="botao-principal">Exportar dados</button>
       <label class="botao-secundario">Importar dados
         <input id="copia-importar" type="file" accept=".json,application/json" hidden>
       </label>
-      <p class="nota">Previsão do tempo: <a href="https://open-meteo.com/">Open-Meteo</a> (CC BY 4.0).</p>
+      <h2>Exportar gastos</h2>
+      <div class="formulario">
+        <label for="ajuste-nome-exportacao">O teu nome (para exportar gastos)
+          <input id="ajuste-nome-exportacao" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-describedby="ajuste-nome-nota">
+        </label>
+      </div>
+      <p id="ajuste-nome-nota" class="nota nota-campo">Aparece na coluna "pessoa" do ficheiro. O botão "Exportar gastos (CSV)" está no fim do separador Gastos.</p>
     </section>
   </main>
 
   <p id="aviso" class="aviso" role="status" hidden></p>
 
   <nav class="navegacao" aria-label="Vistas">
-    <button type="button" data-vista="semana">📅<span>Semana</span></button>
-    <button type="button" data-vista="suplementos">💊<span>Suplementos</span></button>
+    <button type="button" data-vista="mercearia">🛒<span>Mercearia</span></button>
     <button type="button" data-vista="gastos">💶<span>Gastos</span></button>
     <button type="button" data-vista="receitas">🍳<span>Receitas</span></button>
   </nav>
 
   <!-- A ordem importa: dados.js primeiro (os outros usam-no) e app.js no fim (arranca tudo). -->
   <script src="js/dados.js"></script>
+  <script src="js/voltar.js"></script>
   <script src="js/categorias.js"></script>
-  <script src="js/tempo.js"></script>
-  <script src="js/suplementos.js"></script>
-  <script src="js/semana.js"></script>
-  <script src="js/jejum.js"></script>
   <script src="js/compras.js"></script>
   <script src="js/lista-semanal.js"></script>
   <script src="js/importar.js"></script>
+  <script src="js/mercearia.js"></script>
   <script src="js/receitas-dados.js"></script>
   <script src="js/receitas.js"></script>
-  <script src="js/localidade.js"></script>
   <script src="js/ajustes.js"></script>
   <script src="js/gastos.js"></script>
   <script src="js/despesas.js"></script>
   <script src="js/comerciantes.js"></script>
   <script src="js/mes.js"></script>
+  <script src="js/exportar-csv.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -2,32 +2,34 @@
 // Tenta sempre primeiro a versão mais recente; sem internet, usa a guardada.
 // Pergunta sempre ao servidor, sem usar a cache do navegador: o GitHub Pages deixa guardar os ficheiros
 // durante 10 minutos, e misturar ficheiros de versões diferentes pode partir a app.
-// A previsão do tempo vem de outro endereço, por isso não passa por aqui.
+// A app não faz pedidos a outros endereços: tudo o que precisa está nesta lista.
 
-const NOME_CACHE = 'organizador-v36';
+const NOME_CACHE = 'organizador-v37';
 const FICHEIROS = [
   './',
   'index.html',
   'style.css',
   'manifest.json',
   'icon.png',
+  'icon-192.png',
+  'icon-512.png',
+  'icon-maskable-192.png',
+  'icon-maskable-512.png',
   'js/dados.js',
+  'js/voltar.js',
   'js/categorias.js',
-  'js/tempo.js',
-  'js/suplementos.js',
-  'js/semana.js',
-  'js/jejum.js',
   'js/compras.js',
   'js/lista-semanal.js',
   'js/importar.js',
+  'js/mercearia.js',
   'js/receitas-dados.js',
   'js/receitas.js',
-  'js/localidade.js',
   'js/ajustes.js',
   'js/gastos.js',
   'js/despesas.js',
   'js/comerciantes.js',
   'js/mes.js',
+  'js/exportar-csv.js',
   'js/app.js',
 ];
 

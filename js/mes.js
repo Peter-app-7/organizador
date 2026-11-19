@@ -1,7 +1,6 @@
-// mes.js: vista Gastos. De cima para baixo: título com "Importar do cartão", seletor do período, bloco Mercearia
-// (com "Exportar dados", o lembrete da cópia e a lista de produtos de compras.js), bloco "Gastos do mês" (despesas.js)
-// e a barra fixa com o total do período.
-// O exercício e o jejum não aparecem aqui: estão nas vistas Semana e Suplementos.
+// mes.js: vista Gastos. De cima para baixo: título com "Importar do cartão", seletor do período, bloco "Gastos do mês"
+// (despesas.js), "Categorias de gastos" (com o dia de início e os comerciantes lembrados), "Exportar gastos (CSV)"
+// (exportar-csv.js) e a barra fixa com o total do período. A lista de produtos está na vista Mercearia (mercearia.js).
 //
 // Os gastos agrupam-se por "mês de gastos" (período), não por mês de calendário: começa no dia dados.diaInicioGastos
 // (21 por defeito, o dia em que entra o ordenado) e acaba na véspera desse dia no mês seguinte. O período tem o nome do
@@ -60,21 +59,12 @@ function intervaloDoPeriodo(periodo) {
   return `${dataAbreviada(periodo.inicio)} a ${dataAbreviada(periodo.fim)}`;
 }
 
-// O lembrete só aparece com a cópia em falta; o botão "Exportar dados" está sempre visível, ao lado de "Mercearia".
-function desenharLembreteCopia() {
-  const texto = textoLembreteCopia();
-  const lembrete = document.getElementById('mes-lembrete');
-  lembrete.hidden = !texto;
-  lembrete.textContent = texto || '';
-}
-
 function desenharMes() {
   const periodo = periodoDoDeslocamento(mesDeslocamento);
   document.getElementById('mes-titulo').textContent = `${NOMES_MESES[periodo.mes]} de ${periodo.ano}`;
   document.getElementById('mes-intervalo').textContent = intervaloDoPeriodo(periodo);
   document.getElementById('mes-hoje').hidden = mesDeslocamento === 0;
   desenharDiaInicio();
-  desenharLembreteCopia();
   // Com um gasto a ser editado, não se mexe nele (ex.: a app voltou a ficar visível).
   const caixaGastos = document.getElementById('mes-gastos');
   if (!(caixaGastos.contains(document.activeElement) && caixaGastos.dataset.mes === periodo.chave)) desenharDespesasMes(periodo);
@@ -94,11 +84,13 @@ function mudarMes(deslocamento) {
 document.getElementById('mes-anterior').addEventListener('click', () => mudarMes(mesDeslocamento - 1));
 document.getElementById('mes-seguinte').addEventListener('click', () => mudarMes(mesDeslocamento + 1));
 document.getElementById('mes-hoje').addEventListener('click', () => mudarMes(0));
-document.getElementById('gastos-exportar').addEventListener('click', exportarCopia);
 
-// Ao entrar na vista Gastos, mostra o período que contém hoje.
+// Ao entrar na vista Gastos, mostra o período que contém hoje ou, logo depois de "Registar compras" na Mercearia,
+// o período dessa compra.
+let deslocamentoAoEntrar = null;
 aoEntrar.gastos = () => {
-  mesDeslocamento = 0;
+  mesDeslocamento = deslocamentoAoEntrar === null ? 0 : deslocamentoAoEntrar;
+  deslocamentoAoEntrar = null;
   despesaAEditar = null;
 };
 
@@ -135,40 +127,4 @@ campoDiaInicio.addEventListener('change', () => {
   avisar(valor === 1 ? 'Os gastos agrupam-se agora por mês de calendário.' : `O mês de gastos começa agora no dia ${valor}.`);
 });
 
-// --- Recolher e mostrar a lista de produtos ---
-// A escolha fica numa chave própria e vai na cópia de segurança, em "preferencias".
-const CHAVE_PRODUTOS_RECOLHIDOS = 'organizador-produtos-recolhidos';
-
-function lerProdutosRecolhidos() {
-  try {
-    return localStorage.getItem(CHAVE_PRODUTOS_RECOLHIDOS) === 'sim';
-  } catch (erro) {
-    return false;
-  }
-}
-
-function aplicarProdutosRecolhidos(recolhidos) {
-  const botao = document.getElementById('produtos-alternar');
-  document.getElementById('produtos-corpo').hidden = recolhidos;
-  botao.setAttribute('aria-expanded', String(!recolhidos));
-  botao.setAttribute('aria-label', recolhidos ? 'Mostrar produtos' : 'Esconder produtos');
-  botao.querySelector('.produtos-seta').textContent = recolhidos ? '▸' : '▾';
-  // Com a lista recolhida, não há nada para editar: o Editar só volta com a lista aberta.
-  document.getElementById('compras-editar').hidden = recolhidos;
-  desenharContadorCompras();
-}
-
-document.getElementById('produtos-alternar').addEventListener('click', () => {
-  const recolhidos = !document.getElementById('produtos-corpo').hidden;
-  try {
-    localStorage.setItem(CHAVE_PRODUTOS_RECOLHIDOS, recolhidos ? 'sim' : 'nao');
-  } catch (erro) { /* sem armazenamento: a escolha vale só até recarregar */ }
-  aplicarProdutosRecolhidos(recolhidos);
-});
-
-aplicarProdutosRecolhidos(lerProdutosRecolhidos());
-
-desenhar.gastos = () => {
-  correrSemFalhar(desenharCompras);
-  correrSemFalhar(desenharMes);
-};
+desenhar.gastos = desenharMes;

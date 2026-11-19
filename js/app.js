@@ -1,6 +1,5 @@
-// app.js: arranca a app e trata da navegação entre as vistas.
-
-let vistaAtual = 'semana';
+// app.js: arranca a app e trata da navegação entre as vistas (Mercearia, Gastos, Receitas e Definições).
+// "vistaAtual" está em dados.js.
 
 function mostrarVista(nome) {
   if (nome !== vistaAtual && aoEntrar[nome]) correrSemFalhar(aoEntrar[nome]);
@@ -15,6 +14,8 @@ function mostrarVista(nome) {
     else botao.removeAttribute('aria-current');
   });
   if (desenhar[nome]) correrSemFalhar(desenhar[nome]);
+  // O "voltar" do Android só fecha o que está aberto na vista que se vê (voltar.js).
+  acertarVoltar();
   window.scrollTo(0, 0);
 }
 
@@ -30,7 +31,7 @@ document.addEventListener('visibilitychange', () => {
   if (desenhar[vistaAtual]) correrSemFalhar(desenhar[vistaAtual]);
 });
 
-// Se a app ficar aberta durante a meia-noite, atualiza o ecrã (ex.: limpa os suplementos tomados).
+// Se a app ficar aberta durante a meia-noite, atualiza o ecrã (ex.: a data de hoje nos formulários e o período dos gastos).
 let diaMostrado = dataParaTexto(new Date());
 function verificarMudancaDeDia() {
   const hoje = dataParaTexto(new Date());
@@ -50,5 +51,5 @@ try {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 aoAbrir.forEach(correrSemFalhar);
-mostrarVista('semana');
+mostrarVista('mercearia');
 if (avisoMigracao) avisar(avisoMigracao);

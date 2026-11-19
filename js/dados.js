@@ -2,6 +2,12 @@
 // e tem pequenas funções usadas pelas outras partes da app.
 
 const CHAVE_DADOS = 'organizador-dados';
+// Campos que a app já não usa, guardados à parte para nunca se perderem (vão também na cópia de segurança completa).
+const CHAVE_CAMPOS_ANTIGOS = CHAVE_DADOS + '-campos-antigos';
+// Os dados tal como estavam antes da simplificação de 19 nov 2026 (só a primeira vez).
+const CHAVE_ANTES_DA_SIMPLIFICACAO = CHAVE_DADOS + '-antes-da-simplificacao';
+// Memória da previsão do tempo, que saiu da app: é apagada ao abrir.
+const CHAVE_TEMPO_ANTIGA = 'organizador-tempo';
 // Categorias das Compras, numa chave própria: começam com estas (as de sempre) e editam-se no ecrã.
 const CHAVE_CATEGORIAS_COMPRAS = 'organizador-categorias-compras';
 const TIPOS_COMPRAS = [
@@ -9,15 +15,13 @@ const TIPOS_COMPRAS = [
   'Bebidas', 'Congelados', 'Limpeza', 'Higiene', 'Outros',
 ];
 
-const MOMENTOS = [
-  { id: 'manha', nome: 'Manhã', letra: 'M' },
-  { id: 'almoco', nome: 'Almoço', letra: 'A' },
-  { id: 'jantar', nome: 'Jantar', letra: 'J' },
-  { id: 'noite', nome: 'Noite', letra: 'N' },
-  { id: 'livre', nome: 'Horário livre', letra: 'L' }, // sem hora marcada: não se junta aos outros momentos
-];
+// 4: desde 19 nov 2026, só Mercearia, Gastos e Receitas. O exercício, os suplementos, o jejum, a água, o tabaco,
+// o álcool, a localidade, os limites do exercício e as notas do mês passaram para os campos antigos.
+const VERSAO_DADOS = 4;
 
-// Cada vista regista aqui a função que a desenha: desenhar.semana(), desenhar.gastos()...
+// Vista no ecrã: "mercearia" (a app abre sempre nela), "gastos", "receitas" ou "ajustes" (Definições).
+let vistaAtual = 'mercearia';
+// Cada vista regista aqui a função que a desenha: desenhar.mercearia(), desenhar.gastos()...
 const desenhar = {};
 // Funções a correr quando a app abre e sempre que volta a ficar visível.
 const aoAbrir = [];
@@ -26,34 +30,12 @@ const aoEntrar = {};
 
 function dadosIniciais() {
   return {
-    versao: 3,          // 3: cada categoria de exercício tem os seus dias feitos e falhados (ver migrarExercicio)
-    ginasio: [],        // dias de ginásio feitos, ex.: "2026-11-02"
-    cycling: [],        // dias de cycling feitos, no mesmo formato
-    natacao: [],        // dias de natação feitos, no mesmo formato (dados e cópias antigas não têm esta lista: fica vazia)
-                        // Um dia pode estar em mais do que uma destas três listas (ex.: ginásio e natação no mesmo dia).
-    falhadosGinasio: [], // dias falhados de cada categoria; em cada categoria, um dia é feito ou falhado, não os dois
-    falhadosCycling: [],
-    falhadosNatacao: [],
-    agua: {},           // litros de água por dia, ex.: { "2026-11-02": 1.5 }; sem água, o dia não aparece
+    versao: VERSAO_DADOS,
     compras: [],        // { id, nome, tipo, comprar }
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
     receitasFeitas: [], // ids das receitas marcadas como feitas esta semana (ver receitas-dados.js)
-    suplementos: [],    // { id, nome, momentos: ["manha", "noite", ...] } ou { ..., momentos: ["livre"] }
-    tomados: { data: null, marcados: [] }, // marcas do dia indicado em "data"
-    jejum2r: [],        // dias de jejum, por tipo, como os dias de ginásio; um dia só está numa das três listas
-    jejum1r: [],
-    jejum36h: [],
-    tabacoSem: [],      // dias sem tabaco e dias com consumo; um dia só está numa das duas listas.
-                        // O Tabaco e o Álcool já não aparecem na app, mas os dias marcados continuam guardados e nas cópias.
-    tabacoConsumo: [],
-    alcoolSem: [],      // o mesmo para o álcool, sem depender do tabaco
-    alcoolConsumo: [],
-    localidade: null,   // { nome, regiao, latitude, longitude }, escolhida em Definições
-    ajustes: { ginasioMin: 3, ginasioMax: 5 },
     diaInicioGastos: 21, // dia em que começa o "mês de gastos" (1 a 28); com 1, é o mês de calendário
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
-    notasMes: {},       // notas da revisão mensal, por mês, ex.: { "2026-11": "Correu bem..." }; já não aparecem na app,
-                        // mas continuam guardadas e nas cópias de segurança, para não se perder o que foi escrito
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
     cartaoImportados: {}, // gastos do cartão já importados, por marca "data|comerciante|cêntimos", ex.: { "2026-11-03|continente|2350": 1 }
   };
@@ -79,6 +61,20 @@ function novoId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+const eDataTexto = (t) => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t);
+const eTextoCheio = (t) => typeof t === 'string' && t.trim() !== '';
+
+// --- Campos antigos: só para converter dados e cópias de antes da simplificação ---
+// Nenhuma vista os usa. Ficam em organizador-dados-campos-antigos, no formato em que a app os deixou.
+const MOMENTOS_ANTIGOS = ['manha', 'almoco', 'jantar', 'noite', 'livre'];
+const CAMPOS_EXERCICIO = ['ginasio', 'cycling', 'natacao', 'falhadosGinasio', 'falhadosCycling', 'falhadosNatacao', 'falhados'];
+const GRUPOS_DIAS_ANTIGOS = [['jejum2r', 'jejum1r', 'jejum36h'], ['tabacoSem', 'tabacoConsumo'], ['alcoolSem', 'alcoolConsumo']];
+// Todos os campos que saíram dos dados principais. "falhados" (anterior à versão 3) é convertido em "falhadosGinasio".
+const CAMPOS_SIMPLIFICADOS = [
+  'ginasio', 'cycling', 'natacao', 'falhadosGinasio', 'falhadosCycling', 'falhadosNatacao', 'versaoExercicio',
+  'agua', 'suplementos', 'tomados', ...GRUPOS_DIAS_ANTIGOS.flat(), 'localidade', 'ajustes', 'notasMes',
+];
+
 // Exercício por categoria. Até à versão 2, cada dia tinha um só estado: ginásio, cycling, natação ou falhado
 // (os falhados, numa lista "falhados", sem categoria). Na versão 3, cada categoria tem os seus dias feitos e falhados,
 // independentes das outras. Migração: os dias feitos ficam na sua categoria e os falhados antigos passam para o Ginásio.
@@ -91,7 +87,7 @@ const CATEGORIAS_DADOS_EXERCICIO = [
 
 function migrarExercicio(bruto, eData) {
   const lista = (nome) => (Array.isArray(bruto[nome]) ? [...new Set(bruto[nome].filter(eData))] : []);
-  const antigo = bruto.versao !== 3;
+  const antigo = !(Number.isInteger(bruto.versao) && bruto.versao >= 3);
   const resultado = {};
   CATEGORIAS_DADOS_EXERCICIO.forEach(({ feitos, falhados }) => {
     resultado[feitos] = lista(feitos);
@@ -102,38 +98,130 @@ function migrarExercicio(bruto, eData) {
   return resultado;
 }
 
-// Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
-// Lança um erro se não parecerem dados desta app. Com "tolerante" (ao abrir a app), aceita dados
-// a que falte alguma lista e fica com ela vazia, em vez de perder tudo o resto.
-function normalizarDados(original, tolerante = false) {
-  const listas = ['ginasio', 'compras'];
-  if (!original || typeof original !== 'object' || Array.isArray(original)) throw new Error('Formato desconhecido');
-  if (!tolerante && !listas.every((nome) => Array.isArray(original[nome]))) throw new Error('Formato desconhecido');
-  const bruto = { ...original };
-  listas.forEach((nome) => { if (!Array.isArray(bruto[nome])) bruto[nome] = []; });
+// Campos antigos de uns dados ou de uma cópia, limpos como a app sempre os limpou. Só entram os que lá existem:
+// dados sem exercício nem suplementos devolvem {}.
+function normalizarCamposAntigos(bruto) {
+  const tem = (campo) => Object.prototype.hasOwnProperty.call(bruto, campo);
+  const antigos = {};
+  if (CAMPOS_EXERCICIO.some(tem)) {
+    Object.assign(antigos, migrarExercicio(bruto, eDataTexto));
+    antigos.versaoExercicio = 3; // as listas acima estão no formato da versão 3
+  }
+  if (tem('agua')) {
+    // Dados e cópias muito antigas guardavam só um dia, em { data, litros }: passa a ser uma entrada do histórico.
+    const agua = bruto.agua && typeof bruto.agua === 'object' ? bruto.agua : {};
+    const aguaPorDia = eDataTexto(agua.data) ? { [agua.data]: agua.litros } : agua;
+    antigos.agua = {};
+    Object.entries(aguaPorDia).forEach(([dia, litros]) => {
+      if (eDataTexto(dia) && [0.5, 1, 1.5, 2].includes(litros)) antigos.agua[dia] = litros;
+    });
+  }
+  if (tem('suplementos')) {
+    const ids = new Set();
+    antigos.suplementos = (Array.isArray(bruto.suplementos) ? bruto.suplementos : [])
+      .filter((s) => s && eTextoCheio(s.nome))
+      .map((s) => {
+        const id = typeof s.id === 'string' && s.id && !ids.has(s.id) ? s.id : novoId();
+        ids.add(id);
+        return { id, nome: s.nome, momentos: MOMENTOS_ANTIGOS.filter((m) => Array.isArray(s.momentos) && s.momentos.includes(m)) };
+      });
+  }
+  if (tem('tomados')) {
+    const tomados = bruto.tomados;
+    antigos.tomados = tomados && eDataTexto(tomados.data) && Array.isArray(tomados.marcados)
+      ? { data: tomados.data, marcados: tomados.marcados.filter((c) => typeof c === 'string') }
+      : { data: null, marcados: [] };
+  }
+  // Em cada grupo, um dia só fica na primeira lista em que aparecer.
+  GRUPOS_DIAS_ANTIGOS.forEach((grupo) => {
+    if (!grupo.some(tem)) return;
+    const diasVistos = new Set();
+    grupo.forEach((nome) => {
+      const lista = Array.isArray(bruto[nome]) ? bruto[nome].filter(eDataTexto) : [];
+      antigos[nome] = [...new Set(lista)].filter((dia) => !diasVistos.has(dia));
+      antigos[nome].forEach((dia) => diasVistos.add(dia));
+    });
+  });
+  if (tem('localidade')) {
+    const local = bruto.localidade;
+    antigos.localidade = local && eTextoCheio(local.nome)
+      && Number.isFinite(local.latitude) && Math.abs(local.latitude) <= 90
+      && Number.isFinite(local.longitude) && Math.abs(local.longitude) <= 180
+      ? { nome: local.nome, regiao: typeof local.regiao === 'string' ? local.regiao : '', latitude: local.latitude, longitude: local.longitude }
+      : null;
+  }
+  if (tem('ajustes')) {
+    const ajustes = bruto.ajustes || {};
+    const min = Number(ajustes.ginasioMin);
+    const max = Number(ajustes.ginasioMax);
+    antigos.ajustes = Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 1 && max <= 5 && min <= max
+      ? { ginasioMin: min, ginasioMax: max }
+      : { ginasioMin: 3, ginasioMax: 5 };
+  }
+  if (tem('notasMes')) {
+    const notas = bruto.notasMes && typeof bruto.notasMes === 'object' ? bruto.notasMes : {};
+    antigos.notasMes = {};
+    Object.entries(notas).forEach(([mes, texto]) => {
+      if (/^\d{4}-\d{2}$/.test(mes) && typeof texto === 'string' && texto.trim()) antigos.notasMes[mes] = texto;
+    });
+  }
+  return antigos;
+}
 
-  const eData = (t) => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t);
-  const eTexto = (t) => typeof t === 'string' && t.trim() !== '';
+// Campos que não são dos dados atuais nem campos antigos conhecidos (ex.: "tarefas" de versões muito antigas),
+// tal como estão. "app" e "exportadoEm" são só das cópias; "falhados" já foi convertido.
+function camposDesconhecidos(bruto, outrosConhecidos = []) {
+  const conhecidos = new Set([...Object.keys(dadosIniciais()), ...CAMPOS_SIMPLIFICADOS, 'falhados', 'app', 'exportadoEm', ...outrosConhecidos]);
+  const soltos = {};
+  Object.keys(bruto).forEach((campo) => { if (!conhecidos.has(campo)) soltos[campo] = bruto[campo]; });
+  return soltos;
+}
+
+function lerCamposAntigosGuardados() {
+  const separados = JSON.parse(localStorage.getItem(CHAVE_CAMPOS_ANTIGOS) || 'null');
+  return separados && typeof separados === 'object' && !Array.isArray(separados) ? separados : {};
+}
+
+// Junta campos à chave dos campos antigos (os novos ganham aos que lá estavam com o mesmo nome). Devolve false se não
+// der para guardar: nesse caso, quem chamou fica com eles (ver antigosPorGravar).
+function juntarCamposAntigos(novos) {
+  if (Object.keys(novos).length === 0) return true;
+  try {
+    let existentes = {};
+    try {
+      existentes = lerCamposAntigosGuardados();
+    } catch (erroAoLer) {
+      // Ilegível: o original fica à parte antes de se escrever por cima.
+      localStorage.setItem(CHAVE_CAMPOS_ANTIGOS + '-danificados', localStorage.getItem(CHAVE_CAMPOS_ANTIGOS));
+    }
+    localStorage.setItem(CHAVE_CAMPOS_ANTIGOS, JSON.stringify({ ...existentes, ...novos }));
+    return true;
+  } catch (erro) {
+    return false;
+  }
+}
+
+// Limpa dados vindos de fora (do aparelho ou de uma cópia) para terem sempre a forma certa.
+// Lança um erro se não parecerem dados desta app. Com "tolerante" (ao abrir a app), aceita dados sem a lista
+// das compras e fica com ela vazia, em vez de perder tudo o resto. Os campos antigos tratam-se à parte.
+function normalizarDados(original, tolerante = false) {
+  if (!original || typeof original !== 'object' || Array.isArray(original)) throw new Error('Formato desconhecido');
+  if (!tolerante && !Array.isArray(original.compras)) throw new Error('Formato desconhecido');
+  const bruto = { ...original };
+  if (!Array.isArray(bruto.compras)) bruto.compras = [];
   const idValido = (id) => (typeof id === 'string' && id ? id : novoId());
 
   const limpos = dadosIniciais();
-  Object.assign(limpos, migrarExercicio(bruto, eData));
-  // Dados e cópias antigas guardavam só um dia, em { data, litros }: passa a ser uma entrada do histórico.
-  const agua = bruto.agua && typeof bruto.agua === 'object' ? bruto.agua : {};
-  const aguaPorDia = eData(agua.data) ? { [agua.data]: agua.litros } : agua;
-  Object.entries(aguaPorDia).forEach(([dia, litros]) => {
-    if (eData(dia) && [0.5, 1, 1.5, 2].includes(litros)) limpos.agua[dia] = litros;
-  });
   limpos.compras = bruto.compras
-    .filter((p) => p && eTexto(p.nome))
+    .filter((p) => p && eTextoCheio(p.nome))
     .map((p) => ({
       id: idValido(p.id),
       nome: primeiraMaiuscula(p.nome),
-      tipo: eTexto(p.tipo) ? p.tipo.trim() : 'Outros',
+      tipo: eTextoCheio(p.tipo) ? p.tipo.trim() : 'Outros',
       comprar: p.comprar === true,
     }));
   // Tipos criados na app: os guardados e os de qualquer produto, sem repetir os predefinidos.
-  const tiposGuardados = Array.isArray(bruto.tiposCompras) ? bruto.tiposCompras.filter(eTexto) : [];
+  const tiposGuardados = Array.isArray(bruto.tiposCompras) ? bruto.tiposCompras.filter(eTextoCheio) : [];
   const tiposVistos = new Set(TIPOS_COMPRAS.map(chaveTexto));
   [...tiposGuardados.map((t) => t.trim()), ...limpos.compras.map((p) => p.tipo)].forEach((tipo) => {
     if (tiposVistos.has(chaveTexto(tipo))) return;
@@ -142,51 +230,9 @@ function normalizarDados(original, tolerante = false) {
   });
 
   // Dados e cópias anteriores às receitas não têm esta lista: fica vazia.
-  const receitasFeitas = Array.isArray(bruto.receitasFeitas) ? bruto.receitasFeitas.filter(eTexto) : [];
+  const receitasFeitas = Array.isArray(bruto.receitasFeitas) ? bruto.receitasFeitas.filter(eTextoCheio) : [];
   limpos.receitasFeitas = [...new Set(receitasFeitas)];
 
-  // Dados e cópias anteriores a esta funcionalidade não têm suplementos: fica a lista vazia.
-  const suplementos = Array.isArray(bruto.suplementos) ? bruto.suplementos : [];
-  limpos.suplementos = suplementos
-    .filter((s) => s && eTexto(s.nome))
-    .map((s) => ({
-      id: idValido(s.id),
-      nome: s.nome,
-      momentos: MOMENTOS.map((m) => m.id).filter((id) => Array.isArray(s.momentos) && s.momentos.includes(id)),
-    }));
-  const tomados = bruto.tomados;
-  if (tomados && eData(tomados.data) && Array.isArray(tomados.marcados)) {
-    limpos.tomados = { data: tomados.data, marcados: tomados.marcados.filter((c) => typeof c === 'string') };
-  }
-
-  // Dados e cópias anteriores a estas listas ficam com elas vazias. Em cada grupo, um dia só fica na primeira lista em que aparecer.
-  [['jejum2r', 'jejum1r', 'jejum36h'], ['tabacoSem', 'tabacoConsumo'], ['alcoolSem', 'alcoolConsumo']].forEach((grupo) => {
-    const diasVistos = new Set();
-    grupo.forEach((nome) => {
-      const lista = Array.isArray(bruto[nome]) ? bruto[nome].filter(eData) : [];
-      limpos[nome] = [...new Set(lista)].filter((dia) => !diasVistos.has(dia));
-      limpos[nome].forEach((dia) => diasVistos.add(dia));
-    });
-  });
-
-  const local = bruto.localidade;
-  if (local && eTexto(local.nome)
-    && Number.isFinite(local.latitude) && Math.abs(local.latitude) <= 90
-    && Number.isFinite(local.longitude) && Math.abs(local.longitude) <= 180) {
-    limpos.localidade = {
-      nome: local.nome,
-      regiao: typeof local.regiao === 'string' ? local.regiao : '',
-      latitude: local.latitude,
-      longitude: local.longitude,
-    };
-  }
-
-  const ajustes = bruto.ajustes || {};
-  const min = Number(ajustes.ginasioMin);
-  const max = Number(ajustes.ginasioMax);
-  if (Number.isInteger(min) && Number.isInteger(max) && min >= 0 && max >= 1 && max <= 5 && min <= max) {
-    limpos.ajustes = { ginasioMin: min, ginasioMax: max };
-  }
   // Dados e cópias anteriores a esta definição ficam com o dia 21 (o ordenado entra a 21).
   if (Number.isInteger(bruto.diaInicioGastos) && bruto.diaInicioGastos >= 1 && bruto.diaInicioGastos <= 28) {
     limpos.diaInicioGastos = bruto.diaInicioGastos;
@@ -194,15 +240,9 @@ function normalizarDados(original, tolerante = false) {
   if (typeof bruto.ultimaCopia === 'string' && !Number.isNaN(Date.parse(bruto.ultimaCopia))) {
     limpos.ultimaCopia = bruto.ultimaCopia;
   }
-
-  // Dados e cópias anteriores à vista Mês não têm notas nem histórico de compras: ficam vazios.
-  const notas = bruto.notasMes && typeof bruto.notasMes === 'object' ? bruto.notasMes : {};
-  Object.entries(notas).forEach(([mes, texto]) => {
-    if (/^\d{4}-\d{2}$/.test(mes) && typeof texto === 'string' && texto.trim()) limpos.notasMes[mes] = texto;
-  });
   const feitas = bruto.comprasFeitas && typeof bruto.comprasFeitas === 'object' ? bruto.comprasFeitas : {};
   Object.entries(feitas).forEach(([dia, numero]) => {
-    if (eData(dia) && Number.isInteger(numero) && numero > 0) limpos.comprasFeitas[dia] = numero;
+    if (eDataTexto(dia) && Number.isInteger(numero) && numero > 0) limpos.comprasFeitas[dia] = numero;
   });
   // Dados e cópias anteriores à importação do cartão não têm esta lista: fica vazia.
   const cartao = bruto.cartaoImportados && typeof bruto.cartaoImportados === 'object' ? bruto.cartaoImportados : {};
@@ -212,8 +252,12 @@ function normalizarDados(original, tolerante = false) {
   return limpos;
 }
 
-// Texto do aviso da migração do exercício (versão 3), mostrado uma vez ao abrir a app; null se não houve migração.
+// Aviso mostrado uma vez, ao abrir a app depois da simplificação; null se não houve nada a passar.
 let avisoMigracao = null;
+// Campos antigos que não deu para guardar na chave própria (ex.: sem espaço): continuam a ir com os dados principais,
+// para não se perderem, até ser possível guardá-los à parte (ver guardarDados).
+let antigosPorGravar = {};
+let dadosPorGravar = false;
 
 function carregarDados() {
   let texto = null;
@@ -222,16 +266,25 @@ function carregarDados() {
     if (!texto) return dadosIniciais();
     const bruto = JSON.parse(texto);
     const limpos = normalizarDados(bruto, true);
-    if (bruto && bruto.versao !== 3) {
-      // Antes de migrar, guarda os dados tal como estavam (só a primeira vez, para nunca se perder o original).
-      // Uma falha aqui (ex.: sem espaço) não pode fazer os dados parecer danificados: fica só sem esta cópia.
+    const antigos = { ...camposDesconhecidos(bruto), ...normalizarCamposAntigos(bruto) };
+    if (Object.keys(antigos).length > 0 || bruto.versao !== VERSAO_DADOS) {
+      // Antes de mexer, guarda os dados tal como estavam (só a primeira vez, para nunca se perder o original).
+      // Uma falha aqui (ex.: sem espaço) não pode fazer os dados parecer danificados: segue sem esta cópia.
       try {
-        if (!localStorage.getItem(CHAVE_DADOS + '-antes-da-migracao')) localStorage.setItem(CHAVE_DADOS + '-antes-da-migracao', texto);
-      } catch (erroAoGuardar) { /* sem espaço: os dados de antes continuam nas cópias de segurança exportadas */ }
-      const falhados = limpos.falhadosGinasio.length;
-      avisoMigracao = falhados > 0
-        ? `Exercício atualizado: ${falhados} ${falhados === 1 ? 'dia falhado passou' : 'dias falhados passaram'} para o Ginásio.`
-        : 'Exercício atualizado: cada menu tem agora os seus dias.';
+        if (Object.keys(antigos).length > 0 && localStorage.getItem(CHAVE_ANTES_DA_SIMPLIFICACAO) === null) {
+          localStorage.setItem(CHAVE_ANTES_DA_SIMPLIFICACAO, texto);
+        }
+        // Dados anteriores à versão 3 do exercício: a cópia de sempre, também só a primeira vez.
+        if (CAMPOS_EXERCICIO.some((c) => c in bruto) && !(Number.isInteger(bruto.versao) && bruto.versao >= 3)
+          && localStorage.getItem(CHAVE_DADOS + '-antes-da-migracao') === null) {
+          localStorage.setItem(CHAVE_DADOS + '-antes-da-migracao', texto);
+        }
+      } catch (erroAoGuardar) { /* sem espaço: o original continua nas cópias de segurança exportadas */ }
+      if (!juntarCamposAntigos(antigos)) antigosPorGravar = antigos;
+      if (CAMPOS_SIMPLIFICADOS.some((c) => c in antigos)) {
+        avisoMigracao = 'App simplificada: o exercício, os suplementos e o jejum já não aparecem, mas os dados continuam guardados e vão na cópia de segurança.';
+      }
+      dadosPorGravar = true;
     }
     return limpos;
   } catch (erro) {
@@ -244,8 +297,12 @@ function carregarDados() {
 }
 
 let dados = carregarDados();
-// A migração fica logo guardada, para correr uma só vez.
-if (avisoMigracao) guardarDados();
+// A passagem para o formato novo fica logo guardada, para correr uma só vez.
+if (dadosPorGravar) guardarDados();
+// A previsão do tempo saiu da app: a memória dela já não serve.
+try {
+  localStorage.removeItem(CHAVE_TEMPO_ANTIGA);
+} catch (erro) { /* sem acesso: não faz mal */ }
 
 // --- Categorias das Compras (chave organizador-categorias-compras) ---
 // Lista limpa: só textos, sem repetidos (sem contar maiúsculas e acentos) e com "Outros" no fim.
@@ -327,8 +384,10 @@ function garantirCategoriaCompras(nome) {
 }
 
 function guardarDados() {
+  // Campos antigos ainda por guardar à parte: tenta outra vez; se não der, vão com os dados principais.
+  if (Object.keys(antigosPorGravar).length > 0 && juntarCamposAntigos(antigosPorGravar)) antigosPorGravar = {};
   try {
-    localStorage.setItem(CHAVE_DADOS, JSON.stringify(dados));
+    localStorage.setItem(CHAVE_DADOS, JSON.stringify({ ...antigosPorGravar, ...dados }));
   } catch (erro) {
     avisar('Não foi possível guardar. Exporta uma cópia de segurança.');
   }
@@ -358,6 +417,14 @@ function textoParaData(texto) {
 
 function formatarData(data, opcoes) {
   return data.toLocaleDateString('pt-PT', opcoes);
+}
+
+const MESES_ABREVIADOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+// Ex.: "2026-11-12" passa a "12 nov".
+function dataAbreviada(texto) {
+  const data = textoParaData(texto);
+  return `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}`;
 }
 
 // --- Criar elementos no ecrã ---

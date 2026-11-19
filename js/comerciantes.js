@@ -18,7 +18,7 @@ function contarLetras(texto) {
 }
 
 // Chave da regra: a parte do nome normalizado antes do primeiro número ("pingo doce 0342 lisboa" passa a "pingo doce").
-// Se essa parte tiver menos de 3 letras, fica o nome normalizado inteiro ("675 GRIJO" passa a "675 grijo"), para dois
+// Se essa parte tiver menos de 3 letras, fica o nome normalizado inteiro ("675 CENTRO" passa a "675 centro"), para dois
 // nomes que só começam por um número não partilharem regra. Vazia ("" ou só pontuação) quer dizer: sem regra.
 function chaveComerciante(texto) {
   const normalizado = normalizarComerciante(texto);
@@ -45,7 +45,7 @@ function chavesDoMesmoComerciante(a, b) {
 
 // O mesmo comerciante? Nomes sem chave nunca são. Entre nomes que começam por letras, compara como antes;
 // se algum começar por um número, as chaves têm de ser iguais, ou a mais curta tem de ter pelo menos 3 letras e a
-// outra começar por ela ("675 grijo" e "675 grijo norte" sim; "675 grijo" e "123 porto" não; "675" e "675 grijo" não).
+// outra começar por ela ("675 centro" e "675 centro norte" sim; "675 centro" e "123 porto" não; "675" e "675 centro" não).
 function mesmoComerciante(textoA, textoB) {
   const a = chaveComerciante(textoA);
   const b = chaveComerciante(textoB);
@@ -58,7 +58,7 @@ function mesmoComerciante(textoA, textoB) {
 
 // Nome guardado na regra: a parte antes do primeiro número, para servir a todas as lojas da marca.
 // Ex.: "PINGO DOCE 0342 LISBOA" passa a "PINGO DOCE". Com menos de 3 letras antes do número, fica o nome todo
-// (ex.: "675 GRIJO").
+// (ex.: "675 CENTRO").
 function nomeBaseComerciante(texto) {
   const limpo = String(texto || '').replace(/\s+/g, ' ').trim();
   const antes = limpo.split(/\d/)[0].replace(/[\s\-–—,.;:#*/|]+$/, '').trim();
@@ -284,6 +284,10 @@ function formularioRegra(regra) {
 function desenharComerciantes() {
   const caixa = document.getElementById('despesas-comerciantes');
   if (!caixa) return;
+  if (regraAEditar && !regrasComerciantes.some((r) => r.id === regraAEditar)) regraAEditar = null;
+  // Com um comerciante aberto para editar, o "voltar" do Android fecha-o, como o Cancelar.
+  if (regraAEditar) abrirComVoltar('editar-comerciante', 'gastos', () => { regraAEditar = null; desenharComerciantes(); });
+  else fechadoSemVoltar('editar-comerciante');
   if (regrasComerciantes.length === 0) {
     caixa.replaceChildren(criar('p', { className: 'nota-previa', textContent: 'Ainda não há comerciantes lembrados. Muda a categoria de um gasto importado do cartão e a app passa a lembrá-la.' }));
     return;

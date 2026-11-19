@@ -239,6 +239,7 @@ function fecharNovaDespesa() {
   caixaNovaDespesa.replaceChildren();
   caixaNovaDespesa.hidden = true;
   botaoNovaDespesa.setAttribute('aria-expanded', 'false');
+  fechadoSemVoltar('registar-gasto');
 }
 
 function abrirNovaDespesa() {
@@ -266,6 +267,7 @@ function abrirNovaDespesa() {
   );
   caixaNovaDespesa.hidden = false;
   botaoNovaDespesa.setAttribute('aria-expanded', 'true');
+  abrirComVoltar('registar-gasto', 'gastos', fecharNovaDespesa);
 }
 
 botaoNovaDespesa.addEventListener('click', () => {
@@ -377,6 +379,9 @@ function desenharDespesasMes(periodo) {
     ? criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaDespesa(g, redesenhar)))
     : criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
   desenharTotalMes(periodo, somaCentimos(doMes));
+  // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
+  if (despesaAEditar) abrirComVoltar('editar-gasto', 'gastos', () => { despesaAEditar = null; redesenhar(); });
+  else fechadoSemVoltar('editar-gasto');
 }
 
 // --- Categorias de gastos ---
@@ -465,6 +470,7 @@ function desenharCategoriasDespesas() {
     obterItens: itensCategoriasDespesas,
     estado: estadoCategoriasDespesas,
     prefixo: 'despesas-categoria',
+    vista: 'gastos',
     aoCriar: criarCategoriaDespesa,
     aoRenomear: renomearCategoriaDespesa,
     aoApagar: apagarCategoriaDespesa,
@@ -478,6 +484,8 @@ document.getElementById('despesas-categorias-caixa').addEventListener('toggle', 
   } else {
     estadoCategoriasDespesas.aRenomear = null;
     regraAEditar = null;
+    fechadoSemVoltar('renomear-despesas-categoria');
+    fechadoSemVoltar('editar-comerciante');
   }
 });
 

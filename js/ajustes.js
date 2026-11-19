@@ -1,14 +1,12 @@
-// ajustes.js: ecrã Definições. Limites do ginásio e cópia de segurança dos dados.
+// ajustes.js: ecrã Definições. Cópia de segurança dos dados (exportar e importar) e o nome para exportar gastos.
 
 function desenharAjustes() {
-  desenharLocalidade();
-  document.getElementById('ajuste-min').value = dados.ajustes.ginasioMin;
-  document.getElementById('ajuste-max').value = dados.ajustes.ginasioMax;
   const estado = document.getElementById('copia-estado');
   estado.textContent = dados.ultimaCopia
     ? `Última cópia: ${new Date(dados.ultimaCopia).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}`
     : 'Ainda não foi feita nenhuma cópia neste aparelho.';
   estado.classList.toggle('resumo-falta', copiaEmFalta());
+  desenharNomeExportacao();
 }
 
 const DIAS_ENTRE_COPIAS = 30;
@@ -31,26 +29,6 @@ function textoLembreteCopia() {
   return dias === null ? 'Ainda não há cópia de segurança dos dados.' : `Última cópia de segurança há ${dias} dias.`;
 }
 
-// Mantém os limites válidos: de 0 a 5, com o mínimo nunca acima do máximo.
-function alterarLimite(campo) {
-  const valor = Number(document.getElementById(`ajuste-${campo}`).value);
-  const menorPermitido = campo === 'min' ? 0 : 1;
-  if (!Number.isInteger(valor) || valor < menorPermitido || valor > 5) {
-    avisar(`Escolhe um número inteiro de ${menorPermitido} a 5.`);
-    desenharAjustes();
-    return;
-  }
-  if (campo === 'min') {
-    dados.ajustes.ginasioMin = valor;
-    dados.ajustes.ginasioMax = Math.max(valor, dados.ajustes.ginasioMax, 1);
-  } else {
-    dados.ajustes.ginasioMax = valor;
-    dados.ajustes.ginasioMin = Math.min(valor, dados.ajustes.ginasioMin);
-  }
-  guardarDados();
-  desenharAjustes();
-}
-
 function descarregarFicheiro(ficheiro) {
   const endereco = URL.createObjectURL(ficheiro);
   const ligacao = criar('a', { href: endereco, download: ficheiro.name });
@@ -60,18 +38,34 @@ function descarregarFicheiro(ficheiro) {
   setTimeout(() => URL.revokeObjectURL(endereco), 10000);
 }
 
-// --- Tudo o resto que a app guarda neste aparelho, para a cópia ser completa ---
-// Chaves com os dados em uso: entram na cópia já limpas, nos seus campos (ver exportarCopia).
-// A previsão do tempo é só uma memória do último pedido à internet e volta a ser pedida: fica de fora.
-const PREFIXO_CHAVES = 'organizador-';
-const CHAVE_CAMPOS_ANTIGOS = CHAVE_DADOS + '-campos-antigos';
-function chavesEmUso() {
-  return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
-    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_TEMPO];
+
+// No iPhone e no Android abre o menu Partilhar (ex.: "Guardar em Ficheiros" ou o Google Drive); no Mac descarrega o
+// ficheiro. Devolve false se o menu foi cancelado (nada foi guardado).
+async function partilharFicheiro(ficheiro) {
+  const temToque = navigator.maxTouchPoints > 0;
+  if (temToque && navigator.canShare && navigator.canShare({ files: [ficheiro] })) {
+    try {
+      await navigator.share({ files: [ficheiro] });
+    } catch (erro) {
+      if (erro.name === 'AbortError') return false;
+      descarregarFicheiro(ficheiro);
+    }
+  } else {
+    descarregarFicheiro(ficheiro);
+  }
+  return true;
 }
 
-// Cópias internas guardadas pela app (ex.: "…-antes-de-importar", "…-antes-da-migracao", "…-danificados"
-// e os campos antigos), tal como estão, em texto. Ex.: { "organizador-dados-antes-da-migracao": "{…}" }.
+// --- Tudo o resto que a app guarda neste aparelho, para a cópia ser completa ---
+// Chaves com os dados em uso: entram na cópia já limpas, nos seus campos (ver exportarCopia).
+const PREFIXO_CHAVES = 'organizador-';
+function chavesEmUso() {
+  return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
+    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA];
+}
+
+// Cópias internas guardadas pela app (ex.: "…-antes-de-importar", "…-antes-da-migracao", "…-antes-da-simplificacao",
+// "…-danificados" e os campos antigos), tal como estão, em texto. Ex.: { "organizador-dados-antes-da-migracao": "{…}" }.
 function lerCopiasInternas() {
   const emUso = new Set(chavesEmUso());
   const copias = {};
@@ -86,20 +80,21 @@ function lerCopiasInternas() {
   return copias;
 }
 
-// Campos que estão guardados nos dados mas que a app já não usa (ex.: "tarefas" de versões antigas):
-// os da chave principal e os já guardados à parte. A app não os mostra, mas não se perdem.
+// Campos que a app já não usa: os guardados à parte (exercício, suplementos, jejum, "tarefas"…), os que ainda não deu
+// para guardar à parte e os que estejam soltos na chave principal. A app não os mostra, mas não se perdem.
 function lerCamposAntigos() {
-  const conhecidos = new Set([...Object.keys(dadosIniciais()), 'app', 'exportadoEm']);
   const antigos = {};
   try {
-    const separados = JSON.parse(localStorage.getItem(CHAVE_CAMPOS_ANTIGOS) || 'null');
-    if (separados && typeof separados === 'object' && !Array.isArray(separados)) Object.assign(antigos, separados);
+    Object.assign(antigos, lerCamposAntigosGuardados());
+  } catch (erro) { /* ilegível: já ficou guardado em "…-danificados", que vai nas cópias internas */ }
+  try {
     const brutos = JSON.parse(localStorage.getItem(CHAVE_DADOS) || 'null');
     if (brutos && typeof brutos === 'object' && !Array.isArray(brutos)) {
+      const conhecidos = new Set(Object.keys(dadosIniciais()));
       Object.keys(brutos).forEach((campo) => { if (!conhecidos.has(campo)) antigos[campo] = brutos[campo]; });
     }
-  } catch (erro) { /* ilegível: já ficou guardado em "…-danificados", que vai nas cópias internas */ }
-  return antigos;
+  } catch (erro) { /* ilegível: já ficou guardado em "…-danificados" */ }
+  return { ...antigos, ...antigosPorGravar };
 }
 
 function lerPreferencias() {
@@ -107,14 +102,17 @@ function lerPreferencias() {
   try {
     produtosRecolhidos = localStorage.getItem(CHAVE_PRODUTOS_RECOLHIDOS);
   } catch (erro) { /* sem acesso: fica sem a preferência */ }
-  return { produtosRecolhidos: produtosRecolhidos === 'sim' || produtosRecolhidos === 'nao' ? produtosRecolhidos : null };
+  return {
+    produtosRecolhidos: produtosRecolhidos === 'sim' || produtosRecolhidos === 'nao' ? produtosRecolhidos : null,
+    nomeExportacao: lerNomeExportacao(),
+  };
 }
 
 async function exportarCopia() {
   const nome = `organizador-copia-${dataParaTexto(new Date())}.json`;
   // Os dados vão tal como estão, com a data da cópia e a versão; "app" e "exportadoEm" são ignorados ao importar.
-  // Os gastos vêm da sua própria chave (ver gastos.js) e vão juntos no mesmo ficheiro.
-  // O mesmo para as categorias das Compras, os gastos gerais e as categorias de gastos.
+  // Os gastos, as categorias das Compras, os gastos gerais, as categorias de gastos e os comerciantes vêm das suas
+  // próprias chaves e vão juntos no mesmo ficheiro.
   const copia = {
     app: 'organizador',
     exportadoEm: new Date().toISOString(),
@@ -130,25 +128,17 @@ async function exportarCopia() {
     copiasInternas: lerCopiasInternas(),
   };
   const ficheiro = new File([JSON.stringify(copia, null, 2)], nome, { type: 'application/json' });
-
-  // No iPhone abre o menu Partilhar (ex.: "Guardar em Ficheiros"); no Mac descarrega o ficheiro.
-  const temToque = navigator.maxTouchPoints > 0;
-  if (temToque && navigator.canShare && navigator.canShare({ files: [ficheiro] })) {
-    try {
-      await navigator.share({ files: [ficheiro] });
-    } catch (erro) {
-      if (erro.name === 'AbortError') return; // cancelado: não houve cópia
-      descarregarFicheiro(ficheiro);
-    }
-  } else {
-    descarregarFicheiro(ficheiro);
-  }
+  if (!(await partilharFicheiro(ficheiro))) return; // cancelado: não houve cópia
 
   dados.ultimaCopia = new Date().toISOString();
   guardarDados();
   if (desenhar[vistaAtual]) correrSemFalhar(desenhar[vistaAtual]);
   avisar('Dados exportados.');
 }
+
+// Campos de uma cópia que não são dos dados principais, mas que a cópia completa leva ao lado deles.
+const CAMPOS_DA_COPIA = ['gastos', 'categoriasCompras', 'despesas', 'categoriasDespesas', 'regrasComerciantes',
+  'preferencias', 'camposAntigos', 'copiasInternas'];
 
 async function restaurarCopia(ficheiro) {
   let novos;
@@ -167,6 +157,7 @@ async function restaurarCopia(ficheiro) {
     if (ficheiro.size > 20 * 1024 * 1024) throw new Error('Ficheiro grande demais');
     const bruto = JSON.parse(await ficheiro.text());
     if (bruto && bruto.app !== undefined && bruto.app !== 'organizador') throw new Error('Ficheiro de outra app');
+    // Só a lista das compras é obrigatória: as cópias de antes da simplificação (com ginásio, suplementos e jejum) também servem.
     novos = normalizarDados(bruto);
     if (Array.isArray(bruto.gastos)) novosGastos = normalizarGastos(bruto.gastos);
     // Os campos novos, se existirem, têm de ser listas: senão o ficheiro é recusado e nada muda.
@@ -182,13 +173,13 @@ async function restaurarCopia(ficheiro) {
     }
     if (regrasBrutas !== undefined) novasRegras = normalizarRegrasComerciantes(regrasBrutas, novasCategoriasDespesas || categoriasDespesas);
     const objeto = (valor) => valor && typeof valor === 'object' && !Array.isArray(valor);
-    // Campos antigos: os que a cópia trouxer à parte e os que vierem soltos (ex.: "tarefas" numa cópia muito antiga).
-    const conhecidos = new Set([...Object.keys(dadosIniciais()), 'app', 'exportadoEm', 'falhados', 'gastos', 'categoriasCompras',
-      'despesas', 'categoriasDespesas', 'regrasComerciantes', 'preferencias', 'camposAntigos', 'copiasInternas']);
+    // Campos antigos: os que a cópia trouxer à parte, os de antes da simplificação (limpos como sempre) e os que
+    // vierem soltos (ex.: "tarefas" numa cópia muito antiga).
     if (objeto(bruto.camposAntigos)) Object.assign(novosCamposAntigos, bruto.camposAntigos);
-    Object.keys(bruto).forEach((campo) => { if (!conhecidos.has(campo)) novosCamposAntigos[campo] = bruto[campo]; });
-    if (objeto(bruto.preferencias) && ['sim', 'nao'].includes(bruto.preferencias.produtosRecolhidos)) {
-      novasPreferencias = { produtosRecolhidos: bruto.preferencias.produtosRecolhidos };
+    Object.assign(novosCamposAntigos, camposDesconhecidos(bruto, CAMPOS_DA_COPIA), normalizarCamposAntigos(bruto));
+    if (objeto(bruto.preferencias)) {
+      if (['sim', 'nao'].includes(bruto.preferencias.produtosRecolhidos)) novasPreferencias.produtosRecolhidos = bruto.preferencias.produtosRecolhidos;
+      if (typeof bruto.preferencias.nomeExportacao === 'string') novasPreferencias.nomeExportacao = limparNomeExportacao(bruto.preferencias.nomeExportacao);
     }
     // Cópias internas: só textos, em chaves desta app que não sejam as dos dados em uso.
     if (objeto(bruto.copiasInternas)) {
@@ -205,16 +196,21 @@ async function restaurarCopia(ficheiro) {
   if (novosGastos) extras.push(`${novosGastos.length} registos de compras`);
   if (novasDespesas) extras.push(`${novasDespesas.length} gastos gerais`);
   if (novasRegras) extras.push(`${novasRegras.length} comerciantes lembrados`);
-  const resumo = `${novos.compras.length} produtos, ${novos.suplementos.length} suplementos, ${novos.ginasio.length} dias de ginásio`
-    + (extras.length ? `, ${extras.join(', ')}` : '');
+  const resumo = `${novos.compras.length} produtos` + (extras.length ? `, ${extras.join(', ')}` : '');
   const faltam = [];
   if (!novosGastos) faltam.push('registos de compras');
   if (!novasDespesas) faltam.push('gastos gerais');
   const notaFalta = faltam.length ? `\nEsta cópia não tem ${faltam.join(' nem ')}: os deste aparelho ficam como estão.` : '';
-  if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?${notaFalta}`)) return;
+  const notaAntigos = CAMPOS_SIMPLIFICADOS.some((c) => c in novosCamposAntigos)
+    ? '\nO exercício, os suplementos e o jejum desta cópia ficam guardados à parte (não aparecem na app).'
+    : '';
+  if (!confirm(`A cópia tem ${resumo}.\n\nOs dados atuais deste aparelho serão substituídos. Continuar?${notaFalta}${notaAntigos}`)) return;
   // Guarda os dados de antes à parte, para não se perderem se a cópia escolhida for a errada.
   try {
     localStorage.setItem(CHAVE_DADOS + '-antes-de-importar', JSON.stringify(dados));
+    if (Object.keys(novosCamposAntigos).length > 0) {
+      localStorage.setItem(CHAVE_CAMPOS_ANTIGOS + '-antes-de-importar', JSON.stringify(lerCamposAntigos()));
+    }
     if (novosGastos) localStorage.setItem(CHAVE_GASTOS + '-antes-de-importar', JSON.stringify({ versao: 1, registos: gastos }));
     localStorage.setItem(CHAVE_CATEGORIAS_COMPRAS + '-antes-de-importar', JSON.stringify({ versao: 1, categorias: categoriasCompras }));
     if (novasDespesas || novasCategoriasDespesas) {
@@ -223,6 +219,8 @@ async function restaurarCopia(ficheiro) {
     }
     if (novasRegras) localStorage.setItem(CHAVE_COMERCIANTES + '-antes-de-importar', JSON.stringify({ versao: 1, regras: regrasComerciantes }));
   } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
+  // Primeiro os campos antigos (se não der para os guardar à parte, vão com os dados principais) e só depois os dados.
+  if (!juntarCamposAntigos(novosCamposAntigos)) antigosPorGravar = { ...antigosPorGravar, ...novosCamposAntigos };
   dados = novos;
   guardarDados();
   if (novosGastos) {
@@ -242,37 +240,29 @@ async function restaurarCopia(ficheiro) {
   // Uma cópia sem regras deixa as deste aparelho, só com as categorias que ainda existem.
   regrasComerciantes = normalizarRegrasComerciantes(novasRegras || regrasComerciantes, categoriasDespesas);
   guardarRegrasComerciantes();
-  restaurarExtras(novasPreferencias, novosCamposAntigos, novasCopiasInternas);
+  restaurarExtras(novasPreferencias, novasCopiasInternas);
   desenharAjustes();
-  atualizarTempo(); // a cópia pode ter outra localidade
   avisar('Dados importados.');
 }
 
-// Depois de importar: a preferência dos produtos, os campos antigos (juntos aos que já cá estavam) e as cópias internas
-// que faltem neste aparelho. As que já cá existem não são substituídas (ex.: as "…-antes-de-importar" acabadas de fazer).
-function restaurarExtras(preferencias, camposAntigos, copiasInternas) {
+// Depois de importar: as preferências e as cópias internas que faltem neste aparelho. As que já cá existem não são
+// substituídas (ex.: as "…-antes-de-importar" acabadas de fazer). A memória da previsão do tempo já não se usa.
+function restaurarExtras(preferencias, copiasInternas) {
   try {
     if (preferencias.produtosRecolhidos) {
       localStorage.setItem(CHAVE_PRODUTOS_RECOLHIDOS, preferencias.produtosRecolhidos);
       aplicarProdutosRecolhidos(preferencias.produtosRecolhidos === 'sim');
     }
   } catch (erro) { /* sem espaço: fica a preferência deste aparelho */ }
-  if (Object.keys(camposAntigos).length > 0) {
-    try {
-      const separados = JSON.parse(localStorage.getItem(CHAVE_CAMPOS_ANTIGOS) || 'null');
-      const juntos = separados && typeof separados === 'object' && !Array.isArray(separados) ? { ...separados, ...camposAntigos } : camposAntigos;
-      localStorage.setItem(CHAVE_CAMPOS_ANTIGOS, JSON.stringify(juntos));
-    } catch (erro) { /* sem espaço ou ilegível: o ficheiro da cópia continua a tê-los */ }
-  }
+  if (preferencias.nomeExportacao !== undefined) guardarNomeExportacao(preferencias.nomeExportacao);
   Object.entries(copiasInternas).forEach(([chave, texto]) => {
+    if (chave === CHAVE_TEMPO_ANTIGA) return;
     try {
       if (localStorage.getItem(chave) === null) localStorage.setItem(chave, texto);
     } catch (erro) { /* sem espaço: o ficheiro da cópia continua a tê-la */ }
   });
 }
 
-document.getElementById('ajuste-min').addEventListener('change', () => alterarLimite('min'));
-document.getElementById('ajuste-max').addEventListener('change', () => alterarLimite('max'));
 document.getElementById('copia-exportar').addEventListener('click', exportarCopia);
 document.getElementById('copia-importar').addEventListener('change', async (evento) => {
   const ficheiro = evento.target.files[0];

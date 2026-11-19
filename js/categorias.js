@@ -18,11 +18,16 @@ function validarNomeCategoria(texto, existentes, atual = null) {
 // aoCriar(nome) e aoRenomear(chave, nome) devolvem uma mensagem de erro, ou null se correu bem;
 // aoApagar(chave) trata da confirmação e devolve true se apagou.
 // "estado" guarda a categoria a ser renomeada entre desenhos: { aRenomear: chave | null }.
+// "vista" é a vista onde a lista está ("mercearia" ou "gastos"), para o botão voltar do Android.
 function desenharGestorCategorias(caixa, opcoes) {
-  const { obterItens, estado, prefixo, aoCriar, aoRenomear, aoApagar } = opcoes;
+  const { obterItens, estado, prefixo, vista, aoCriar, aoRenomear, aoApagar } = opcoes;
   const itens = obterItens();
   const nomes = itens.map((item) => item.nome);
   const redesenhar = () => desenharGestorCategorias(caixa, opcoes);
+  if (estado.aRenomear !== null && !itens.some((item) => item.chave === estado.aRenomear)) estado.aRenomear = null;
+  // Com uma categoria a ser renomeada, o "voltar" do Android fecha a edição, como o Cancelar.
+  if (estado.aRenomear !== null) abrirComVoltar(`renomear-${prefixo}`, vista, () => { estado.aRenomear = null; redesenhar(); });
+  else fechadoSemVoltar(`renomear-${prefixo}`);
 
   const campoComErro = (id, valor, rotulo) => {
     const erro = criar('p', { id: `${id}-erro`, className: 'erro-campo', hidden: true });

@@ -1,4 +1,5 @@
-// gastos.js: registo do que se gasta em cada ida às compras. Formulário na lista de produtos da vista Gastos; a lista fica em Despesas mensais, na mesma vista.
+// gastos.js: registo do que se gasta em cada ida às compras. Formulário "Registar compras" na vista Mercearia;
+// os registos aparecem na vista Gastos, em "Gastos do mês" (categoria Mercearia), e contam no total.
 // Os registos ficam numa chave própria do localStorage, à parte dos outros dados, e entram nas cópias de segurança.
 
 const CHAVE_GASTOS = 'organizador-gastos';
@@ -170,7 +171,7 @@ if (window.visualViewport) {
   });
 }
 
-// --- Vista Gastos, lista de produtos: botão "Registar compras" ---
+// --- Vista Mercearia, lista de produtos: botão "Registar compras" ---
 const caixaRegisto = document.getElementById('gastos-registo');
 const botaoRegistar = document.getElementById('gastos-registar');
 
@@ -178,6 +179,7 @@ function fecharRegisto() {
   caixaRegisto.replaceChildren();
   caixaRegisto.hidden = true;
   botaoRegistar.setAttribute('aria-expanded', 'false');
+  fechadoSemVoltar('registar-compras');
 }
 
 function abrirRegisto() {
@@ -191,16 +193,16 @@ function abrirRegisto() {
           return;
         }
         fecharRegisto();
-        // "Gastos do mês" está na mesma vista: mostra logo o novo registo, no período dele.
-        mesDeslocamento = deslocamentoDaData(novo.data);
-        correrSemFalhar(desenharMes);
-        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos do mês.`);
+        // A lista e o total estão na vista Gastos: ao entrar nela, mostra o período deste registo.
+        deslocamentoAoEntrar = deslocamentoDaData(novo.data);
+        avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos.`);
       },
       aoCancelar: fecharRegisto,
     }),
   );
   caixaRegisto.hidden = false;
   botaoRegistar.setAttribute('aria-expanded', 'true');
+  abrirComVoltar('registar-compras', 'mercearia', fecharRegisto);
 }
 
 botaoRegistar.addEventListener('click', () => {
@@ -208,4 +210,4 @@ botaoRegistar.addEventListener('click', () => {
   else fecharRegisto();
 });
 
-// A lista e a edição destes registos estão nas Despesas mensais (despesas.js), na categoria Supermercado.
+// A lista e a edição destes registos estão em "Gastos do mês" (despesas.js), na categoria Mercearia.
