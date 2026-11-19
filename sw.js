@@ -2,9 +2,10 @@
 // Tenta sempre primeiro a versão mais recente; sem internet, usa a guardada.
 // Pergunta sempre ao servidor, sem usar a cache do navegador: o GitHub Pages deixa guardar os ficheiros
 // durante 10 minutos, e misturar ficheiros de versões diferentes pode partir a app.
-// A app não faz pedidos a outros endereços: tudo o que precisa está nesta lista.
+// Sem casa ligada, a app não faz pedidos a outros endereços: tudo o que precisa está nesta lista.
+// Com a lista partilhada da Mercearia, o Firebase (js/vendor/firebase) fala com os servidores da Google, que não passam por aqui.
 
-const NOME_CACHE = 'organizador-v37';
+const NOME_CACHE = 'organizador-v38';
 const FICHEIROS = [
   './',
   'index.html',
@@ -21,6 +22,11 @@ const FICHEIROS = [
   'js/compras.js',
   'js/lista-semanal.js',
   'js/importar.js',
+  'js/casa.js',
+  'js/nuvem.js',
+  'js/vendor/firebase/firebase-app.js',
+  'js/vendor/firebase/firebase-auth.js',
+  'js/vendor/firebase/firebase-firestore.js',
   'js/mercearia.js',
   'js/receitas-dados.js',
   'js/receitas.js',

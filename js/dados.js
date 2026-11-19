@@ -359,6 +359,12 @@ function guardarCategoriasCompras() {
   } catch (erro) {
     avisar('Não foi possível guardar. Exporta uma cópia de segurança.');
   }
+  avisarSincronizacao();
+}
+
+// Com uma casa ligada (casa.js), cada gravação põe na fila o que mudou na lista da Mercearia. Sem casa, não faz nada.
+function avisarSincronizacao() {
+  if (typeof notarMudancasCompras === 'function') notarMudancasCompras();
 }
 // Na primeira vez, a lista inicial fica logo guardada no aparelho.
 try {
@@ -391,6 +397,7 @@ function guardarDados() {
   } catch (erro) {
     avisar('Não foi possível guardar. Exporta uma cópia de segurança.');
   }
+  avisarSincronizacao();
 }
 
 // --- Mensagem curta no fundo do ecrã ---

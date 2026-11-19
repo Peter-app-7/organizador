@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Regras do Firestore para a lista partilhada da Mercearia (projeto organizador-mercearia).
+// Colar na consola do Firebase: Firestore Database → Regras → Publicar.
+//
+// Só se lê e escreve dentro de casas/{codigo}/..., com sessão iniciada (autenticação anónima) e um código com
+// pelo menos 20 caracteres. Não há nenhuma regra para a coleção "casas" em si: ninguém a pode listar, por isso
+// só chega a uma casa quem já tem o código. Tudo o resto é negado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function casaValida(codigo) {
+      return request.auth != null
+        && codigo.size() >= 20 && codigo.size() <= 64
+        && codigo.matches('^[a-z0-9-]+$');
+    }
+
+    // Um produto: nome até 100 caracteres, tipo (categoria) até 50, sim/não, marca de apagado,
+    // a hora da alteração no aparelho (para ganhar a última) e a hora do servidor.
+    function produtoValido(d) {
+      return d.keys().hasOnly(['nome', 'tipo', 'comprar', 'apagado', 'editadoEm', 'atualizadoEm'])
+        && d.keys().hasAll(['nome', 'tipo', 'comprar', 'apagado', 'editadoEm', 'atualizadoEm'])
+        && d.nome is string && d.nome.size() >= 1 && d.nome.size() <= 100
+        && d.tipo is string && d.tipo.size() >= 1 && d.tipo.size() <= 50
+        && d.comprar is bool
+        && d.apagado is bool
+        && d.editadoEm is int && d.editadoEm > 0
+        && d.atualizadoEm == request.time;
+    }
+
+    // As categorias das Compras: uma lista com 1 a 40 nomes.
+    function categoriasValidas(d) {
+      return d.keys().hasOnly(['categorias', 'editadoEm', 'atualizadoEm'])
+        && d.keys().hasAll(['categorias', 'editadoEm', 'atualizadoEm'])
+        && d.categorias is list && d.categorias.size() >= 1 && d.categorias.size() <= 40
+        && d.editadoEm is int && d.editadoEm > 0
+        && d.atualizadoEm == request.time;
+    }
+
+    match /casas/{codigo}/produtos/{produto} {
+      allow read: if casaValida(codigo);
+      allow create, update: if casaValida(codigo) && produto.size() <= 64 && produtoValido(request.resource.data);
+      // Para limpar as marcas de produtos apagados há mais de 60 dias.
+      allow delete: if casaValida(codigo);
+    }
+
+    match /casas/{codigo}/config/{documento} {
+      allow read: if casaValida(codigo) && documento == 'categorias';
+      allow create, update: if casaValida(codigo) && documento == 'categorias' && categoriasValidas(request.resource.data);
+      allow delete: if casaValida(codigo) && documento == 'categorias';
+    }
+  }
+}

@@ -27,6 +27,8 @@
   <main>
     <section id="vista-mercearia" class="vista">
       <h1 class="titulo-vista">Mercearia</h1>
+      <!-- Só com uma casa ligada (lista partilhada): estado da sincronização. -->
+      <p id="mercearia-sincronizacao" class="estado-sincronizacao" role="status" hidden></p>
       <!-- Só aparece quando nunca houve cópia ou passaram mais de 30 dias. "Exportar dados" está sempre nas Definições. -->
       <div id="mercearia-lembrete" class="lembrete-copia" role="status" hidden>
         <p id="mercearia-lembrete-texto"></p>
@@ -43,7 +45,7 @@
         <div id="compras-gerir" hidden>
         <form id="compras-formulario" class="formulario">
           <label>Produto
-            <input id="compras-nome" type="text" placeholder="Ex.: leite" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
+            <input id="compras-nome" type="text" placeholder="Ex.: leite" maxlength="100" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
           </label>
           <label>Categoria <select id="compras-tipo"></select></label>
           <button type="submit" class="botao-principal">Adicionar</button>
@@ -143,6 +145,30 @@
       <label class="botao-secundario">Importar dados
         <input id="copia-importar" type="file" accept=".json,application/json" hidden>
       </label>
+      <h2>Lista partilhada da Mercearia</h2>
+      <p>Partilha a lista de produtos (com o sim/não) e as categorias com outro telemóvel, pela internet. Os gastos, as compras registadas, as receitas e o resto ficam só neste aparelho.</p>
+      <p>Quem tiver o código da casa vê e muda a lista: passa-o só a quem quiseres, como uma chave.</p>
+      <div id="casa-desligada">
+        <button id="casa-criar" type="button" class="botao-principal">Criar casa</button>
+        <form id="casa-entrar-formulario" class="formulario casa-entrar" novalidate>
+          <label for="casa-codigo-entrada">Ou entra na casa do outro telemóvel: cola aqui o código
+            <input id="casa-codigo-entrada" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-describedby="casa-codigo-erro">
+          </label>
+          <p id="casa-codigo-erro" class="erro-campo" role="alert" hidden></p>
+          <button type="submit" class="botao-secundario">Entrar numa casa</button>
+        </form>
+        <p class="nota nota-campo">Ao entrar, a lista deste aparelho junta-se à da casa, sem repetir produtos.</p>
+      </div>
+      <div id="casa-ligada" hidden>
+        <p>Este aparelho está ligado a uma casa. Código da casa:</p>
+        <p id="casa-codigo" class="casa-codigo" aria-live="polite"></p>
+        <div class="casa-botoes">
+          <button id="casa-mostrar" type="button" class="botao-pequeno" aria-pressed="false">Mostrar</button>
+          <button id="casa-copiar" type="button" class="botao-pequeno">Copiar</button>
+        </div>
+        <button id="casa-sair" type="button" class="botao-secundario">Sair da casa</button>
+      </div>
+
       <h2>Exportar gastos</h2>
       <div class="formulario">
         <label for="ajuste-nome-exportacao">O teu nome (para exportar gastos)
@@ -168,6 +194,7 @@
   <script src="js/compras.js"></script>
   <script src="js/lista-semanal.js"></script>
   <script src="js/importar.js"></script>
+  <script src="js/casa.js"></script>
   <script src="js/mercearia.js"></script>
   <script src="js/receitas-dados.js"></script>
   <script src="js/receitas.js"></script>

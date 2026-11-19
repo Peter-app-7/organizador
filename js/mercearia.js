@@ -1,6 +1,7 @@
 // mercearia.js: vista Mercearia (a primeira da barra; a app abre sempre nela). De cima para baixo: o lembrete da cópia
 // de segurança (com "Exportar dados" dentro), a lista de produtos (compras.js, lista-semanal.js e importar.js), que se
 // pode recolher, e o "Registar compras" (gastos.js). Os registos de compras aparecem e contam na vista Gastos.
+// Com uma casa ligada (casa.js), uma linha por baixo do título mostra o estado da lista partilhada.
 
 // --- Lembrete da cópia: só quando nunca houve cópia ou passaram mais de 30 dias ---
 // É só um atalho: "Exportar dados" e "Importar dados" estão sempre nas Definições.
@@ -46,6 +47,7 @@ document.getElementById('produtos-alternar').addEventListener('click', () => {
 aplicarProdutosRecolhidos(lerProdutosRecolhidos());
 
 desenhar.mercearia = () => {
+  correrSemFalhar(desenharEstadoSincronizacao); // só com a lista partilhada (casa.js)
   correrSemFalhar(desenharLembreteCopia);
   correrSemFalhar(desenharCompras);
 };

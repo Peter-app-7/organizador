@@ -7,6 +7,7 @@ function desenharAjustes() {
     : 'Ainda não foi feita nenhuma cópia neste aparelho.';
   estado.classList.toggle('resumo-falta', copiaEmFalta());
   desenharNomeExportacao();
+  desenharCasa();
 }
 
 const DIAS_ENTRE_COPIAS = 30;
@@ -61,7 +62,9 @@ async function partilharFicheiro(ficheiro) {
 const PREFIXO_CHAVES = 'organizador-';
 function chavesEmUso() {
   return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
-    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA];
+    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA,
+    // O código da casa é como uma chave: nunca vai na cópia. O estado da sincronização só serve neste aparelho.
+    CHAVE_CASA, CHAVE_CASA_SINCRONIZACAO];
 }
 
 // Cópias internas guardadas pela app (ex.: "…-antes-de-importar", "…-antes-da-migracao", "…-antes-da-simplificacao",
@@ -221,6 +224,8 @@ async function restaurarCopia(ficheiro) {
   } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
   // Primeiro os campos antigos (se não der para os guardar à parte, vão com os dados principais) e só depois os dados.
   if (!juntarCamposAntigos(novosCamposAntigos)) antigosPorGravar = { ...antigosPorGravar, ...novosCamposAntigos };
+  // Com uma casa ligada, a lista importada não substitui a da nuvem: junta-se com ela no fim (casa.js).
+  pausarSincronizacao();
   dados = novos;
   guardarDados();
   if (novosGastos) {
@@ -241,6 +246,7 @@ async function restaurarCopia(ficheiro) {
   regrasComerciantes = normalizarRegrasComerciantes(novasRegras || regrasComerciantes, categoriasDespesas);
   guardarRegrasComerciantes();
   restaurarExtras(novasPreferencias, novasCopiasInternas);
+  retomarDepoisDeImportar();
   desenharAjustes();
   avisar('Dados importados.');
 }
