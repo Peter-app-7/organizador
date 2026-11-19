@@ -141,6 +141,12 @@ function guardarCategoriasDespesas() {
   return guardarChave(CHAVE_CATEGORIAS_DESPESAS, { versao: 1, categorias: categoriasDespesas });
 }
 
+// Categorias de gastos por ordem alfabética, só para o ecrã; a de id "outros" fica sempre em último,
+// mesmo renomeada. categoriasDespesas e a chave guardada continuam pela ordem guardada.
+function categoriasDespesasOrdenadas() {
+  return ordenarCategorias(categoriasDespesas, (c) => c.nome, (c) => c.id === 'outros');
+}
+
 function nomeCategoriaDespesa(id) {
   const categoria = categoriasDespesas.find((c) => c.id === id);
   return categoria ? categoria.nome : 'Outros';
@@ -170,7 +176,8 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
   };
   const data = campo('data', 'Data', criar('input', { type: 'date', value: registo ? registo.data : dataParaTexto(new Date()), required: true }));
   const categoria = campo('categoria', 'Categoria', criar('select', {},
-    ...categoriasDespesas.map((c) => criar('option', { value: c.id, textContent: c.nome }))));
+    ...categoriasDespesasOrdenadas().map((c) => criar('option', { value: c.id, textContent: c.nome }))));
+  // Um gasto novo começa na primeira categoria guardada (normalmente Mercearia), como antes.
   categoria.entrada.value = registo ? registo.categoria : categoriasDespesas[0].id;
   const valor = campo('valor', 'Valor total (€)', criar('input', {
     type: 'text', value: registo ? valorParaCampo(registo.centimos) : '', placeholder: '0,00', inputMode: 'decimal', autocomplete: 'off', enterKeyHint: 'next',
@@ -389,7 +396,7 @@ const estadoCategoriasDespesas = { aRenomear: null };
 
 function itensCategoriasDespesas() {
   const todos = todosOsGastos();
-  return categoriasDespesas.map((c) => {
+  return categoriasDespesasOrdenadas().map((c) => {
     const numero = todos.filter((g) => g.categoria === c.id).length;
     return {
       chave: c.id,
@@ -409,7 +416,7 @@ function aposMudarCategorias() {
 }
 
 function criarCategoriaDespesa(nome) {
-  // As novas ficam no fim da lista, antes de Outros.
+  // As novas ficam guardadas no fim da lista, antes de Outros (no ecrã aparecem por ordem alfabética).
   categoriasDespesas = [...categoriasDespesas.slice(0, -1), { id: novoId(), nome }, categoriasDespesas[categoriasDespesas.length - 1]];
   if (!guardarCategoriasDespesas()) {
     categoriasDespesas = categoriasDespesas.filter((c) => c.nome !== nome);

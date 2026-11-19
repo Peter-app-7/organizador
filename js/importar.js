@@ -118,7 +118,7 @@ function contarNovos(analise) {
 
 // Acrescenta à lista atual. Um produto que já exista fica como está.
 function gravarImportacao(analise) {
-  // As categorias que ainda não existem passam a existir, no fim da lista (antes de "Outros").
+  // As categorias que ainda não existem passam a existir, guardadas no fim da lista (no ecrã aparecem por ordem alfabética).
   analise.grupos.forEach((grupo) => garantirCategoriaCompras(grupo.tipo));
   produtosNovos(analise).forEach(({ nome, tipo }) => {
     dados.compras.push({ id: novoId(), nome, tipo: garantirCategoriaCompras(tipo), comprar: false });
@@ -142,7 +142,8 @@ function mostrarPrevia(analise) {
   const repetidos = total - novos;
   const elementos = [];
 
-  analise.grupos.forEach((grupo) => {
+  // Na pré-visualização, as categorias aparecem por ordem alfabética, como na lista ("Outros" em último).
+  ordenarCategorias(analise.grupos, (g) => g.tipo, (g) => chaveTexto(g.tipo) === chaveTexto('Outros')).forEach((grupo) => {
     elementos.push(criar('h3', { textContent: `${grupo.tipo} (${grupo.produtos.length})` }));
     if (grupo.produtos.length > 0) {
       elementos.push(criar('ul', { className: 'previa-lista' },

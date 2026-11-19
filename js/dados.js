@@ -52,9 +52,18 @@ function primeiraMaiuscula(texto) {
   return limpo.charAt(0).toLocaleUpperCase('pt-PT') + limpo.slice(1);
 }
 
-// Todas as categorias das Compras, pela ordem guardada, com "Outros" sempre em último.
+// Categorias por ordem alfabética, só para o ecrã: devolve uma lista nova e não muda a ordem guardada.
+// Compara como os produtos (sem maiúsculas nem acentos); "Outros" fica sempre em último; empatadas ficam pela
+// ordem guardada (o sort é estável). nomeDe(c) dá o nome a comparar; eOutros(c) diz qual é a categoria "Outros".
+function ordenarCategorias(lista, nomeDe = (c) => c, eOutros = (c) => nomeDe(c) === 'Outros') {
+  return [...lista].sort((a, b) => (eOutros(a) - eOutros(b))
+    || nomeDe(a).localeCompare(nomeDe(b), 'pt-PT', { sensitivity: 'base' }));
+}
+
+// Todas as categorias das Compras, por ordem alfabética, com "Outros" sempre em último (só no ecrã:
+// categoriasCompras, a chave guardada e a nuvem ficam pela ordem guardada).
 function tiposDeCompras() {
-  return [...categoriasCompras];
+  return ordenarCategorias(categoriasCompras);
 }
 
 function novoId() {

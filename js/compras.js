@@ -156,7 +156,7 @@ function produtosDaCategoria(categoria) {
 }
 
 function itensCategoriasCompras() {
-  return categoriasCompras.map((nome) => {
+  return tiposDeCompras().map((nome) => {
     const numero = produtosDaCategoria(nome).length;
     return {
       chave: nome,

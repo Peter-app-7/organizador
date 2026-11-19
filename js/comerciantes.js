@@ -236,7 +236,7 @@ function formularioRegra(regra) {
     type: 'text', value: regra.nome, placeholder: 'Igual ao do cartão', autocomplete: 'off', autocapitalize: 'words', maxLength: NOTA_MAXIMA,
   }));
   const categoria = campo('categoria', 'Categoria', criar('select', {},
-    ...categoriasDespesas.map((c) => criar('option', { value: c.id, textContent: c.nome }))));
+    ...categoriasDespesasOrdenadas().map((c) => criar('option', { value: c.id, textContent: c.nome }))));
   categoria.entrada.value = regra.categoria;
   const perguntar = criar('input', { type: 'checkbox', id: 'regra-perguntar', className: 'caixa-opcao', checked: regra.perguntar });
   const rotuloPerguntar = criar('label', { className: 'opcao-caixa', htmlFor: perguntar.id },
