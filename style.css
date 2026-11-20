@@ -314,6 +314,7 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .gasto-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .gasto-nota { font-size: .8rem; color: var(--texto-suave); }
 .gasto-valor { flex: none; font-weight: 600; white-space: nowrap; }
+.gastos-ver-todos { margin: 2px auto 0; padding: 0 12px; }
 .gasto-editar { padding: 4px 12px 2px; background: var(--cartao); border: 1px solid var(--destaque); border-radius: 8px; }
 .gasto-editar .formulario-gasto { margin: 8px 0; }
 .gasto-editar .despesas-registo-titulo { margin-top: 8px; }

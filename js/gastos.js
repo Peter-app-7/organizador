@@ -187,14 +187,17 @@ function abrirRegisto() {
     criar('h2', { textContent: 'Registar compras' }),
     formularioGasto({
       aoGuardar: (novo) => {
-        gastos.push({ id: novoId(), ...novo });
+        const id = novoId();
+        gastos.push({ id, ...novo });
         if (!guardarGastos()) {
           gastos.pop();
           return;
         }
         fecharRegisto();
-        // A lista e o total estão na vista Gastos: ao entrar nela, mostra o período deste registo.
+        // A lista e o total estão na vista Gastos: ao entrar nela, mostra o período deste registo (e abre a lista
+        // "Gastos do mês" se ele ficar fora dos que se veem com ela recolhida).
         deslocamentoAoEntrar = deslocamentoDaData(novo.data);
+        gastosADestacar = [`compras:${id}`];
         avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos.`);
       },
       aoCancelar: fecharRegisto,

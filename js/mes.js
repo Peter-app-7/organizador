@@ -65,14 +65,16 @@ function desenharMes() {
   document.getElementById('mes-intervalo').textContent = intervaloDoPeriodo(periodo);
   document.getElementById('mes-hoje').hidden = mesDeslocamento === 0;
   desenharDiaInicio();
-  // Com um gasto a ser editado, não se mexe nele (ex.: a app voltou a ficar visível).
+  // Com um gasto a ser editado, não se mexe nele (ex.: a app voltou a ficar visível). Só conta o formulário da edição:
+  // o foco noutro botão da lista (ex.: "Ver todos") não impede de a desenhar outra vez.
   const caixaGastos = document.getElementById('mes-gastos');
-  if (!(caixaGastos.contains(document.activeElement) && caixaGastos.dataset.mes === periodo.chave)) desenharDespesasMes(periodo);
+  const edicao = caixaGastos.querySelector('.gasto-editar');
+  const aEditar = Boolean(despesaAEditar && edicao && edicao.contains(document.activeElement));
+  if (!(aEditar && caixaGastos.dataset.mes === periodo.chave)) desenharDespesasMes(periodo);
+  // A contagem das categorias acompanha o período (atualizarContagemCategorias, chamada por desenharDespesasMes).
+  atualizarContagemCategorias();
   const caixaCategorias = document.getElementById('despesas-categorias-caixa');
-  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) {
-    desenharCategoriasDespesas();
-    desenharComerciantes();
-  }
+  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharComerciantes();
 }
 
 function mudarMes(deslocamento) {

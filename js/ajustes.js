@@ -62,7 +62,7 @@ async function partilharFicheiro(ficheiro) {
 const PREFIXO_CHAVES = 'organizador-';
 function chavesEmUso() {
   return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
-    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA,
+    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_GASTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA,
     // O código da casa é como uma chave: nunca vai na cópia. O estado da sincronização só serve neste aparelho.
     CHAVE_CASA, CHAVE_CASA_SINCRONIZACAO];
 }
@@ -102,11 +102,15 @@ function lerCamposAntigos() {
 
 function lerPreferencias() {
   let produtosRecolhidos = null;
+  let gastosRecolhidos = null;
   try {
     produtosRecolhidos = localStorage.getItem(CHAVE_PRODUTOS_RECOLHIDOS);
+    gastosRecolhidos = localStorage.getItem(CHAVE_GASTOS_RECOLHIDOS);
   } catch (erro) { /* sem acesso: fica sem a preferência */ }
+  const simOuNao = (valor) => (valor === 'sim' || valor === 'nao' ? valor : null);
   return {
-    produtosRecolhidos: produtosRecolhidos === 'sim' || produtosRecolhidos === 'nao' ? produtosRecolhidos : null,
+    produtosRecolhidos: simOuNao(produtosRecolhidos),
+    gastosRecolhidos: simOuNao(gastosRecolhidos), // desde a v40
     nomeExportacao: lerNomeExportacao(),
   };
 }
@@ -182,6 +186,7 @@ async function restaurarCopia(ficheiro) {
     Object.assign(novosCamposAntigos, camposDesconhecidos(bruto, CAMPOS_DA_COPIA), normalizarCamposAntigos(bruto));
     if (objeto(bruto.preferencias)) {
       if (['sim', 'nao'].includes(bruto.preferencias.produtosRecolhidos)) novasPreferencias.produtosRecolhidos = bruto.preferencias.produtosRecolhidos;
+      if (['sim', 'nao'].includes(bruto.preferencias.gastosRecolhidos)) novasPreferencias.gastosRecolhidos = bruto.preferencias.gastosRecolhidos;
       if (typeof bruto.preferencias.nomeExportacao === 'string') novasPreferencias.nomeExportacao = limparNomeExportacao(bruto.preferencias.nomeExportacao);
     }
     // Cópias internas: só textos, em chaves desta app que não sejam as dos dados em uso.
@@ -260,6 +265,8 @@ function restaurarExtras(preferencias, copiasInternas) {
       aplicarProdutosRecolhidos(preferencias.produtosRecolhidos === 'sim');
     }
   } catch (erro) { /* sem espaço: fica a preferência deste aparelho */ }
+  // A lista "Gastos do mês" volta a ser desenhada ao entrar nos Gastos, já com a escolha reposta.
+  if (preferencias.gastosRecolhidos) guardarGastosRecolhidos(preferencias.gastosRecolhidos === 'sim');
   if (preferencias.nomeExportacao !== undefined) guardarNomeExportacao(preferencias.nomeExportacao);
   Object.entries(copiasInternas).forEach(([chave, texto]) => {
     if (chave === CHAVE_TEMPO_ANTIGA) return;

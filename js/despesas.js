@@ -258,12 +258,14 @@ function abrirNovaDespesa() {
     criar('h3', { className: 'despesas-registo-titulo', textContent: 'Registar gasto' }),
     formularioDespesa({
       aoGuardar: (novo) => {
-        despesas.push({ id: novoId(), ...novo });
+        const id = novoId();
+        despesas.push({ id, ...novo });
         if (!guardarDespesas()) {
           despesas.pop();
           return;
         }
         fecharNovaDespesa();
+        gastosADestacar = [`despesa:${id}`];
         // Leva o seletor para o período do gasto, para se ver logo na lista.
         mesDeslocamento = deslocamentoDaData(novo.data);
         desenharMes();
@@ -322,6 +324,7 @@ function linhaDespesa(item, desenharDeNovo) {
         let lembrou = null;
         if (doCartao && alterado.categoria !== antes.categoria) lembrou = lembrarComerciante(item.registo, antes);
         else if (doCartao && item.registo.nota !== antes.nota) lembrou = lembrarNomeDoComerciante(item.registo, antes);
+        gastosADestacar = [chave];
         // Com outra data, o gasto pode passar para outro período: o seletor vai atrás dele.
         const deslocamento = deslocamentoDaData(item.registo.data);
         if (deslocamento !== mesDeslocamento) {
@@ -363,12 +366,50 @@ function linhaDespesa(item, desenharDeNovo) {
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
 }
 
+// Nome do período como no seletor, com o ano só quando não é o atual. Ex.: "Dezembro", "Janeiro de 2027".
+function nomeDoPeriodo(periodo) {
+  const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
+  return periodo.ano === new Date().getFullYear() ? nome : `${nome} de ${periodo.ano}`;
+}
+
+// --- Lista "Gastos do mês" recolhível ---
+// Com mais de GASTOS_VISIVEIS gastos no período, a lista recolhida mostra só os mais recentes. A escolha vale para todos
+// os períodos, fica numa chave própria ("sim"/"nao"; sem valor, recolhida) e vai na cópia, em "preferencias".
+const CHAVE_GASTOS_RECOLHIDOS = 'organizador-gastos-recolhidos';
+const GASTOS_VISIVEIS = 4;
+// Gastos acabados de registar, editar ou importar ("despesa:id" ou "compras:id"): se ficarem fora dos visíveis,
+// a lista abre para se verem. Só vale para o desenho seguinte da lista.
+let gastosADestacar = [];
+
+function lerGastosRecolhidos() {
+  try {
+    return localStorage.getItem(CHAVE_GASTOS_RECOLHIDOS) !== 'nao';
+  } catch (erro) {
+    return true;
+  }
+}
+
+// Sem armazenamento, a escolha vale só até recarregar.
+let gastosRecolhidosSemGuardar = null;
+function gastosRecolhidos() {
+  return gastosRecolhidosSemGuardar === null ? lerGastosRecolhidos() : gastosRecolhidosSemGuardar;
+}
+
+function guardarGastosRecolhidos(recolhidos) {
+  try {
+    localStorage.setItem(CHAVE_GASTOS_RECOLHIDOS, recolhidos ? 'sim' : 'nao');
+    gastosRecolhidosSemGuardar = null;
+  } catch (erro) {
+    gastosRecolhidosSemGuardar = recolhidos;
+  }
+}
+
 // Barra fixa no fundo da vista: o nome do período e o total de tudo o que se gastou nele (mercearia e gastos gerais).
 // O ano só aparece quando não é o atual.
 function desenharTotalMes(periodo, total) {
   const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
   document.getElementById('gastos-total-mes').textContent =
-    periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`;
+    periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`; // na barra, sem "de", para caber
   document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
 }
 
@@ -379,13 +420,50 @@ function desenharDespesasMes(periodo) {
     // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro (os ids começam pela hora).
     .sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
   const redesenhar = () => desenharDespesasMes(periodo);
+  const chaveDe = (g) => `${g.origem}:${g.id}`;
+
+  // Um gasto acabado de registar, editar ou importar que ficaria escondido abre a lista (e a escolha fica guardada).
+  const destacados = gastosADestacar;
+  gastosADestacar = [];
+  const podeRecolher = doMes.length > GASTOS_VISIVEIS;
+  if (podeRecolher && gastosRecolhidos()
+    && doMes.slice(GASTOS_VISIVEIS).some((g) => destacados.includes(chaveDe(g)))) guardarGastosRecolhidos(false);
+  const recolhida = podeRecolher && gastosRecolhidos();
+  const visiveis = recolhida ? doMes.slice(0, GASTOS_VISIVEIS) : doMes;
 
   const caixa = document.getElementById('mes-gastos');
   caixa.dataset.mes = periodo.chave;
-  caixa.replaceChildren(doMes.length
-    ? criar('ul', { className: 'gastos-lista' }, ...doMes.map((g) => linhaDespesa(g, redesenhar)))
-    : criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
+  const partes = [];
+  if (doMes.length) {
+    partes.push(criar('ul', { className: 'gastos-lista', id: 'gastos-lista' }, ...visiveis.map((g) => linhaDespesa(g, redesenhar))));
+  } else {
+    partes.push(criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
+  }
+  if (podeRecolher) {
+    partes.push(criar('button', {
+      type: 'button',
+      className: 'botao-discreto gastos-ver-todos',
+      textContent: recolhida ? `Ver todos (${doMes.length})` : 'Mostrar menos',
+      'aria-expanded': String(!recolhida),
+      'aria-controls': 'gastos-lista',
+      onclick: () => {
+        guardarGastosRecolhidos(!recolhida);
+        // Ao recolher, um gasto aberto para editar que deixe de se ver é fechado (sem guardar), e o "voltar" do
+        // Android deixa de contar com ele (ver o fim desta função).
+        if (!recolhida && despesaAEditar && !doMes.slice(0, GASTOS_VISIVEIS).some((g) => chaveDe(g) === despesaAEditar)) {
+          despesaAEditar = null;
+        }
+        redesenhar();
+        const botao = caixa.querySelector('.gastos-ver-todos');
+        if (botao) botao.focus({ preventScroll: true });
+      },
+    }));
+  }
+  caixa.replaceChildren(...partes);
+  // O total é sempre de todos os gastos do período, mesmo com a lista recolhida.
   desenharTotalMes(periodo, somaCentimos(doMes));
+  // A contagem de cada categoria é a deste período: atualiza-se sempre que a lista muda.
+  atualizarContagemCategorias();
   // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
   if (despesaAEditar) abrirComVoltar('editar-gasto', 'gastos', () => { despesaAEditar = null; redesenhar(); });
   else fechadoSemVoltar('editar-gasto');
@@ -394,18 +472,28 @@ function desenharDespesasMes(periodo) {
 // --- Categorias de gastos ---
 const estadoCategoriasDespesas = { aRenomear: null };
 
+// O número por baixo de cada categoria conta só os gastos do período escolhido nas setas (os mesmos da lista
+// "Gastos do mês" e do total, incluindo os de "Registar compras"). Ex.: "1 gasto em Dezembro".
 function itensCategoriasDespesas() {
-  const todos = todosOsGastos();
+  const periodo = periodoDoDeslocamento(mesDeslocamento);
+  const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
+  const nome = nomeDoPeriodo(periodo);
   return categoriasDespesasOrdenadas().map((c) => {
-    const numero = todos.filter((g) => g.categoria === c.id).length;
+    const numero = doPeriodo.filter((g) => g.categoria === c.id).length;
     return {
       chave: c.id,
       nome: c.nome,
       podeRenomear: true,
       podeApagar: !CATEGORIAS_FIXAS.includes(c.id),
-      detalhe: `${numero} ${numero === 1 ? 'gasto' : 'gastos'}`,
+      detalhe: `${numero} ${numero === 1 ? 'gasto' : 'gastos'} em ${nome}`,
     };
   });
+}
+
+// Redesenha "Categorias de gastos" se estiver aberta e ninguém estiver a escrever lá dentro.
+function atualizarContagemCategorias() {
+  const caixaCategorias = document.getElementById('despesas-categorias-caixa');
+  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharCategoriasDespesas();
 }
 
 function aposMudarCategorias() {
@@ -449,7 +537,10 @@ function apagarCategoriaDespesa(id) {
   const afetados = despesas.filter((d) => d.categoria === id);
   const outros = nomeCategoriaDespesa('outros');
   if (afetados.length > 0) {
-    const texto = afetados.length === 1 ? 'tem 1 gasto, que passa' : `tem ${afetados.length} gastos, que passam`;
+    // Conta os gastos de todos os períodos: são todos esses que passam para Outros.
+    const texto = afetados.length === 1
+      ? 'tem 1 gasto no total (todos os períodos), que passa'
+      : `tem ${afetados.length} gastos no total (todos os períodos), que passam`;
     if (!confirm(`A categoria "${categoria.nome}" ${texto} para "${outros}". Apagar a categoria?`)) return false;
   }
   const antesCategorias = categoriasDespesas;
@@ -611,8 +702,9 @@ async function importarGastosCartao(ficheiro) {
     const porCategorizar = lembrados < novas.length ? garantirCategoriaPorCategorizar() : null;
     if (lembrados < novas.length && !porCategorizar) return; // já foi avisado de que não deu para guardar
     const antes = despesas;
-    despesas = [...despesas, ...comRegra.map(({ linha, regra }) => ({
-      id: novoId(),
+    const idsNovos = comRegra.map(() => novoId());
+    despesas = [...despesas, ...comRegra.map(({ linha, regra }, i) => ({
+      id: idsNovos[i],
       data: linha.data,
       categoria: regra ? regra.categoria : porCategorizar,
       centimos: linha.centimos,
@@ -631,13 +723,13 @@ async function importarGastosCartao(ficheiro) {
       dados.cartaoImportados[marca] = Math.max(dados.cartaoImportados[marca] || 0, nosGastos.get(marca) || 0, numero);
     });
     guardarDados();
-    // Leva o seletor para o período do gasto novo mais recente, para se ver logo na lista.
+    // Leva o seletor para o período do gasto novo mais recente, para se ver logo na lista (que abre, se algum dos
+    // gastos novos desse período ficar escondido).
+    gastosADestacar = idsNovos.map((id) => `despesa:${id}`);
     mesDeslocamento = deslocamentoDaData(novas.map((linha) => linha.data).sort().pop());
     despesaAEditar = null;
     fecharNovaDespesa();
     desenharMes();
-    const caixaCategorias = document.getElementById('despesas-categorias-caixa');
-    if (caixaCategorias.open) desenharCategoriasDespesas();
   }
 
   const partes = [
