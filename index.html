@@ -19,8 +19,12 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Acesso às Definições, no canto de cima, em todas as vistas. -->
+  <!-- Acesso às Definições, no canto de cima, em todas as vistas. Na vista Gastos, à esquerda do ⚙️, "Importar do cartão". -->
   <header class="topo">
+    <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do aparelho. Só se vê na vista Gastos (style.css). -->
+    <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
+      <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
+    </label>
     <button id="botao-ajustes" class="botao-icone" type="button" aria-label="Definições e cópia de segurança">⚙️</button>
   </header>
 
@@ -80,16 +84,31 @@
     </section>
 
     <section id="vista-gastos" class="vista" hidden>
-      <div class="titulo-com-botao titulo-vista">
-        <h1>Gastos</h1>
-        <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do aparelho. -->
-        <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
-          <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
-        </label>
+      <h1 class="titulo-vista">Gastos</h1>
+      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js), e os gastos do outro telemóvel,
+           a partir do ficheiro dele (ver js/importar-csv.js). -->
+      <div class="gastos-csv-botoes">
+        <button id="gastos-exportar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Exportar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg><span>Exportar (CSV)</span></button>
+        <button id="gastos-importar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/></svg><span>Importar (CSV)</span></button>
+        <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
       </div>
-      <p id="despesas-importar-resultado" class="importar-resultado" role="status" hidden></p>
+      <!-- Mensagens do "Importar do cartão", do "Exportar (CSV)" e do "Importar (CSV)". -->
+      <p id="gastos-resultado" class="importar-resultado" role="status" hidden></p>
+      <div id="gastos-importar-csv-previa" class="gastos-registo" role="region" hidden></div>
 
-      <div class="mes-navegacao">
+      <details id="despesas-categorias-caixa" class="gerir gastos-categorias">
+        <summary>Categorias de gastos</summary>
+        <div class="dia-inicio">
+          <label for="despesas-dia-inicio">Dia em que começa o mês de gastos</label>
+          <input id="despesas-dia-inicio" type="number" min="1" max="28" step="1" inputmode="numeric" enterkeyhint="done" aria-describedby="despesas-dia-inicio-erro">
+          <p id="despesas-dia-inicio-erro" class="erro-campo" hidden></p>
+        </div>
+        <div id="despesas-categorias"></div>
+        <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
+        <div id="despesas-comerciantes"></div>
+      </details>
+
+      <div class="mes-navegacao gastos-periodo">
         <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
         <div class="mes-nome">
           <h2 id="mes-titulo" aria-live="polite"></h2>
@@ -107,26 +126,6 @@
       </div>
       <div id="despesas-registo" class="gastos-registo" hidden></div>
       <div id="mes-gastos"></div>
-      <details id="despesas-categorias-caixa" class="gerir">
-        <summary>Categorias de gastos</summary>
-        <div class="dia-inicio">
-          <label for="despesas-dia-inicio">Dia em que começa o mês de gastos</label>
-          <input id="despesas-dia-inicio" type="number" min="1" max="28" step="1" inputmode="numeric" enterkeyhint="done" aria-describedby="despesas-dia-inicio-erro">
-          <p id="despesas-dia-inicio-erro" class="erro-campo" hidden></p>
-        </div>
-        <div id="despesas-categorias"></div>
-        <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
-        <div id="despesas-comerciantes"></div>
-      </details>
-      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js), e os gastos do outro telemóvel,
-           a partir do ficheiro dele (ver js/importar-csv.js). -->
-      <div class="gastos-csv-botoes">
-        <button id="gastos-exportar-csv" type="button" class="botao-discreto gastos-exportar-csv">Exportar gastos (CSV)</button>
-        <button id="gastos-importar-csv" type="button" class="botao-discreto gastos-exportar-csv">Importar gastos (CSV)</button>
-        <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
-      </div>
-      <p id="gastos-importar-csv-resultado" class="importar-resultado" role="status" hidden></p>
-      <div id="gastos-importar-csv-previa" class="gastos-registo" role="region" hidden></div>
 
       <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
       <div id="gastos-total-barra" class="gastos-total-barra" aria-live="polite">
@@ -188,7 +187,14 @@
           <input id="ajuste-nome-exportacao" type="text" maxlength="60" autocomplete="off" autocapitalize="words" enterkeyhint="done" aria-describedby="ajuste-nome-nota">
         </label>
       </div>
-      <p id="ajuste-nome-nota" class="nota nota-campo">Aparece na coluna "pessoa" do ficheiro. O botão "Exportar gastos (CSV)" está no fim do separador Gastos.</p>
+      <p id="ajuste-nome-nota" class="nota nota-campo">Aparece na coluna "pessoa" do ficheiro. O botão "Exportar (CSV)" está no topo do separador Gastos. Depois de partilhares gastos, não mudes este nome: o outro telemóvel trataria os teus gastos como de outra pessoa e voltaria a importá-los, em duplicado.</p>
+
+      <!-- Só com gastos importados de outra pessoa (js/importar-csv.js): o nome curto que aparece no seletor dos Gastos. -->
+      <div id="pessoas-seccao" hidden>
+        <h2>Pessoas dos gastos importados</h2>
+        <p>Escolhe um nome curto para o seletor dos Gastos. Só muda o que aparece neste telemóvel.</p>
+        <div id="pessoas-lista"></div>
+      </div>
     </section>
   </main>
 

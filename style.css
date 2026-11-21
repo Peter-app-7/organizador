@@ -79,15 +79,19 @@ input[type="text"], input[type="time"], input[type="number"], input[type="date"]
 button { cursor: pointer; }
 button:disabled { opacity: .6; }
 
-/* --- Topo: só o botão das Definições, à direita --- */
+/* --- Topo: o botão das Definições, à direita (na vista Gastos, com "Importar do cartão" à esquerda dele) --- */
 .topo {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   max-width: 600px;
   margin: 0 auto;
   padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
 }
 .botao-icone { flex: none; background: none; border: 0; font-size: 1.3rem; min-width: 44px; min-height: 44px; }
+/* "Importar do cartão" só se vê na vista Gastos. */
+body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; }
 
 /* --- Formulários e botões --- */
 .formulario { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -278,15 +282,18 @@ body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bott
 .casa-botoes .botao-pequeno { min-width: 96px; min-height: 44px; }
 .copiar-escondido { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; }
 
-/* "Exportar gastos (CSV)" e "Importar gastos (CSV)", discretos, lado a lado no fim da vista (por baixo um do outro,
-   se não couberem). */
-/* A margem fica no contentor, para se juntar à de cima como antes (dentro de um flex, as margens não se juntam). */
-.gastos-csv-botoes { display: flex; flex-wrap: wrap; column-gap: 24px; margin-top: 12px; }
-.gastos-csv-botoes .gastos-exportar-csv { margin-top: 0; }
-#gastos-importar-csv-resultado { margin-top: 8px; }
+/* "Exportar (CSV)" e "Importar (CSV)", por baixo do título dos Gastos: dois botões com contorno da mesma largura. */
+.gastos-csv-botoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 12px; }
+.botao-csv { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 44px; }
+.botao-csv span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.icone-csv { flex: none; fill: none; stroke: var(--destaque); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* "Categorias de gastos" logo a seguir às mensagens; o período fica separado por um traço. */
+.gerir.gastos-categorias { margin-top: 0; }
+.mes-navegacao.gastos-periodo { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--linha); }
 
-/* Seletor "Meus · <pessoa> · Casa": botões segmentados, como o sim/não. Os nomes compridos cortam-se com reticências. */
-.gastos-pessoas { display: flex; margin: 12px 0 0; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--cartao); }
+/* Seletor "Meus · <pessoa> · Casa": botões segmentados da mesma largura (colunas iguais; o número vem de
+   despesas.js, em --colunas). Os nomes que não cabem cortam-se com reticências. */
+.gastos-pessoas { display: grid; grid-template-columns: repeat(var(--colunas, 3), minmax(0, 1fr)); margin: 12px 0 0; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--cartao); }
 .gastos-pessoas button {
   min-width: 0;
   min-height: 44px;
@@ -300,11 +307,12 @@ body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bott
   border: 0;
 }
 .gastos-pessoas button + button { border-left: 1px solid var(--linha); }
-/* "Meus" e "Casa" nunca se cortam; os nomes repartem o resto em partes iguais. */
-.gastos-pessoas .pessoa-fixa { flex: none; }
-.gastos-pessoas .pessoa-nome { flex: 1 1 0; }
 .gastos-pessoas button[aria-pressed="true"] { background: var(--destaque); color: var(--destaque-texto); font-weight: 600; }
 .gasto-pessoa { color: var(--texto-suave); }
+/* Definições, "Pessoas dos gastos importados": uma linha por pessoa. */
+.pessoa-nome-linha { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--linha); }
+.pessoa-original { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pessoa-nome-linha .nota-campo { margin: -4px 0 0; }
 
 /* --- Gastos: formulários (Compras e Despesas) e lista (Despesas) --- */
 /* No iPhone, o campo de data tem aspeto e largura próprios: assim fica igual aos outros campos. */

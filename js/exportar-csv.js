@@ -1,4 +1,4 @@
-// exportar-csv.js: "Exportar gastos (CSV)", no fim da vista Gastos, e o nome para a coluna "pessoa" (em Definições).
+// exportar-csv.js: "Exportar (CSV)", no topo da vista Gastos (aria-label "Exportar gastos (CSV)"), e o nome para a coluna "pessoa" (em Definições).
 // Exporta todos os períodos: os registos de "Registar compras" e os gastos gerais (incluindo os do cartão), cada um uma
 // vez, do mais antigo para o mais recente. Ficheiro gastos-AAAA-MM-DD.csv, UTF-8 com BOM, separado por ";", com o cabeçalho
 // id;data;periodo;pessoa;origem;categoria;descricao;comerciante;valor
@@ -61,6 +61,7 @@ function campoCsv(texto) {
   return /[;"\r\n]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
 }
 
+// Na coluna "pessoa" vai sempre o nome original (gasto.pessoa), nunca o nome a mostrar das Definições.
 // Uma linha por registo, já pela ordem do ficheiro. Usa os mesmos registos do total do mês (todosOsGastos, em despesas.js).
 // Os gastos de outra pessoa (importados de um CSV, ver importar-csv.js) saem com o nome e a origem dela: assim, quando
 // ela importa este ficheiro, reconhece-os como seus e ignora-os.
@@ -92,12 +93,12 @@ function textoCsvGastos(linhas) {
 async function exportarGastosCsv() {
   const linhas = linhasCsvGastos();
   if (linhas.length === 0) {
-    avisar('Ainda não há gastos para exportar.');
+    mostrarResultadoGastos('Ainda não há gastos para exportar.');
     return;
   }
   const ficheiro = new File([textoCsvGastos(linhas)], `gastos-${dataParaTexto(new Date())}.csv`, { type: 'text/csv' });
   if (!(await partilharFicheiro(ficheiro))) return;
-  avisar(`${linhas.length} ${linhas.length === 1 ? 'gasto exportado' : 'gastos exportados'}.`);
+  mostrarResultadoGastos(`${linhas.length} ${linhas.length === 1 ? 'gasto exportado' : 'gastos exportados'}.`);
 }
 
 document.getElementById('gastos-exportar-csv').addEventListener('click', exportarGastosCsv);

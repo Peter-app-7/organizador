@@ -7,6 +7,7 @@ function desenharAjustes() {
     : 'Ainda não foi feita nenhuma cópia neste aparelho.';
   estado.classList.toggle('resumo-falta', copiaEmFalta());
   desenharNomeExportacao();
+  desenharNomesPessoas();
   desenharCasa();
 }
 
@@ -62,7 +63,7 @@ async function partilharFicheiro(ficheiro) {
 const PREFIXO_CHAVES = 'organizador-';
 function chavesEmUso() {
   return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
-    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_GASTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_TEMPO_ANTIGA,
+    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_GASTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_NOMES_PESSOAS, CHAVE_TEMPO_ANTIGA,
     // O código da casa é como uma chave: nunca vai na cópia. O estado da sincronização só serve neste aparelho.
     CHAVE_CASA, CHAVE_CASA_SINCRONIZACAO];
 }
@@ -112,6 +113,7 @@ function lerPreferencias() {
     produtosRecolhidos: simOuNao(produtosRecolhidos),
     gastosRecolhidos: simOuNao(gastosRecolhidos), // desde a v40
     nomeExportacao: lerNomeExportacao(),
+    nomesPessoas: lerNomesPessoas(), // desde a v42: nome a mostrar das pessoas dos gastos importados
   };
 }
 
@@ -188,6 +190,9 @@ async function restaurarCopia(ficheiro) {
       if (['sim', 'nao'].includes(bruto.preferencias.produtosRecolhidos)) novasPreferencias.produtosRecolhidos = bruto.preferencias.produtosRecolhidos;
       if (['sim', 'nao'].includes(bruto.preferencias.gastosRecolhidos)) novasPreferencias.gastosRecolhidos = bruto.preferencias.gastosRecolhidos;
       if (typeof bruto.preferencias.nomeExportacao === 'string') novasPreferencias.nomeExportacao = limparNomeExportacao(bruto.preferencias.nomeExportacao);
+      // Só um objeto válido substitui os nomes deste aparelho; cópias sem ele deixam-nos como estão.
+      const nomesPessoas = normalizarNomesPessoas(bruto.preferencias.nomesPessoas);
+      if (nomesPessoas) novasPreferencias.nomesPessoas = nomesPessoas;
     }
     // Cópias internas: só textos, em chaves desta app que não sejam as dos dados em uso.
     if (objeto(bruto.copiasInternas)) {
@@ -268,6 +273,7 @@ function restaurarExtras(preferencias, copiasInternas) {
   // A lista "Gastos do mês" volta a ser desenhada ao entrar nos Gastos, já com a escolha reposta.
   if (preferencias.gastosRecolhidos) guardarGastosRecolhidos(preferencias.gastosRecolhidos === 'sim');
   if (preferencias.nomeExportacao !== undefined) guardarNomeExportacao(preferencias.nomeExportacao);
+  if (preferencias.nomesPessoas) guardarNomesPessoas(preferencias.nomesPessoas);
   Object.entries(copiasInternas).forEach(([chave, texto]) => {
     if (chave === CHAVE_TEMPO_ANTIGA) return;
     try {

@@ -1,4 +1,5 @@
-// importar-csv.js: "Importar gastos (CSV)", no fim da vista Gastos, ao lado de "Exportar gastos (CSV)".
+// importar-csv.js: "Importar (CSV)" (aria-label "Importar gastos (CSV)"), no topo da vista Gastos, ao lado de
+// "Exportar (CSV)", e a secção "Pessoas dos gastos importados" das Definições (nome a mostrar, só para o ecrã).
 // Junta neste aparelho os gastos de outra pessoa (do outro telemóvel), a partir do ficheiro que o "Exportar gastos (CSV)"
 // dela gera (ex.: partilhado por uma pasta do Google Drive). Sem nuvem: os gastos não se sincronizam, juntam-se por ficheiro.
 //
@@ -13,7 +14,6 @@
 const FICHEIRO_CSV_MAXIMO = 5 * 1024 * 1024; // 5 MB
 const botaoImportarCsv = document.getElementById('gastos-importar-csv');
 const campoImportarCsv = document.getElementById('gastos-importar-csv-ficheiro');
-const resultadoImportarCsv = document.getElementById('gastos-importar-csv-resultado');
 const previaImportarCsv = document.getElementById('gastos-importar-csv-previa');
 
 // Nome de uma pessoa para comparar: minúsculas, sem acentos e sem espaços a mais.
@@ -21,9 +21,9 @@ function chavePessoa(nome) {
   return chaveTexto(String(nome || ''));
 }
 
+// A mensagem fica por baixo dos botões CSV, na caixa partilhada do topo dos Gastos (despesas.js).
 function mostrarResultadoCsv(texto) {
-  resultadoImportarCsv.textContent = texto;
-  resultadoImportarCsv.hidden = !texto;
+  mostrarResultadoGastos(texto);
 }
 
 // Lê texto CSV separado por ";": campos entre aspas podem ter ";", quebras de linha e aspas repetidas ("").
@@ -162,11 +162,12 @@ function categoriaDoCsv(linha) {
 }
 
 // Texto do resumo, ex.: "3 gastos novos de Pessoa B · 2 já importados · 1 teu, ignorado · 0 linhas ignoradas".
+// Usa o nome a mostrar de cada pessoa (Definições), como o seletor.
 function partesResumoCsv({ novas, repetidas, minhas, ignoradas }) {
   const porPessoa = new Map();
   novas.forEach((linha) => {
     const chave = chavePessoa(linha.pessoa);
-    if (!porPessoa.has(chave)) porPessoa.set(chave, { nome: linha.pessoa, numero: 0 });
+    if (!porPessoa.has(chave)) porPessoa.set(chave, { nome: nomeAMostrar(linha.pessoa), numero: 0 });
     porPessoa.get(chave).numero += 1;
   });
   const partes = porPessoa.size
@@ -311,3 +312,47 @@ campoImportarCsv.addEventListener('change', async (evento) => {
   evento.target.value = ''; // permite escolher o mesmo ficheiro outra vez
   if (ficheiro) await importarGastosCsv(ficheiro);
 });
+
+// --- Definições: "Pessoas dos gastos importados" (nome a mostrar) ---
+// Só aparece com gastos importados. Uma linha por pessoa (nome original comparado com chaveTexto, como na importação):
+// "No ficheiro: <nome>", o campo "Nome a mostrar" (guardado ao sair do campo) e a nota. Muda só o ecrã deste aparelho.
+function desenharNomesPessoas() {
+  const seccao = document.getElementById('pessoas-seccao');
+  const caixa = document.getElementById('pessoas-lista');
+  const pessoas = pessoasImportadas();
+  seccao.hidden = pessoas.length === 0;
+  // Não se redesenha enquanto se escreve num dos campos.
+  if (caixa.contains(document.activeElement)) return;
+  const nomes = lerNomesPessoas();
+  caixa.replaceChildren(...pessoas.map((pessoa, i) => {
+    const id = `pessoa-nome-${i}`;
+    const campo = criar('input', {
+      id,
+      type: 'text',
+      value: nomes[pessoa.chave] || '',
+      placeholder: pessoa.nome.trim().split(/\s+/)[0],
+      maxLength: NOME_A_MOSTRAR_MAXIMO,
+      autocomplete: 'off',
+      autocapitalize: 'words',
+      enterKeyHint: 'done',
+      'aria-describedby': `${id}-nota`,
+    });
+    campo.addEventListener('change', () => {
+      const nome = limparNomeAMostrar(campo.value);
+      campo.value = nome;
+      const atuais = lerNomesPessoas();
+      if ((atuais[pessoa.chave] || '') === nome) return;
+      if (nome) atuais[pessoa.chave] = nome;
+      else delete atuais[pessoa.chave];
+      if (guardarNomesPessoas(atuais)) avisar(nome ? 'Nome guardado.' : 'Nome apagado: aparece o primeiro nome.');
+    });
+    // "OK" no teclado fecha-o, sem mais nada.
+    campo.addEventListener('keydown', (evento) => {
+      if (evento.key === 'Enter') campo.blur();
+    });
+    return criar('div', { className: 'formulario pessoa-nome-linha' },
+      criar('p', { className: 'pessoa-original', textContent: `No ficheiro: ${pessoa.nome}` }),
+      criar('label', { htmlFor: id }, 'Nome a mostrar', campo),
+      criar('p', { id: `${id}-nota`, className: 'nota nota-campo', textContent: 'Vazio: mostra o primeiro nome.' }));
+  }));
+}

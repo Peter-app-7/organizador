@@ -176,15 +176,71 @@ function todosOsGastos() {
 // Não fica guardado: a app abre sempre em "Meus", e a escolha mantém-se enquanto a app estiver aberta.
 let escolhaPessoas = 'meus';
 
-// Pessoas com gastos importados, em qualquer período: [{ chave, nome }], por ordem alfabética. O nome é o do gasto
-// mais recente dessa pessoa, tal como veio no ficheiro.
+// --- Nome a mostrar de cada pessoa importada (Definições, "Pessoas dos gastos importados") ---
+// Só para o ecrã deste aparelho: { pessoaNormalizada: "nome a mostrar" }. O campo "pessoa" dos gastos, a marca csvMarca
+// e o CSV exportado ficam sempre com o nome original (senão, outro telemóvel voltaria a importar os mesmos gastos).
+// Vai na cópia de segurança em "preferencias.nomesPessoas".
+const CHAVE_NOMES_PESSOAS = 'organizador-nomes-pessoas';
+const NOME_A_MOSTRAR_MAXIMO = 30; // letras
+
+function limparNomeAMostrar(texto) {
+  return String(texto || '').replace(/\s+/g, ' ').trim().slice(0, NOME_A_MOSTRAR_MAXIMO);
+}
+
+// Objeto limpo: só chaves com texto e nomes não vazios. Devolve null se não for um objeto.
+function normalizarNomesPessoas(bruto) {
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return null;
+  const limpos = {};
+  Object.entries(bruto).forEach(([chave, nome]) => {
+    const limpo = typeof nome === 'string' ? limparNomeAMostrar(nome) : '';
+    if (chave && limpo) limpos[chave] = limpo;
+  });
+  return limpos;
+}
+
+function lerNomesPessoas() {
+  try {
+    return normalizarNomesPessoas(JSON.parse(localStorage.getItem(CHAVE_NOMES_PESSOAS) || '{}')) || {};
+  } catch (erro) {
+    return {};
+  }
+}
+
+// Devolve false se não der para guardar. Sem nenhum nome, a chave é apagada.
+function guardarNomesPessoas(nomes) {
+  try {
+    if (Object.keys(nomes).length) localStorage.setItem(CHAVE_NOMES_PESSOAS, JSON.stringify(nomes));
+    else localStorage.removeItem(CHAVE_NOMES_PESSOAS);
+    return true;
+  } catch (erro) {
+    avisar('Não foi possível guardar. Exporta uma cópia de segurança.');
+    return false;
+  }
+}
+
+// O nome escolhido em Definições ou, sem ele, a primeira palavra do nome original.
+function nomeAMostrar(nomeOriginal) {
+  const escolhido = lerNomesPessoas()[chaveTexto(nomeOriginal)];
+  return escolhido || nomeOriginal.trim().split(/\s+/)[0];
+}
+
+// Pessoas com gastos importados, em qualquer período: [{ chave, nome, mostrar }], por ordem alfabética do nome
+// original. "nome" é o do gasto mais recente dessa pessoa, tal como veio no ficheiro; "mostrar", o nome a mostrar.
 function pessoasImportadas() {
   const porChave = new Map();
   [...despesas].sort((a, b) => a.data.localeCompare(b.data)).forEach((d) => {
     if (d.pessoa) porChave.set(chaveTexto(d.pessoa), d.pessoa);
   });
-  return [...porChave].map(([chave, nome]) => ({ chave, nome }))
+  return [...porChave].map(([chave, nome]) => ({ chave, nome, mostrar: nomeAMostrar(nome) }))
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }));
+}
+
+// Mensagens dos botões do topo dos Gastos ("Importar do cartão", "Exportar (CSV)" e "Importar (CSV)"): uma só caixa,
+// por baixo dos botões CSV. Vazio esconde-a.
+function mostrarResultadoGastos(texto) {
+  const resultado = document.getElementById('gastos-resultado');
+  resultado.textContent = texto;
+  resultado.hidden = !texto;
 }
 
 // Os gastos da escolha atual (recebe itens de todosOsGastos).
@@ -209,12 +265,16 @@ function desenharSeletorPessoas() {
   document.body.classList.toggle('gastos-com-pessoas', pessoas.length > 0);
   caixa.hidden = pessoas.length === 0;
   const focada = caixa.contains(document.activeElement) ? document.activeElement.dataset.escolha : null;
-  const opcoes = [{ chave: 'meus', nome: 'Meus' }, ...pessoas, { chave: 'casa', nome: 'Casa' }];
+  const opcoes = [{ chave: 'meus', nome: 'Meus', mostrar: 'Meus' }, ...pessoas, { chave: 'casa', nome: 'Casa', mostrar: 'Casa' }];
+  // Todos os botões com a mesma largura (grelha com colunas iguais, ver style.css).
+  caixa.style.setProperty('--colunas', opcoes.length);
   caixa.replaceChildren(...opcoes.map((o) => criar('button', {
     type: 'button',
     className: o.chave === 'meus' || o.chave === 'casa' ? 'pessoa-fixa' : 'pessoa-nome',
-    textContent: o.nome,
+    textContent: o.mostrar,
     title: o.nome,
+    // Com o nome encurtado, o leitor de ecrã diz também o nome completo.
+    ...(o.mostrar !== o.nome ? { 'aria-label': `${o.mostrar} (${o.nome})` } : {}),
     'aria-pressed': String(o.chave === escolhaPessoas),
     onclick: () => {
       if (escolhaPessoas === o.chave) return;
@@ -424,8 +484,8 @@ function linhaDespesa(item, desenharDeNovo) {
     return criar('li', { className: 'gasto-editar' }, criar('h3', { className: 'despesas-registo-titulo', textContent: titulo }), formulario);
   }
   const data = textoParaData(item.data);
-  // Em "Casa", os gastos de outra pessoa mostram o nome dela, pequeno, ao lado da nota.
-  const pessoa = escolhaPessoas === 'casa' && item.pessoa ? item.pessoa : '';
+  // Em "Casa", os gastos de outra pessoa mostram o nome a mostrar dela, pequeno, ao lado da nota.
+  const pessoa = escolhaPessoas === 'casa' && item.pessoa ? nomeAMostrar(item.pessoa) : '';
   const detalhe = [];
   if (item.nota) detalhe.push(item.nota);
   if (item.nota && pessoa) detalhe.push(' · ');
@@ -732,10 +792,9 @@ function garantirCategoriaPorCategorizar() {
   return id;
 }
 
+// A mensagem fica por baixo dos botões CSV, na caixa partilhada do topo dos Gastos.
 function mostrarResultadoCartao(texto) {
-  const resultado = document.getElementById('despesas-importar-resultado');
-  resultado.textContent = texto;
-  resultado.hidden = false;
+  mostrarResultadoGastos(texto);
 }
 
 async function importarGastosCartao(ficheiro) {
