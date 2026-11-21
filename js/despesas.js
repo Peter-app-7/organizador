@@ -20,6 +20,11 @@ const CATEGORIAS_DESPESAS_INICIAIS = [
 ];
 const CATEGORIAS_FIXAS = ['mercearia', 'outros'];
 
+// Tipo de uma categoria ou de um gasto: "casa" ou "pessoal". As categorias sem tipo (as de antes de 21 nov 2026 e as das
+// cópias antigas) são da casa. Um gasto só tem "tipo" quando foi marcado à parte, diferente do da sua categoria; sem ele,
+// segue sempre a categoria (também se ela mudar de tipo mais tarde). "Por categorizar" não tem tipo: aparece à parte.
+const TIPOS_GASTO = ['casa', 'pessoal'];
+
 // Lista limpa: ids e nomes únicos (sem contar maiúsculas e acentos), Mercearia e Outros sempre presentes, Outros no fim.
 // Lança um erro se não for uma lista.
 function normalizarCategoriasDespesas(lista) {
@@ -33,7 +38,7 @@ function normalizarCategoriasDespesas(lista) {
     if (!nome || ids.has(c.id) || nomes.has(chaveTexto(nome))) return;
     ids.add(c.id);
     nomes.add(chaveTexto(nome));
-    limpas.push({ id: c.id, nome });
+    limpas.push({ id: c.id, nome, ...(TIPOS_GASTO.includes(c.tipo) ? { tipo: c.tipo } : {}) });
   });
   CATEGORIAS_FIXAS.forEach((id) => {
     if (ids.has(id)) return;
@@ -80,6 +85,8 @@ function normalizarDespesas(lista, categorias) {
         ...(typeof d.pessoa === 'string' && d.pessoa.trim() ? { pessoa: d.pessoa.replace(/\s+/g, ' ').trim().slice(0, 60) } : {}),
         ...(typeof d.csvMarca === 'string' && d.csvMarca ? { csvMarca: d.csvMarca } : {}),
         ...(ORIGENS_CSV.includes(d.origemOriginal) ? { origemOriginal: d.origemOriginal } : {}),
+        // Gasto marcado à parte ("casa" ou "pessoal", diferente do tipo da categoria). Sem ele, segue a categoria.
+        ...(TIPOS_GASTO.includes(d.tipo) ? { tipo: d.tipo } : {}),
       };
     });
 }
@@ -161,19 +168,38 @@ function nomeCategoriaDespesa(id) {
   return categoria ? categoria.nome : 'Outros';
 }
 
+// Tipo de uma categoria: "pessoal" ou "casa" (por defeito); null para "Por categorizar", que não tem tipo.
+function tipoDaCategoria(id) {
+  if (ePorCategorizar(id)) return null;
+  const categoria = categoriasDespesas.find((c) => c.id === id);
+  return categoria && categoria.tipo === 'pessoal' ? 'pessoal' : 'casa';
+}
+
+// Bloco de "Gastos do mês" de um gasto (item de todosOsGastos): "por-categorizar", ou o tipo efetivo (o do gasto, se
+// tiver sido marcado à parte, ou o da categoria). Os registos de "Registar compras" seguem sempre a Mercearia.
+function blocoDoGasto(g) {
+  if (ePorCategorizar(g.categoria)) return 'por-categorizar';
+  return g.tipo || tipoDaCategoria(g.categoria);
+}
+
+// Um gasto marcado à parte: tem tipo próprio e é diferente do da categoria (em "Por categorizar", basta ter tipo).
+function marcadoAParte(g) {
+  return Boolean(g.tipo) && g.tipo !== tipoDaCategoria(g.categoria);
+}
+
 // Todos os gastos num só formato: os gerais (incluindo os importados do cartão) e os de "Registar compras"
 // (em Mercearia, com a loja como nota). Cada registo aparece uma só vez: é daqui que sai o total do mês.
 // "pessoa" só existe nos gastos de outra pessoa (importados de um CSV); os meus têm-na vazia.
 function todosOsGastos() {
   return [
-    ...despesas.map((d) => ({ origem: 'despesa', id: d.id, data: d.data, categoria: d.categoria, nota: d.nota, centimos: d.centimos, pessoa: d.pessoa || '', registo: d })),
-    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'mercearia', nota: g.loja, centimos: g.centimos, pessoa: '', registo: g })),
+    ...despesas.map((d) => ({ origem: 'despesa', id: d.id, data: d.data, categoria: d.categoria, nota: d.nota, centimos: d.centimos, pessoa: d.pessoa || '', tipo: d.tipo || null, registo: d })),
+    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'mercearia', nota: g.loja, centimos: g.centimos, pessoa: '', tipo: null, registo: g })),
   ];
 }
 
-// --- Seletor "Meus · <pessoa> · Casa" ---
+// --- Seletor "Meus · <pessoa> · Juntos" ---
 // Só aparece quando há gastos de outra pessoa (importados de um CSV). "meus": os gastos sem pessoa (incluindo os de
-// "Registar compras"); "casa": todos; outro valor: a chave (nome normalizado, chaveTexto) de uma pessoa.
+// "Registar compras"); "casa": todos (o botão diz "Juntos" desde 21 nov 2026, para não se confundir com os gastos da casa); outro valor: a chave (nome normalizado, chaveTexto) de uma pessoa.
 // Não fica guardado: a app abre sempre em "Meus", e a escolha mantém-se enquanto a app estiver aberta.
 let escolhaPessoas = 'meus';
 
@@ -262,11 +288,11 @@ function desenharSeletorPessoas() {
   // Sem gastos de outra pessoa (ou se a escolhida deixou de ter gastos), volta a "Meus".
   if (escolhaPessoas !== 'meus' && escolhaPessoas !== 'casa' && !pessoas.some((p) => p.chave === escolhaPessoas)) escolhaPessoas = 'meus';
   if (pessoas.length === 0) escolhaPessoas = 'meus';
-  // Para o CSS: a barra do total fica mais alta (com a linha "Casa:"), e a vista e os avisos dão-lhe espaço.
+  // Para o CSS: com o seletor, a barra do total pode ter a linha "Juntos:".
   document.body.classList.toggle('gastos-com-pessoas', pessoas.length > 0);
   caixa.hidden = pessoas.length === 0;
   const focada = caixa.contains(document.activeElement) ? document.activeElement.dataset.escolha : null;
-  const opcoes = [{ chave: 'meus', nome: 'Meus', mostrar: 'Meus' }, ...pessoas, { chave: 'casa', nome: 'Casa', mostrar: 'Casa' }];
+  const opcoes = [{ chave: 'meus', nome: 'Meus', mostrar: 'Meus' }, ...pessoas, { chave: 'casa', nome: 'Juntos', mostrar: 'Juntos' }];
   // Todos os botões com a mesma largura (grelha com colunas iguais, ver style.css).
   caixa.style.setProperty('--colunas', opcoes.length);
   caixa.replaceChildren(...opcoes.map((o) => criar('button', {
@@ -310,6 +336,26 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
     ...categoriasDespesasOrdenadas().map((c) => criar('option', { value: c.id, textContent: c.nome }))));
   // Um gasto novo começa na primeira categoria guardada (normalmente Mercearia), como antes.
   categoria.entrada.value = registo ? registo.categoria : categoriasDespesas[0].id;
+  // "É um gasto": "Da casa" / "Pessoal". Começa no tipo efetivo (o do gasto, se foi marcado à parte, ou o da categoria) e,
+  // enquanto não se tocar nele neste formulário, acompanha a mudança de categoria. Um gasto já marcado à parte começa
+  // com a sua marca, que não muda sozinha. Com "Por categorizar" escolhida (sem tipo), fica escondido.
+  let tipoTocado = Boolean(registo && TIPOS_GASTO.includes(registo.tipo));
+  const tipo = escolhaDeDuas({
+    id: `despesa-tipo-${n}`,
+    rotulo: 'É um gasto',
+    opcoes: [['casa', 'Da casa'], ['pessoal', 'Pessoal']],
+    valor: tipoTocado ? registo.tipo : (tipoDaCategoria(categoria.entrada.value) || 'casa'),
+    aoMudar: () => { tipoTocado = true; },
+  });
+  const notaTipo = criar('p', { className: 'nota nota-campo nota-tipo', textContent: 'Começa como a categoria. Muda só este gasto.' });
+  const caixaTipo = criar('div', { className: 'campo-tipo' }, tipo.elemento, notaTipo);
+  const acertarTipo = () => {
+    const daCategoria = tipoDaCategoria(categoria.entrada.value);
+    caixaTipo.hidden = daCategoria === null;
+    if (!tipoTocado && daCategoria) tipo.definir(daCategoria);
+  };
+  acertarTipo();
+  categoria.entrada.addEventListener('change', acertarTipo);
   const valor = campo('valor', 'Valor total (€)', criar('input', {
     type: 'text', value: registo ? valorParaCampo(registo.centimos) : '', placeholder: '0,00', inputMode: 'decimal', autocomplete: 'off', enterKeyHint: 'next',
   }));
@@ -330,8 +376,10 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
   };
 
   const campos = doCartao ? [nota, data, valor, categoria] : [data, categoria, valor, nota];
+  // O tipo fica logo por baixo da categoria.
+  const elementos = campos.flatMap((parte) => (parte === categoria ? [parte.rotulo, caixaTipo] : [parte.rotulo]));
   const formulario = criar('form', { className: 'formulario formulario-gasto', noValidate: true },
-    ...campos.map((parte) => parte.rotulo), ...botoes);
+    ...elementos, ...botoes);
   formulario.addEventListener('submit', (evento) => {
     evento.preventDefault();
     const lido = lerValor(valor.entrada.value);
@@ -348,11 +396,18 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
       primeiro[0].entrada.focus();
       return;
     }
+    // "tipo" só fica gravado se for diferente do da categoria (senão, o gasto segue a categoria); undefined apaga-o.
+    // Em "Por categorizar", fica o que o gasto já tinha (ex.: o tipo que veio de um CSV).
+    const daCategoria = tipoDaCategoria(categoria.entrada.value);
+    const tipoFinal = daCategoria === null
+      ? (registo && TIPOS_GASTO.includes(registo.tipo) ? registo.tipo : undefined)
+      : (tipo.valor() !== daCategoria ? tipo.valor() : undefined);
     aoGuardar({
       data: data.entrada.value,
       categoria: categoria.entrada.value,
       centimos: lido.centimos,
       nota: nota.entrada.value.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA),
+      tipo: tipoFinal,
     });
   });
   [data, categoria, valor, nota].forEach((parte) => {
@@ -390,7 +445,8 @@ function abrirNovaDespesa() {
     formularioDespesa({
       aoGuardar: (novo) => {
         const id = novoId();
-        despesas.push({ id, ...novo });
+        const { tipo, ...resto } = novo;
+        despesas.push({ id, ...resto, ...(tipo ? { tipo } : {}) });
         if (!guardarDespesas()) {
           despesas.pop();
           return;
@@ -417,11 +473,19 @@ botaoNovaDespesa.addEventListener('click', () => {
 });
 
 // Grava uma alteração; se não der para guardar, desfaz e devolve false.
+// Um campo com undefined (ex.: "tipo" igual ao da categoria) é apagado do registo.
 function alterarRegisto(item, alterado) {
   const antigo = { ...item.registo };
-  Object.assign(item.registo, alterado);
+  const aplicar = (valores) => Object.entries(valores).forEach(([campo, valor]) => {
+    if (valor === undefined) delete item.registo[campo];
+    else item.registo[campo] = valor;
+  });
+  aplicar(alterado);
   const guardou = item.origem === 'compras' ? guardarGastos() : guardarDespesas();
-  if (!guardou) Object.assign(item.registo, antigo);
+  if (!guardou) {
+    Object.keys(item.registo).forEach((campo) => { if (!(campo in antigo)) delete item.registo[campo]; });
+    aplicar(antigo);
+  }
   return guardou;
 }
 
@@ -487,19 +551,22 @@ function linhaDespesa(item, desenharDeNovo) {
     return li;
   }
   const data = textoParaData(item.data);
-  // Em "Casa", os gastos de outra pessoa mostram o nome a mostrar dela, pequeno, ao lado da nota.
+  // Em "Juntos", os gastos de outra pessoa mostram o nome a mostrar dela, pequeno, ao lado da nota.
   const pessoa = escolhaPessoas === 'casa' && item.pessoa ? nomeAMostrar(item.pessoa) : '';
   // Dentro da categoria, a linha mostra a nota (ou "Sem nota"); o nome da categoria já está na linha do grupo.
   const detalhe = [criar('span', { className: item.nota ? 'gasto-nota-texto' : 'gasto-sem-nota', textContent: item.nota || 'Sem nota' })];
   if (pessoa) detalhe.push(' · ', criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
+  // Marcado à parte: por baixo da nota, pequeno.
+  const marca = marcadoAParte(item) ? `marcado como ${item.tipo === 'pessoal' ? 'Pessoal' : 'da casa'}` : '';
   const li = criar('li', {}, criar('button', {
     type: 'button',
     className: 'gasto-linha',
-    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
+    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}${marca ? `, ${marca}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
     onclick: () => { despesaAEditar = chave; fecharNovaDespesa(); desenharDeNovo(); },
   },
   criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
-  criar('span', { className: 'gasto-texto' }, criar('span', { className: 'gasto-detalhe' }, ...detalhe)),
+  criar('span', { className: 'gasto-texto' }, criar('span', { className: 'gasto-detalhe' }, ...detalhe),
+    ...(marca ? [criar('span', { className: 'gasto-marca', textContent: marca })] : [])),
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
   li.dataset.gasto = chave;
   return li;
@@ -517,13 +584,24 @@ function guardarGastosRecolhidos(recolhidos) {
   } catch (erro) { /* sem espaço: fica a escolha deste aparelho */ }
 }
 
-// --- "Gastos do mês" agrupados por categoria ---
-// Categorias abertas (ids), só enquanto a app estiver aberta: ao abrir a app começa tudo fechado. Mantêm-se ao mudar
-// de período e de pessoa; as de categorias apagadas são esquecidas.
+// --- "Gastos do mês": "Por categorizar" e os blocos Casa e Pessoal, agrupados por categoria ---
+// Categorias abertas, só enquanto a app estiver aberta: ao abrir a app começa tudo fechado. Guardadas por bloco e por
+// categoria ("casa|id", "pessoal|id" ou "por-categorizar|id"), porque uma categoria pode estar nos dois blocos (com
+// gastos marcados à parte). Mantêm-se ao mudar de período e de pessoa; as de categorias apagadas são esquecidas.
 const categoriasAbertas = new Set();
-// Gastos acabados de registar, editar ou importar ("despesa:id" ou "compras:id"): a categoria deles abre e o primeiro
-// que aparecer na lista fica à vista, com um realce breve. Só vale para o desenho seguinte da lista na vista Gastos.
+// Gastos acabados de registar, editar ou importar ("despesa:id" ou "compras:id"): a categoria deles abre (no bloco
+// certo) e o primeiro que aparecer na lista fica à vista, com um realce breve. Só vale para o desenho seguinte da lista
+// na vista Gastos.
 let gastosADestacar = [];
+
+const BLOCOS_GASTOS = [
+  { tipo: 'casa', titulo: 'Casa' },
+  { tipo: 'pessoal', titulo: 'Pessoal' },
+];
+
+function chaveAberta(bloco, id) {
+  return `${bloco}|${id}`;
+}
 
 function ePorCategorizar(id) {
   return chaveTexto(nomeCategoriaDespesa(id)) === chaveTexto(CATEGORIA_POR_CATEGORIZAR);
@@ -543,6 +621,38 @@ function gruposPorCategoria(lista) {
       || a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }));
 }
 
+// Somas por bloco de uma lista (itens de todosOsGastos): { casa, pessoal, porCategorizar } em cêntimos.
+function somasPorBloco(lista) {
+  const somas = { casa: 0, pessoal: 0, porCategorizar: 0 };
+  lista.forEach((g) => {
+    const bloco = blocoDoGasto(g);
+    if (bloco === 'por-categorizar') somas.porCategorizar += g.centimos;
+    else somas[bloco] += g.centimos;
+  });
+  return somas;
+}
+
+// Ícones de traço dos blocos: uma casa (cor de destaque) e uma pessoa (cor de acento própria, ver style.css).
+const ICONES_BLOCOS = {
+  casa: ['M3.5 11 12 4l8.5 7', 'M6 9.5V20h12V9.5', 'M10 20v-5h4v5'],
+  pessoal: ['M12 4.5a3.5 3.5 0 1 1 0 7a3.5 3.5 0 1 1 0-7z', 'M5 20c.7-3.6 3.6-5.8 7-5.8s6.3 2.2 7 5.8'],
+};
+function iconeBloco(tipo) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('class', `icone-bloco icone-bloco-${tipo}`);
+  ICONES_BLOCOS[tipo].forEach((d) => {
+    const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    caminho.setAttribute('d', d);
+    svg.append(caminho);
+  });
+  return svg;
+}
+
 // Leva o gasto até à vista (scroll suave, sem animação se o sistema pedir menos movimento) e realça-o durante 1 s.
 const MENOS_MOVIMENTO = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 function mostrarGastosDestacados(caixa, chaves) {
@@ -560,20 +670,37 @@ function mostrarGastosDestacados(caixa, chaves) {
 }
 
 // Barra fixa no fundo da vista: o nome do período e o total do que está escolhido no seletor (mercearia e gastos
-// gerais). O ano só aparece quando não é o atual. "totalCasa" (o dos dois juntos) só aparece, por baixo, com o seletor
-// visível e uma escolha que não seja "Casa"; null esconde-o.
-function desenharTotalMes(periodo, total, totalCasa = null) {
+// gerais). O ano só aparece quando não é o atual. Por baixo do total, "Casa … · Pessoal …" (só as partes com valor;
+// "Por categorizar" conta no total, mas em nenhuma delas). "totalJuntos" (o dos dois juntos) só aparece, ainda por baixo,
+// com o seletor visível e uma escolha que não seja "Juntos"; null esconde-o.
+function desenharTotalMes(periodo, total, somas, totalJuntos = null) {
   const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
   document.getElementById('gastos-total-mes').textContent =
     periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`; // na barra, sem "de", para caber
   document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
-  const casa = document.getElementById('gastos-total-casa');
-  casa.textContent = totalCasa === null ? '' : `Casa: ${formatarEuros(totalCasa)}`;
-  casa.hidden = totalCasa === null;
+  const partes = BLOCOS_GASTOS.filter((b) => somas[b.tipo] > 0)
+    .map((b) => criar('span', { className: 'gastos-total-parte', textContent: `${b.titulo} ${formatarEuros(somas[b.tipo])}` }));
+  const blocos = document.getElementById('gastos-total-blocos');
+  blocos.replaceChildren(...partes.flatMap((parte, i) => (i ? [criar('span', { className: 'gastos-total-ponto', textContent: ' · ' }), parte] : [parte])));
+  blocos.hidden = partes.length === 0;
+  const juntos = document.getElementById('gastos-total-casa');
+  juntos.textContent = totalJuntos === null ? '' : `Juntos: ${formatarEuros(totalJuntos)}`;
+  juntos.hidden = totalJuntos === null;
 }
 
-// Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos, agrupados por categoria.
-// Com o seletor de pessoas visível, só os gastos da escolha (ver gastosDaEscolha).
+// A barra do total muda de altura (com as linhas de baixo): a vista e os avisos acompanham-na (--altura-barra-total,
+// ver style.css). Só se mede quando se vê (escondida, mede 0).
+const barraTotal = document.getElementById('gastos-total-barra');
+if (window.ResizeObserver) {
+  new ResizeObserver(() => {
+    const altura = barraTotal.offsetHeight;
+    if (altura) document.documentElement.style.setProperty('--altura-barra-total', `${altura}px`);
+  }).observe(barraTotal);
+}
+
+// Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos. Com o seletor de pessoas
+// visível, só os gastos da escolha (ver gastosDaEscolha). De cima para baixo: "Por categorizar" (fora dos blocos) e os
+// blocos Casa e Pessoal, cada um com as suas categorias; um bloco sem gastos não aparece.
 function desenharDespesasMes(periodo) {
   const comPessoas = desenharSeletorPessoas();
   const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
@@ -584,61 +711,90 @@ function desenharDespesasMes(periodo) {
   const chaveDe = (g) => `${g.origem}:${g.id}`;
 
   // As categorias apagadas deixam de contar como abertas.
-  [...categoriasAbertas].forEach((id) => { if (!categoriasDespesas.some((c) => c.id === id)) categoriasAbertas.delete(id); });
-  // Um gasto acabado de registar, editar ou importar abre a sua categoria (só quando a vista Gastos se vê: depois de
-  // "Registar compras", na Mercearia, espera pela entrada nos Gastos).
+  [...categoriasAbertas].forEach((chave) => {
+    const id = chave.slice(chave.indexOf('|') + 1);
+    if (!categoriasDespesas.some((c) => c.id === id)) categoriasAbertas.delete(chave);
+  });
+  // Um gasto acabado de registar, editar ou importar abre a sua categoria, no bloco dele (só quando a vista Gastos se
+  // vê: depois de "Registar compras", na Mercearia, espera pela entrada nos Gastos).
   let destacados = [];
   if (vistaAtual === 'gastos' && gastosADestacar.length) {
     destacados = gastosADestacar;
     gastosADestacar = [];
-    doMes.forEach((g) => { if (destacados.includes(chaveDe(g))) categoriasAbertas.add(g.categoria); });
+    doMes.forEach((g) => { if (destacados.includes(chaveDe(g))) categoriasAbertas.add(chaveAberta(blocoDoGasto(g), g.categoria)); });
   }
-  const grupos = gruposPorCategoria(doMes);
+
+  // Secções: "Por categorizar" (sem título) e os blocos com gastos, cada uma com os seus grupos.
+  const seccoes = [
+    { bloco: 'por-categorizar', grupos: gruposPorCategoria(doMes.filter((g) => blocoDoGasto(g) === 'por-categorizar')) },
+    ...BLOCOS_GASTOS.map((b) => ({ bloco: b.tipo, titulo: b.titulo, grupos: gruposPorCategoria(doMes.filter((g) => blocoDoGasto(g) === b.tipo)) })),
+  ].filter((seccao) => seccao.grupos.length);
   // Um gasto aberto para editar que deixou de se ver (categoria fechada ou fora da lista) é fechado, sem guardar.
-  if (despesaAEditar && !grupos.some((gr) => categoriasAbertas.has(gr.id) && gr.gastos.some((g) => chaveDe(g) === despesaAEditar))) {
+  if (despesaAEditar && !seccoes.some((seccao) => seccao.grupos.some((gr) => categoriasAbertas.has(chaveAberta(seccao.bloco, gr.id))
+    && gr.gastos.some((g) => chaveDe(g) === despesaAEditar)))) {
     despesaAEditar = null;
   }
 
   const caixa = document.getElementById('mes-gastos');
   caixa.dataset.mes = periodo.chave;
-  if (grupos.length) {
-    caixa.replaceChildren(criar('ul', { className: 'gastos-grupos', id: 'gastos-lista' }, ...grupos.map((grupo, i) => {
-      const aberta = categoriasAbertas.has(grupo.id);
-      const porCategorizar = ePorCategorizar(grupo.id);
-      const n = grupo.gastos.length;
-      const contagem = `${n} ${n === 1 ? 'gasto' : 'gastos'}${porCategorizar ? ' · toca para arrumar' : ''}`;
-      const idLista = `gastos-grupo-${i}`;
-      const botao = criar('button', {
-        type: 'button',
-        className: 'gastos-grupo-linha',
-        'aria-expanded': String(aberta),
-        'aria-controls': idLista,
-        onclick: () => {
-          if (aberta) categoriasAbertas.delete(grupo.id);
-          else categoriasAbertas.add(grupo.id);
-          redesenhar();
-          // O foco fica no botão da mesma categoria (a lista foi desenhada outra vez).
-          const mesmo = [...caixa.querySelectorAll('.gastos-grupo-linha')].find((b) => b.dataset.categoria === grupo.id);
-          if (mesmo) mesmo.focus({ preventScroll: true });
-        },
+  const linhaGrupo = (bloco, grupo) => {
+    const chave = chaveAberta(bloco, grupo.id);
+    const aberta = categoriasAbertas.has(chave);
+    const porCategorizar = bloco === 'por-categorizar';
+    const n = grupo.gastos.length;
+    // No bloco que não é o da categoria (gastos marcados à parte), diz de onde vêm.
+    const daCategoria = tipoDaCategoria(grupo.id);
+    const aParte = !porCategorizar && daCategoria !== bloco
+      ? ` · ${daCategoria === 'pessoal' ? 'pessoal' : 'da casa'}, ${n === 1 ? 'marcado' : 'marcados'} como ${bloco === 'pessoal' ? 'Pessoal' : 'da casa'}`
+      : '';
+    const contagem = `${n} ${n === 1 ? 'gasto' : 'gastos'}${porCategorizar ? ' · toca para arrumar' : aParte}`;
+    const idLista = `gastos-grupo-${bloco}-${grupo.id}`.replace(/[^\w-]/g, '_');
+    const botao = criar('button', {
+      type: 'button',
+      className: 'gastos-grupo-linha',
+      'aria-expanded': String(aberta),
+      'aria-controls': idLista,
+      onclick: () => {
+        if (aberta) categoriasAbertas.delete(chave);
+        else categoriasAbertas.add(chave);
+        redesenhar();
+        // O foco fica no botão da mesma categoria, no mesmo bloco (a lista foi desenhada outra vez).
+        const mesmo = [...caixa.querySelectorAll('.gastos-grupo-linha')].find((b) => b.dataset.chave === chave);
+        if (mesmo) mesmo.focus({ preventScroll: true });
       },
-      criar('span', { className: 'gastos-grupo-texto' },
-        criar('span', { className: 'gastos-grupo-nome', textContent: grupo.nome }),
-        criar('span', { className: 'gastos-grupo-contagem', textContent: contagem })),
-      criar('span', { className: 'gastos-grupo-total', textContent: formatarEuros(grupo.total) }),
-      criar('span', { className: 'botao-linha-seta', 'aria-hidden': 'true', textContent: '›' }));
-      botao.dataset.categoria = grupo.id;
-      return criar('li', { className: porCategorizar ? 'gastos-grupo gastos-grupo-por-categorizar' : 'gastos-grupo' },
-        botao,
-        criar('ul', { className: 'gastos-lista gastos-grupo-lista', id: idLista, hidden: !aberta },
-          ...(aberta ? grupo.gastos.map((g) => linhaDespesa(g, redesenhar)) : [])));
-    })));
+    },
+    criar('span', { className: 'gastos-grupo-texto' },
+      criar('span', { className: 'gastos-grupo-nome', textContent: grupo.nome }),
+      // Com a explicação dos marcados à parte, o texto pode passar para a linha seguinte (não se corta).
+      criar('span', { className: aParte ? 'gastos-grupo-contagem gastos-grupo-contagem-a-parte' : 'gastos-grupo-contagem', textContent: contagem })),
+    criar('span', { className: 'gastos-grupo-total', textContent: formatarEuros(grupo.total) }),
+    criar('span', { className: 'botao-linha-seta', 'aria-hidden': 'true', textContent: '›' }));
+    botao.dataset.categoria = grupo.id;
+    botao.dataset.chave = chave;
+    return criar('li', { className: porCategorizar ? 'gastos-grupo gastos-grupo-por-categorizar' : 'gastos-grupo' },
+      botao,
+      criar('ul', { className: 'gastos-lista gastos-grupo-lista', id: idLista, hidden: !aberta },
+        ...(aberta ? grupo.gastos.map((g) => linhaDespesa(g, redesenhar)) : [])));
+  };
+  if (seccoes.length) {
+    caixa.replaceChildren(...seccoes.map((seccao) => {
+      const lista = criar('ul', { className: 'gastos-grupos' }, ...seccao.grupos.map((grupo) => linhaGrupo(seccao.bloco, grupo)));
+      if (seccao.bloco === 'por-categorizar') return lista;
+      const idTitulo = `gastos-bloco-${seccao.bloco}-titulo`;
+      const subtotal = somaCentimos(seccao.grupos.flatMap((gr) => gr.gastos));
+      return criar('section', { className: `gastos-bloco gastos-bloco-${seccao.bloco}`, 'aria-labelledby': idTitulo },
+        criar('h3', { className: 'gastos-bloco-titulo', id: idTitulo },
+          iconeBloco(seccao.bloco),
+          criar('span', { className: 'gastos-bloco-nome', textContent: seccao.titulo }),
+          criar('span', { className: 'gastos-bloco-total', textContent: formatarEuros(subtotal) })),
+        lista);
+    }));
   } else {
     caixa.replaceChildren(criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
   }
   if (destacados.length) mostrarGastosDestacados(caixa, destacados);
   // O total é sempre de todos os gastos do período (da escolha), com as categorias abertas ou fechadas.
-  desenharTotalMes(periodo, somaCentimos(doMes), comPessoas && escolhaPessoas !== 'casa' ? somaCentimos(doPeriodo) : null);
+  desenharTotalMes(periodo, somaCentimos(doMes), somasPorBloco(doMes), comPessoas && escolhaPessoas !== 'casa' ? somaCentimos(doPeriodo) : null);
   // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
   if (despesaAEditar) abrirComVoltar('editar-gasto', 'gastos', () => { despesaAEditar = null; redesenhar(); });
   else fechadoSemVoltar('editar-gasto');
@@ -647,14 +803,28 @@ function desenharDespesasMes(periodo) {
 // --- Categorias de gastos ---
 const estadoCategoriasDespesas = { aRenomear: null };
 
-// Só a gestão: nome e lápis (os totais estão em "Gastos do mês").
+// Só a gestão: nome e lápis (os totais estão em "Gastos do mês"). As pessoais têm a etiqueta "Pessoal".
 function itensCategoriasDespesas() {
   return categoriasDespesasOrdenadas().map((c) => ({
     chave: c.id,
     nome: c.nome,
     podeRenomear: true,
     podeApagar: !CATEGORIAS_FIXAS.includes(c.id),
+    ...(tipoDaCategoria(c.id) === 'pessoal' ? { etiqueta: 'Pessoal' } : {}),
   }));
+}
+
+// No cartão do lápis, por baixo do nome: "Os gastos desta categoria são" "Da casa" / "Pessoais". "Por categorizar"
+// não tem tipo (aparece sempre à parte), por isso não tem o controlo.
+function campoTipoCategoria(item) {
+  const tipo = tipoDaCategoria(item.chave);
+  if (tipo === null) return null;
+  return escolhaDeDuas({
+    id: 'despesas-categoria-tipo',
+    rotulo: 'Os gastos desta categoria são',
+    opcoes: [['casa', 'Da casa'], ['pessoal', 'Pessoais']],
+    valor: tipo,
+  });
 }
 
 function aposMudarCategorias() {
@@ -666,7 +836,8 @@ function aposMudarCategorias() {
 
 function criarCategoriaDespesa(nome) {
   // As novas ficam guardadas no fim da lista, antes de Outros (no ecrã aparecem por ordem alfabética).
-  categoriasDespesas = [...categoriasDespesas.slice(0, -1), { id: novoId(), nome }, categoriasDespesas[categoriasDespesas.length - 1]];
+  // Uma nova começa como "Da casa".
+  categoriasDespesas = [...categoriasDespesas.slice(0, -1), { id: novoId(), nome, tipo: 'casa' }, categoriasDespesas[categoriasDespesas.length - 1]];
   if (!guardarCategoriasDespesas()) {
     categoriasDespesas = categoriasDespesas.filter((c) => c.nome !== nome);
     return 'Não foi possível guardar.';
@@ -675,18 +846,27 @@ function criarCategoriaDespesa(nome) {
   return null;
 }
 
-// Os gastos guardam o id da categoria: renomear não mexe em nenhum gasto.
-function renomearCategoriaDespesa(id, nome) {
+// Os gastos guardam o id da categoria: renomear não mexe em nenhum gasto. O tipo ("casa" ou "pessoal") grava-se com o
+// nome; os gastos sem marca própria seguem-no logo, em todos os períodos (nenhum gasto é alterado).
+function renomearCategoriaDespesa(id, nome, tipo) {
   const categoria = categoriasDespesas.find((c) => c.id === id);
   if (!categoria) return 'Esta categoria já não existe.';
-  const antigo = categoria.nome;
+  const antigo = { ...categoria };
+  const tipoAntes = tipoDaCategoria(id);
+  const mudaTipo = TIPOS_GASTO.includes(tipo) && tipoAntes !== null && tipo !== tipoAntes;
+  if (antigo.nome === nome && !mudaTipo) return null; // nada mudou: só fecha
   categoria.nome = nome;
+  if (mudaTipo) categoria.tipo = tipo;
   if (!guardarCategoriasDespesas()) {
-    categoria.nome = antigo;
+    Object.keys(categoria).forEach((campo) => { if (!(campo in antigo)) delete categoria[campo]; });
+    Object.assign(categoria, antigo);
     return 'Não foi possível guardar.';
   }
   aposMudarCategorias();
-  if (antigo !== nome) avisar(`Categoria "${antigo}" passou a "${nome}".`);
+  const avisos = [];
+  if (antigo.nome !== nome) avisos.push(`Categoria "${antigo.nome}" passou a "${nome}".`);
+  if (mudaTipo) avisos.push(`Os gastos de "${nome}" passaram a ${tipo === 'pessoal' ? 'pessoais' : 'da casa'}.`);
+  avisar(avisos.join(' '));
   return null;
 }
 
@@ -733,6 +913,7 @@ function desenharCategoriasDespesas() {
     aoCriar: criarCategoriaDespesa,
     aoRenomear: renomearCategoriaDespesa,
     aoApagar: apagarCategoriaDespesa,
+    campoExtra: campoTipoCategoria,
   });
 }
 

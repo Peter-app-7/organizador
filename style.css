@@ -19,6 +19,8 @@
   --ambar-contorno: #d79a55;
   /* Realce breve de um gasto acabado de registar, editar ou importar. */
   --realce: #d6eeec;
+  /* Ícone do bloco "Pessoal" em "Gastos do mês" (contraste de pelo menos 3:1 sobre o fundo e o cartão). */
+  --pessoal: #2f5fb3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,6 +41,7 @@
     --ambar-fundo: #2b2217;
     --ambar-contorno: #8a5a26;
     --realce: #1d3a39;
+    --pessoal: #8fb4f0;
   }
 }
 
@@ -300,8 +303,9 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
 .mes-vazio-curto { margin: 8px 0 0; font-size: .9rem; color: var(--texto-suave); }
 #despesas-comerciantes { margin-bottom: 8px; }
 
-/* Barra fixa do total do mês, acima da barra de separadores (60 px + contorno + zona segura). */
-#vista-gastos { padding-bottom: 60px; }
+/* Barra fixa do total do mês, acima da barra de separadores (60 px + contorno + zona segura). A altura da barra muda
+   com as linhas de baixo (Casa/Pessoal e Juntos): é medida em despesas.js (--altura-barra-total) e a vista dá-lhe espaço. */
+#vista-gastos { padding-bottom: calc(var(--altura-barra-total, 53px) + 8px); }
 .gastos-total-barra {
   position: fixed;
   left: 0; right: 0;
@@ -316,15 +320,16 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
   background: var(--cartao);
   border-top: 1px solid var(--linha);
 }
-.gastos-total-mes { min-width: 0; font-weight: 600; color: var(--texto-suave); }
-.gastos-total-direita { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
+.gastos-total-mes { flex: none; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
+.gastos-total-direita { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
+/* "Casa 376,50 € · Pessoal 84,30 €": cada parte não se parte; se não couberem as duas, a segunda passa para baixo. */
+.gastos-total-blocos { font-size: .8rem; line-height: 1.25; color: var(--texto-suave); overflow-wrap: normal; }
+.gastos-total-parte { white-space: nowrap; }
 .gastos-total-valor { flex: none; font-size: 1.35rem; font-weight: 700; color: var(--texto); }
-/* "Casa: 530,00 €", por baixo do total, só com o seletor de pessoas. A barra fica mais alta: a vista ganha espaço. */
+/* "Juntos: 530,00 €", por baixo do total, só com o seletor de pessoas. */
 .gastos-total-casa { font-size: .8rem; line-height: 1.2; color: var(--texto-suave); white-space: nowrap; }
-body.gastos-com-pessoas #vista-gastos { padding-bottom: 80px; }
-body.gastos-com-pessoas[data-vista="gastos"] .aviso { bottom: calc(144px + env(safe-area-inset-bottom)); }
 /* Na vista Gastos, os avisos ficam acima da barra do total. */
-body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bottom)); }
+body[data-vista="gastos"] .aviso { bottom: calc(71px + var(--altura-barra-total, 53px) + env(safe-area-inset-bottom)); }
 .titulo-com-botao h3.despesas-subtitulo { margin: 0; }
 .mes-navegacao { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 8px; }
 .mes-navegacao button { min-height: 44px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; font-size: 1.05rem; }
@@ -457,11 +462,23 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .gastos-grupo-nome { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .gastos-grupo-contagem { font-size: .8rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .gastos-grupo-total { flex: none; font-weight: 600; white-space: nowrap; }
+.gastos-grupo-contagem-a-parte { white-space: normal; overflow-wrap: normal; }
 .gastos-grupo-linha .botao-linha-seta { transition: transform .2s ease; }
 .gastos-grupo-linha[aria-expanded="true"] .botao-linha-seta { transform: rotate(90deg); }
 .gastos-grupo-por-categorizar .gastos-grupo-linha { background: var(--ambar-fundo); border-color: var(--ambar-contorno); }
 .gastos-grupo-por-categorizar .gastos-grupo-contagem { color: var(--alerta); font-weight: 600; }
 .gastos-grupo-lista { margin: 6px 0 0 12px; }
+/* Blocos "Casa" e "Pessoal": título com ícone e subtotal à direita; por baixo, as categorias como antes. */
+.gastos-bloco { margin-top: 16px; }
+.gastos-bloco-titulo { display: flex; align-items: center; gap: 8px; min-height: 32px; margin: 0; font-size: 1.05rem; color: var(--texto); }
+.gastos-bloco-nome { flex: 1; min-width: 0; }
+.gastos-bloco-total { flex: none; font-weight: 700; white-space: nowrap; }
+.gastos-bloco .gastos-grupos { margin-top: 6px; }
+.icone-bloco { flex: none; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icone-bloco-casa { stroke: var(--destaque); }
+.icone-bloco-pessoal { stroke: var(--pessoal); }
+/* "marcado como Pessoal" / "marcado como da casa", por baixo da nota de um gasto marcado à parte. */
+.gasto-marca { font-size: .8rem; color: var(--texto-suave); }
 @media (prefers-reduced-motion: reduce) {
   .gastos-grupo-linha .botao-linha-seta, .gastos-lista > li[data-gasto] .gasto-linha { transition: none; }
 }
@@ -484,6 +501,19 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 }
 .categoria-nome { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .categoria-detalhe { display: block; font-size: .75rem; color: var(--texto-suave); }
+/* Etiqueta "Pessoal" ao lado do nome, nas categorias de gastos pessoais. */
+.categoria-etiqueta { display: inline-block; margin-left: 4px; padding: 0 6px; font-size: .75rem; line-height: 1.5; color: var(--texto-suave); border: 1px solid var(--linha); border-radius: 6px; vertical-align: 1px; }
+
+/* Controlo de duas opções ("Da casa" / "Pessoal"): rótulo e dois botões iguais de 44 px, como o seletor de pessoas. */
+.escolha-duas-caixa { display: grid; gap: 4px; }
+.escolha-duas-rotulo { font-size: .9rem; color: var(--texto-suave); }
+.escolha-duas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--cartao); }
+.escolha-duas button { min-width: 0; min-height: 44px; margin: 0; padding: 0 10px; font-size: .95rem; color: var(--texto); background: none; border: 0; border-radius: 0; }
+.escolha-duas button + button { border-left: 1px solid var(--linha); }
+.escolha-duas button[aria-pressed="true"] { background: var(--destaque); color: var(--destaque-texto); font-weight: 600; }
+.formulario-edicao .escolha-duas-caixa { margin-top: 6px; }
+.campo-tipo { display: grid; gap: 4px; }
+.campo-tipo .nota-tipo { margin: 0; }
 .categoria-detalhe.regra-para-rever { color: var(--vermelho); font-weight: 600; }
 .regras-para-rever { margin: 0 0 8px; }
 .categoria-linha .botao-pequeno, .categoria-nova .botao-pequeno { min-height: 44px; }

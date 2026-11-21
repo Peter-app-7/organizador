@@ -5,7 +5,7 @@
 //
 // - Os gastos importados ficam em organizador-despesas, como gastos gerais, com "pessoa" (o nome como vem no ficheiro),
 //   "csvMarca" ("pessoa normalizada|id do ficheiro") e "origemOriginal" ("compras", "manual" ou "cartao").
-//   Nunca se misturam com os meus: o seletor "Meus · <pessoa> · Casa" (despesas.js) separa-os.
+//   Nunca se misturam com os meus: o seletor "Meus · <pessoa> · Juntos" (despesas.js) separa-os.
 // - Sem duplicados: cada marca importada fica em dados.csvImportados; uma marca que lá esteja, ou num gasto, não volta
 //   a entrar (nem depois de apagar ou editar o gasto).
 // - As linhas com o meu nome (Definições, "O teu nome") são minhas e são ignoradas.
@@ -83,10 +83,12 @@ function lerRegistosCsv(texto) {
   return registos;
 }
 
-// Uma linha de dados do ficheiro: { id, data, pessoa, origem, categoria, descricao, comerciante, centimos } ou null.
-function lerLinhaCsvGasto(registo) {
-  if (registo.malFormado || registo.campos.length !== CABECALHO_CSV.length) return null;
-  const [id, data, , pessoa, origem, categoria, descricao, comerciante, valor] = registo.campos;
+// Uma linha de dados do ficheiro: { id, data, pessoa, origem, categoria, descricao, comerciante, centimos, tipo } ou null.
+// "colunas" é o número de colunas do cabeçalho: 9 (ficheiros antigos, sem tipo) ou 10. "tipo" só vale "casa" ou
+// "pessoal"; outro valor, ou sem a coluna, fica null (o gasto segue a categoria).
+function lerLinhaCsvGasto(registo, colunas = CABECALHO_CSV.length) {
+  if (registo.malFormado || registo.campos.length !== colunas) return null;
+  const [id, data, , pessoa, origem, categoria, descricao, comerciante, valor, tipoBruto = ''] = registo.campos;
   const lido = lerValor(valor);
   if (!id.trim() || !dataValida(data.trim()) || lido.erro) return null;
   return {
@@ -98,6 +100,7 @@ function lerLinhaCsvGasto(registo) {
     descricao: descricao.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA),
     comerciante: comerciante.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA),
     centimos: lido.centimos,
+    tipo: TIPOS_GASTO.includes(tipoBruto.trim()) ? tipoBruto.trim() : null,
   };
 }
 
@@ -107,13 +110,16 @@ function analisarCsvGastos(texto, meuNome) {
   const registos = lerRegistosCsv(texto.replace(/^﻿/, ''));
   if (registos.length === 0) return { erro: 'O ficheiro está vazio. Nada foi importado.' };
   const [cabecalho, ...linhas] = registos;
-  if (cabecalho.malFormado || cabecalho.campos.join(';') !== CABECALHO_CSV.join(';')) {
+  // Aceita o cabeçalho de agora (com "tipo") e o antigo (9 colunas); outro qualquer é recusado.
+  const textoCabecalho = cabecalho.campos.join(';');
+  const colunas = [CABECALHO_CSV, CABECALHO_CSV_ANTIGO].find((c) => c.join(';') === textoCabecalho);
+  if (cabecalho.malFormado || !colunas) {
     return { erro: 'Este ficheiro não é uma exportação de gastos do Organizador.' };
   }
   const validas = [];
   let ignoradas = 0;
   linhas.forEach((registo) => {
-    const linha = lerLinhaCsvGasto(registo);
+    const linha = lerLinhaCsvGasto(registo, colunas.length);
     if (linha) validas.push(linha);
     else ignoradas += 1;
   });
@@ -198,7 +204,7 @@ function mostrarPreviaCsv(analise, meuNome) {
     criar('h3', { className: 'despesas-registo-titulo', id: 'gastos-importar-csv-titulo', textContent: 'Importar gastos' }),
     criar('ul', { className: 'previa-lista' }, ...partes.map((parte) => criar('li', { textContent: parte }))),
     ...(semCategoria ? [criar('p', { className: 'nota-previa', textContent: `${semCategoria} ${semCategoria === 1 ? 'fica' : 'ficam'} em "${CATEGORIA_POR_CATEGORIZAR}" (categoria que não existe neste aparelho).` })] : []),
-    criar('p', { className: 'nota-previa', textContent: 'Os gastos importados não se misturam com os teus: escolhe "Meus", a pessoa ou "Casa" por cima da lista.' }),
+    criar('p', { className: 'nota-previa', textContent: 'Os gastos importados não se misturam com os teus: escolhe "Meus", a pessoa ou "Juntos" por cima da lista.' }),
     criar('div', { className: 'formulario formulario-gasto' },
       criar('button', { type: 'button', className: 'botao-principal', textContent: `Importar ${numero} ${numero === 1 ? 'gasto' : 'gastos'}`, onclick: confirmarImportarCsv }),
       criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: () => { fecharPreviaCsv(); botaoImportarCsv.focus(); } })),
@@ -228,10 +234,18 @@ function confirmarImportarCsv() {
   const porCategorizar = precisaPorCategorizar ? garantirCategoriaPorCategorizar() : null;
   if (precisaPorCategorizar && !porCategorizar) return; // já foi avisado de que não deu para guardar
   const antes = despesas;
+  // Com a coluna "tipo": o gasto só fica com tipo próprio se o do ficheiro for diferente do da categoria neste telemóvel;
+  // em "Por categorizar" (sem tipo), fica o do ficheiro, se vier. Sem a coluna, segue a categoria.
+  const tipoDoCsv = (linha, categoria) => {
+    if (!linha.tipo) return {};
+    const daCategoria = tipoDaCategoria(categoria);
+    return daCategoria === null || linha.tipo !== daCategoria ? { tipo: linha.tipo } : {};
+  };
   const novos = novas.map((linha) => ({
     id: novoId(),
     data: linha.data,
     categoria: categoriaDoCsv(linha) || porCategorizar,
+    ...tipoDoCsv(linha, categoriaDoCsv(linha) || porCategorizar),
     centimos: linha.centimos,
     nota: linha.descricao,
     ...(linha.comerciante ? { comerciante: linha.comerciante } : {}),

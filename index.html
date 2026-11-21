@@ -132,7 +132,7 @@
         <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
       </div>
       <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar ao período de hoje</button>
-      <!-- Só com gastos importados de outra pessoa (js/importar-csv.js): "Meus", um botão por pessoa e "Casa" (os dois juntos). -->
+      <!-- Só com gastos importados de outra pessoa (js/importar-csv.js): "Meus", um botão por pessoa e "Juntos" (os dois juntos). -->
       <div id="gastos-pessoas" class="gastos-pessoas" role="group" aria-label="Gastos de quem" hidden></div>
 
       <div class="titulo-com-botao bloco-gastos despesas-cabecalho">
@@ -147,7 +147,9 @@
         <span id="gastos-total-mes" class="gastos-total-mes"></span>
         <span class="gastos-total-direita">
           <span id="gastos-total-valor" class="gastos-total-valor"></span>
-          <!-- Só com o seletor de pessoas visível e uma escolha que não seja "Casa": o total dos dois juntos. -->
+          <!-- "Casa 376,50 € · Pessoal 84,30 €": só as partes com valor ("Por categorizar" não entra em nenhuma). -->
+          <span id="gastos-total-blocos" class="gastos-total-blocos" hidden></span>
+          <!-- Só com o seletor de pessoas visível e uma escolha que não seja "Juntos": o total dos dois juntos. -->
           <span id="gastos-total-casa" class="gastos-total-casa" hidden></span>
         </span>
       </div>

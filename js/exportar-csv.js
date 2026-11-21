@@ -1,12 +1,22 @@
 // exportar-csv.js: "Exportar (CSV)", no topo da vista Gastos (aria-label "Exportar gastos (CSV)"), e o nome para a coluna "pessoa" (em Definições).
 // Exporta todos os períodos: os registos de "Registar compras" e os gastos gerais (incluindo os do cartão), cada um uma
 // vez, do mais antigo para o mais recente. Ficheiro gastos-AAAA-MM-DD.csv, UTF-8 com BOM, separado por ";", com o cabeçalho
-// id;data;periodo;pessoa;origem;categoria;descricao;comerciante;valor
+// id;data;periodo;pessoa;origem;categoria;descricao;comerciante;valor;tipo
+// A coluna "tipo" (desde 21 nov 2026) é o tipo efetivo do gasto ("casa" ou "pessoal"); vazia em "Por categorizar".
+// Os ficheiros antigos, sem ela (CABECALHO_CSV_ANTIGO), continuam a importar (importar-csv.js).
 
 // O nome fica só neste aparelho, numa chave própria, e vai na cópia de segurança em "preferencias.nomeExportacao".
 const CHAVE_NOME_EXPORTACAO = 'organizador-nome-exportacao';
 const NOME_EXPORTACAO_MAXIMO = 60; // letras
-const CABECALHO_CSV = ['id', 'data', 'periodo', 'pessoa', 'origem', 'categoria', 'descricao', 'comerciante', 'valor'];
+const CABECALHO_CSV_ANTIGO = ['id', 'data', 'periodo', 'pessoa', 'origem', 'categoria', 'descricao', 'comerciante', 'valor'];
+const CABECALHO_CSV = [...CABECALHO_CSV_ANTIGO, 'tipo'];
+
+// Tipo efetivo para a coluna "tipo": o do bloco do gasto; em "Por categorizar", o que o gasto tiver (ex.: vindo de outro
+// ficheiro) ou vazio.
+function tipoCsvDoGasto(g) {
+  const bloco = blocoDoGasto(g);
+  return bloco === 'por-categorizar' ? (g.tipo || '') : bloco;
+}
 
 function limparNomeExportacao(texto) {
   return String(texto || '').replace(/\s+/g, ' ').trim().slice(0, NOME_EXPORTACAO_MAXIMO);
@@ -96,6 +106,7 @@ function linhasCsvGastos() {
         g.nota || '',
         compras ? '' : (g.registo.comerciante || ''),
         valorCsv(g.centimos),
+        tipoCsvDoGasto(g),
       ];
     });
 }

@@ -35,6 +35,31 @@ function botoesEdicao(formulario, { aoCancelar, aoApagar }) {
     ...(aoApagar ? [criar('button', { type: 'button', className: 'botao-apagar-texto', textContent: 'Apagar', onclick: aoApagar })] : []));
 }
 
+// Controlo de duas opções (ex.: "Da casa" / "Pessoal"): um rótulo e dois botões de 44 px com aria-pressed, num grupo com
+// aria-labelledby. "opcoes" = [[valor, texto], [valor, texto]]. aoMudar(valor) só corre quando se toca num botão.
+// Devolve { elemento, valor(), definir(valor) }.
+function escolhaDeDuas({ id, rotulo, opcoes, valor, aoMudar }) {
+  let atual = valor;
+  const botoes = opcoes.map(([v, texto]) => criar('button', {
+    type: 'button',
+    textContent: texto,
+    'aria-pressed': String(v === atual),
+    onclick: () => {
+      definir(v);
+      if (aoMudar) aoMudar(v);
+    },
+  }));
+  function definir(v) {
+    atual = v;
+    botoes.forEach((botao, i) => botao.setAttribute('aria-pressed', String(opcoes[i][0] === v)));
+  }
+  const elemento = criar('div', { className: 'escolha-duas-caixa' },
+    criar('span', { id: `${id}-rotulo`, className: 'escolha-duas-rotulo', textContent: rotulo }),
+    criar('div', { className: 'escolha-duas', 'aria-labelledby': `${id}-rotulo` }, ...botoes));
+  elemento.querySelector('.escolha-duas').setAttribute('role', 'group');
+  return { elemento, valor: () => atual, definir };
+}
+
 // Devolve { nome } ou { erro }. "existentes" são os nomes atuais; "atual" é o nome a renomear, que pode repetir-se
 // (por exemplo, para corrigir só as maiúsculas). Compara sem maiúsculas nem acentos.
 function validarNomeCategoria(texto, existentes, atual = null) {
@@ -48,13 +73,16 @@ function validarNomeCategoria(texto, existentes, atual = null) {
 }
 
 // Desenha a lista dentro de "caixa". obterItens() devolve a lista atual, com cada item
-// { chave, nome, podeRenomear, podeApagar, detalhe }.
-// aoCriar(nome) e aoRenomear(chave, nome) devolvem uma mensagem de erro, ou null se correu bem;
+// { chave, nome, podeRenomear, podeApagar, detalhe, etiqueta } ("etiqueta": texto pequeno ao lado do nome, ex.: "Pessoal").
+// aoCriar(nome) e aoRenomear(chave, nome, extra) devolvem uma mensagem de erro, ou null se correu bem;
+// "campoExtra(item)" (opcional) devolve { elemento, valor() } para pôr no cartão por baixo do nome (ex.: o tipo das
+// categorias de gastos), ou null; o valor() chega a aoRenomear como "extra" e é guardado com o nome.
+
 // aoApagar(chave) trata da confirmação e devolve true se apagou.
 // "estado" guarda a categoria aberta para editar entre desenhos: { aRenomear: chave | null } (só uma de cada vez).
 // "vista" é a vista onde a lista está ("mercearia" ou "gastos"), para o botão voltar do Android.
 function desenharGestorCategorias(caixa, opcoes) {
-  const { obterItens, estado, prefixo, vista, aoCriar, aoRenomear, aoApagar } = opcoes;
+  const { obterItens, estado, prefixo, vista, aoCriar, aoRenomear, aoApagar, campoExtra } = opcoes;
   const itens = obterItens();
   const nomes = itens.map((item) => item.nome);
   const redesenhar = () => desenharGestorCategorias(caixa, opcoes);
@@ -94,11 +122,13 @@ function desenharGestorCategorias(caixa, opcoes) {
         criar('label', { htmlFor: campo.entrada.id, textContent: 'Nome da categoria' }),
         campo.entrada,
         campo.erro);
+      const extra = campoExtra ? campoExtra(item) : null;
+      if (extra) formulario.append(extra.elemento);
       formulario.append(botoesEdicao(formulario, { aoCancelar: fechar, aoApagar: item.podeApagar ? () => apagar(item) : null }));
       formulario.addEventListener('submit', (evento) => {
         evento.preventDefault();
         const lido = validarNomeCategoria(campo.entrada.value, nomes, item.nome);
-        const erro = lido.erro || aoRenomear(item.chave, lido.nome);
+        const erro = lido.erro || aoRenomear(item.chave, lido.nome, extra ? extra.valor() : undefined);
         if (erro) {
           campo.mostrarErro(erro);
           return;
@@ -113,6 +143,7 @@ function desenharGestorCategorias(caixa, opcoes) {
     return criar('li', { className: 'categoria-linha' },
       criar('span', { className: 'categoria-nome' },
         item.nome,
+        ...(item.etiqueta ? [' ', criar('span', { className: 'categoria-etiqueta', textContent: item.etiqueta })] : []),
         ...(item.detalhe ? [criar('span', { className: 'categoria-detalhe', textContent: item.detalhe })] : [])),
       // Abrir outra categoria fecha a que estava aberta, sem guardar.
       podeEditar

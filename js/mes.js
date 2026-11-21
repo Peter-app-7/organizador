@@ -1,7 +1,8 @@
 // mes.js: vista Gastos. De cima para baixo: "Importar do cartão" no topo, ao lado do ⚙️ (só nesta vista); título;
 // "Exportar (CSV)" e "Importar (CSV)" (exportar-csv.js e importar-csv.js) com as mensagens por baixo; "Categorias de
 // gastos" (só a gestão: dia de início, categorias e comerciantes lembrados); seletor do período; seletor
-// "Meus · <pessoa> · Casa" (só com gastos importados); bloco "Gastos do mês", agrupado por categoria (despesas.js), e a
+// "Meus · <pessoa> · Juntos" (só com gastos importados); bloco "Gastos do mês", com "Por categorizar" e os blocos Casa e
+// Pessoal, agrupados por categoria (despesas.js), e a
 // barra fixa com o total do período. A lista de
 // produtos está na vista Mercearia (mercearia.js).
 //
