@@ -63,7 +63,7 @@ async function partilharFicheiro(ficheiro) {
 const PREFIXO_CHAVES = 'organizador-';
 function chavesEmUso() {
   return [CHAVE_DADOS, CHAVE_GASTOS, CHAVE_CATEGORIAS_COMPRAS, CHAVE_DESPESAS, CHAVE_CATEGORIAS_DESPESAS,
-    CHAVE_COMERCIANTES, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_GASTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_NOMES_PESSOAS, CHAVE_TEMPO_ANTIGA,
+    CHAVE_COMERCIANTES, CHAVE_FIXOS, CHAVE_PRODUTOS_RECOLHIDOS, CHAVE_GASTOS_RECOLHIDOS, CHAVE_NOME_EXPORTACAO, CHAVE_NOMES_PESSOAS, CHAVE_TEMPO_ANTIGA,
     // O código da casa é como uma chave: nunca vai na cópia. O estado da sincronização só serve neste aparelho.
     CHAVE_CASA, CHAVE_CASA_SINCRONIZACAO];
 }
@@ -131,6 +131,8 @@ async function exportarCopia() {
     despesas,
     categoriasDespesas,
     regrasComerciantes,
+    // Desde a v48: os gastos fixos (as marcas dos meses já criados, fixosCriados, vão com os dados).
+    gastosFixos: fixos,
     // Desde a v35: preferências do aparelho, campos antigos que a app já não usa e as cópias internas da app.
     preferencias: lerPreferencias(),
     camposAntigos: lerCamposAntigos(),
@@ -146,7 +148,7 @@ async function exportarCopia() {
 }
 
 // Campos de uma cópia que não são dos dados principais, mas que a cópia completa leva ao lado deles.
-const CAMPOS_DA_COPIA = ['gastos', 'categoriasCompras', 'despesas', 'categoriasDespesas', 'regrasComerciantes',
+const CAMPOS_DA_COPIA = ['gastos', 'categoriasCompras', 'despesas', 'categoriasDespesas', 'regrasComerciantes', 'gastosFixos',
   'preferencias', 'camposAntigos', 'copiasInternas'];
 
 async function restaurarCopia(ficheiro) {
@@ -157,6 +159,7 @@ async function restaurarCopia(ficheiro) {
   let novasCategoriasDespesas = null;
   let novasDespesas = null;
   let novasRegras = null;
+  let novosFixos = null;
   // Só nas cópias feitas desde a v35; nas antigas ficam vazios e nada muda neste aparelho.
   let novasPreferencias = {};
   let novosCamposAntigos = {};
@@ -181,6 +184,8 @@ async function restaurarCopia(ficheiro) {
       novasDespesas = normalizarDespesas(despesasBrutas, novasCategoriasDespesas || categoriasDespesas);
     }
     if (regrasBrutas !== undefined) novasRegras = normalizarRegrasComerciantes(regrasBrutas, novasCategoriasDespesas || categoriasDespesas);
+    // Gastos fixos (desde a v48): se existirem, têm de ser uma lista. As cópias sem eles deixam os deste aparelho.
+    if (bruto.gastosFixos !== undefined) novosFixos = normalizarFixos(bruto.gastosFixos, novasCategoriasDespesas || categoriasDespesas);
     const objeto = (valor) => valor && typeof valor === 'object' && !Array.isArray(valor);
     // Campos antigos: os que a cópia trouxer à parte, os de antes da simplificação (limpos como sempre) e os que
     // vierem soltos (ex.: "tarefas" numa cópia muito antiga).
@@ -209,6 +214,7 @@ async function restaurarCopia(ficheiro) {
   if (novosGastos) extras.push(`${novosGastos.length} registos de compras`);
   if (novasDespesas) extras.push(`${novasDespesas.length} gastos gerais`);
   if (novasRegras) extras.push(`${novasRegras.length} comerciantes lembrados`);
+  if (novosFixos) extras.push(`${novosFixos.length} gastos fixos`);
   const resumo = `${novos.compras.length} produtos` + (extras.length ? `, ${extras.join(', ')}` : '');
   const faltam = [];
   if (!novosGastos) faltam.push('registos de compras');
@@ -231,11 +237,15 @@ async function restaurarCopia(ficheiro) {
       localStorage.setItem(CHAVE_CATEGORIAS_DESPESAS + '-antes-de-importar', JSON.stringify({ versao: 1, categorias: categoriasDespesas }));
     }
     if (novasRegras) localStorage.setItem(CHAVE_COMERCIANTES + '-antes-de-importar', JSON.stringify({ versao: 1, regras: regrasComerciantes }));
+    if (novosFixos) localStorage.setItem(CHAVE_FIXOS + '-antes-de-importar', JSON.stringify({ versao: 1, fixos }));
   } catch (erro) { /* sem espaço: segue na mesma, o utilizador já confirmou */ }
   // Primeiro os campos antigos (se não der para os guardar à parte, vão com os dados principais) e só depois os dados.
   if (!juntarCamposAntigos(novosCamposAntigos)) antigosPorGravar = { ...antigosPorGravar, ...novosCamposAntigos };
   // Com uma casa ligada, a lista importada não substitui a da nuvem: junta-se com ela no fim (casa.js).
   pausarSincronizacao();
+  // Os meses já criados pelos gastos fixos juntam-se aos deste aparelho (nunca se esquecem): restaurar uma cópia, antiga
+  // ou nova, não volta a criar um mês que já tenha sido criado aqui ou no aparelho da cópia.
+  novos.fixosCriados = { ...novos.fixosCriados, ...dados.fixosCriados };
   dados = novos;
   guardarDados();
   if (novosGastos) {
@@ -255,8 +265,14 @@ async function restaurarCopia(ficheiro) {
   // Uma cópia sem regras deixa as deste aparelho, só com as categorias que ainda existem.
   regrasComerciantes = normalizarRegrasComerciantes(novasRegras || regrasComerciantes, categoriasDespesas);
   guardarRegrasComerciantes();
+  // Uma cópia sem gastos fixos deixa os deste aparelho, só com as categorias que ainda existem.
+  fixos = normalizarFixos(novosFixos || fixos, categoriasDespesas);
+  guardarFixos();
   restaurarExtras(novasPreferencias, novasCopiasInternas);
   retomarDepoisDeImportar();
+  // Os meses devidos que ainda não foram criados em nenhum dos dois (ex.: uma cópia feita antes do dia de um fixo).
+  const criados = criarGastosFixosDevidos();
+  if (criados.length) mostrarResultadoGastos(textoFixosCriados(criados));
   desenharAjustes();
   avisar('Dados importados.');
 }

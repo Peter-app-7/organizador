@@ -87,6 +87,11 @@ function normalizarDespesas(lista, categorias) {
         ...(ORIGENS_CSV.includes(d.origemOriginal) ? { origemOriginal: d.origemOriginal } : {}),
         // Gasto marcado à parte ("casa" ou "pessoal", diferente do tipo da categoria). Sem ele, segue a categoria.
         ...(TIPOS_GASTO.includes(d.tipo) ? { tipo: d.tipo } : {}),
+        // Gastos criados por um gasto fixo (fixos.js): o id do fixo, o mês "AAAA-MM" a que pertencem e, só enquanto o
+        // valor não for confirmado, porConfirmar.
+        ...(typeof d.fixoId === 'string' && d.fixoId ? { fixoId: d.fixoId } : {}),
+        ...(typeof d.fixoMes === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(d.fixoMes) ? { fixoMes: d.fixoMes } : {}),
+        ...(d.porConfirmar === true ? { porConfirmar: true } : {}),
       };
     });
 }
@@ -425,6 +430,12 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
 
 // --- Secção "Gastos" ---
 let despesaAEditar = null; // "despesa:id" ou "compras:id" do gasto aberto para editar
+// Um gasto fixo por confirmar abre primeiro o painel "Valor deste mês" ("confirmar"); "Editar" passa ao formulário de
+// sempre ("editar").
+let modoDespesaAEditar = 'editar';
+// Valor escrito no painel "Valor deste mês", por gasto, enquanto a app estiver aberta: não se perde se a lista for
+// desenhada outra vez (ex.: ao voltar à app depois de ver a fatura noutra app).
+const valoresAConfirmar = new Map();
 const caixaNovaDespesa = document.getElementById('despesas-registo');
 const botaoNovaDespesa = document.getElementById('despesas-registar');
 
@@ -507,12 +518,17 @@ function apagarRegisto(item) {
 function linhaDespesa(item, desenharDeNovo) {
   const chave = `${item.origem}:${item.id}`;
   const categoria = nomeCategoriaDespesa(item.categoria);
+  const porConfirmar = item.origem === 'despesa' && item.registo.porConfirmar === true;
+  if (chave === despesaAEditar && porConfirmar && modoDespesaAEditar === 'confirmar') return painelConfirmarFixo(item, desenharDeNovo);
   if (chave === despesaAEditar) {
     const opcoes = {
       registo: item.registo,
       aoGuardar: (alterado) => {
         const antes = { ...item.registo };
+        // Guardar a edição de um gasto fixo por confirmar também o dá como confirmado (o valor foi visto).
+        if (porConfirmar) alterado = { ...alterado, porConfirmar: undefined };
         if (!alterarRegisto(item, alterado)) return;
+        valoresAConfirmar.delete(chave);
         despesaAEditar = null;
         // Mudar a categoria de um gasto do cartão ensina a app a categoria desse comerciante (comerciantes.js).
         // Mudar só o nome de um comerciante já lembrado passa a ser o nome a mostrar nas importações seguintes.
@@ -558,16 +574,113 @@ function linhaDespesa(item, desenharDeNovo) {
   if (pessoa) detalhe.push(' · ', criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
   // Marcado à parte: por baixo da nota, pequeno.
   const marca = marcadoAParte(item) ? `marcado como ${item.tipo === 'pessoal' ? 'Pessoal' : 'da casa'}` : '';
+  // Criado por um gasto fixo: "Fixo" ou, enquanto o valor não for confirmado, "Fixo · por confirmar" (em âmbar).
+  const doFixo = item.origem === 'despesa' && item.registo.fixoId ? (porConfirmar ? 'Fixo · por confirmar' : 'Fixo') : '';
   const li = criar('li', {}, criar('button', {
     type: 'button',
-    className: 'gasto-linha',
-    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}${marca ? `, ${marca}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
-    onclick: () => { despesaAEditar = chave; fecharNovaDespesa(); desenharDeNovo(); },
+    className: porConfirmar ? 'gasto-linha gasto-linha-por-confirmar' : 'gasto-linha',
+    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}${doFixo ? `, ${doFixo}` : ''}${marca ? `, ${marca}` : ''}, ${formatarEuros(item.centimos)}. ${porConfirmar ? 'Tocar para confirmar o valor.' : 'Tocar para editar ou apagar.'}`,
+    onclick: () => {
+      despesaAEditar = chave;
+      modoDespesaAEditar = porConfirmar ? 'confirmar' : 'editar';
+      fecharNovaDespesa();
+      desenharDeNovo();
+    },
   },
   criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
   criar('span', { className: 'gasto-texto' }, criar('span', { className: 'gasto-detalhe' }, ...detalhe),
+    ...(doFixo ? [criar('span', { className: porConfirmar ? 'gasto-marca gasto-fixo-por-confirmar' : 'gasto-marca', textContent: doFixo })] : []),
     ...(marca ? [criar('span', { className: 'gasto-marca', textContent: marca })] : [])),
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
+  li.dataset.gasto = chave;
+  return li;
+}
+
+// --- Gasto fixo por confirmar: "Valor deste mês", Confirmar, Editar e Apagar ---
+// Abre por baixo do gasto (no lugar dele): por cima, a linha do gasto, que fecha o painel ao tocar. Confirmar grava o
+// valor (se mudou) e tira a marca porConfirmar; o valor habitual do gasto fixo não muda. Apagar deixa a marca em
+// dados.fixosCriados: o gasto deste mês não volta a ser criado. Enter confirma e Esc fecha.
+function painelConfirmarFixo(item, desenharDeNovo) {
+  const chave = `${item.origem}:${item.id}`;
+  const n = ++contadorFormularios;
+  const data = textoParaData(item.data);
+  const fechar = () => { despesaAEditar = null; desenharDeNovo(); };
+  const topo = criar('button', {
+    type: 'button',
+    className: 'gasto-linha gasto-linha-por-confirmar gasto-confirmar-topo',
+    'aria-expanded': 'true',
+    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${item.nota || 'Sem nota'}, gasto fixo por confirmar, ${formatarEuros(item.centimos)}. Tocar para fechar.`,
+    onclick: fechar,
+  },
+  criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
+  criar('span', { className: 'gasto-texto' },
+    criar('span', { className: 'gasto-detalhe' }, criar('span', { className: item.nota ? 'gasto-nota-texto' : 'gasto-sem-nota', textContent: item.nota || 'Sem nota' })),
+    criar('span', { className: 'gasto-marca gasto-fixo-por-confirmar', textContent: 'Fixo · por confirmar' })),
+  criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) }));
+
+  const idValor = `confirmar-valor-${n}`;
+  const erro = criar('p', { id: `${idValor}-erro`, className: 'erro-campo', hidden: true });
+  const valor = criar('input', {
+    id: idValor, type: 'text', inputMode: 'decimal', autocomplete: 'off', enterKeyHint: 'done', placeholder: '0,00',
+    value: valoresAConfirmar.has(chave) ? valoresAConfirmar.get(chave) : valorParaCampo(item.centimos),
+    'aria-describedby': `${idValor}-erro`,
+  });
+  valor.addEventListener('input', () => {
+    valoresAConfirmar.set(chave, valor.value);
+    erro.hidden = true;
+    valor.removeAttribute('aria-invalid');
+  });
+  const confirmar = criar('button', { type: 'submit', className: 'botao-pequeno botao-pequeno-principal', textContent: 'Confirmar' });
+  const formulario = criar('form', { className: 'formulario-edicao', noValidate: true },
+    criar('label', { htmlFor: idValor, textContent: 'Valor deste mês (€)' }),
+    valor,
+    erro,
+    criar('div', { className: 'edicao-botoes' },
+      confirmar,
+      criar('button', {
+        type: 'button',
+        className: 'botao-pequeno',
+        textContent: 'Editar',
+        onclick: () => { modoDespesaAEditar = 'editar'; desenharDeNovo(); },
+      }),
+      criar('button', {
+        type: 'button',
+        className: 'botao-apagar-texto',
+        textContent: 'Apagar',
+        onclick: () => {
+          if (!confirm(`Apagar o gasto de ${formatarEuros(item.centimos)} (${item.nota || nomeCategoriaDespesa(item.categoria)})? Este mês não volta a ser criado.`)) return;
+          if (!apagarRegisto(item)) return;
+          valoresAConfirmar.delete(chave);
+          despesaAEditar = null;
+          desenharDeNovo();
+          avisar('Gasto apagado.');
+        },
+      })));
+  formulario.addEventListener('keydown', (evento) => {
+    if (evento.key !== 'Escape') return;
+    evento.preventDefault();
+    fechar();
+  });
+  formulario.addEventListener('focusin', () => setTimeout(() => manterVisivel(confirmar), 350));
+  formulario.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const lido = lerValor(valor.value);
+    if (lido.erro) {
+      erro.textContent = lido.erro;
+      erro.hidden = false;
+      valor.setAttribute('aria-invalid', 'true');
+      valor.focus();
+      return;
+    }
+    const mudou = lido.centimos !== item.centimos;
+    if (!alterarRegisto(item, { centimos: lido.centimos, porConfirmar: undefined })) return;
+    valoresAConfirmar.delete(chave);
+    despesaAEditar = null;
+    gastosADestacar = [chave];
+    desenharDeNovo();
+    avisar(`Confirmado: ${formatarEuros(lido.centimos)}${item.nota ? ` (${item.nota})` : ''}.${mudou ? '' : ' O valor ficou igual.'}`);
+  });
+  const li = criar('li', { className: 'gasto-editar gasto-confirmar' }, topo, formulario);
   li.dataset.gasto = chave;
   return li;
 }
@@ -776,8 +889,22 @@ function desenharDespesasMes(periodo) {
       criar('ul', { className: 'gastos-lista gastos-grupo-lista', id: idLista, hidden: !aberta },
         ...(aberta ? grupo.gastos.map((g) => linhaDespesa(g, redesenhar)) : [])));
   };
+  // Gastos fixos por confirmar no período e na escolha mostrados: uma linha âmbar no topo, antes de "Por categorizar".
+  // Tocar abre as categorias deles e leva ao primeiro.
+  const aConfirmar = doMes.filter((g) => g.origem === 'despesa' && g.registo.porConfirmar === true);
+  const linhaPorConfirmar = aConfirmar.length ? [criar('button', {
+    type: 'button',
+    className: 'fixos-por-confirmar',
+    'aria-label': `${aConfirmar.length} ${aConfirmar.length === 1 ? 'gasto fixo por confirmar' : 'gastos fixos por confirmar'}. Ver.`,
+    onclick: () => {
+      gastosADestacar = aConfirmar.map(chaveDe);
+      redesenhar();
+    },
+  },
+  criar('span', { className: 'fixos-por-confirmar-texto', textContent: `${aConfirmar.length} ${aConfirmar.length === 1 ? 'gasto fixo por confirmar' : 'gastos fixos por confirmar'}` }),
+  criar('span', { className: 'fixos-por-confirmar-ver', 'aria-hidden': 'true', textContent: 'Ver ›' }))] : [];
   if (seccoes.length) {
-    caixa.replaceChildren(...seccoes.map((seccao) => {
+    caixa.replaceChildren(...linhaPorConfirmar, ...seccoes.map((seccao) => {
       const lista = criar('ul', { className: 'gastos-grupos' }, ...seccao.grupos.map((grupo) => linhaGrupo(seccao.bloco, grupo)));
       if (seccao.bloco === 'por-categorizar') return lista;
       const idTitulo = `gastos-bloco-${seccao.bloco}-titulo`;
@@ -830,6 +957,8 @@ function campoTipoCategoria(item) {
 function aposMudarCategorias() {
   correrSemFalhar(() => desenharDespesasMes(periodoDoDeslocamento(mesDeslocamento)));
   correrSemFalhar(desenharComerciantes);
+  // Os gastos fixos mostram o nome da categoria; um cartão aberto tem a lista antiga e fecha-se (fixos.js).
+  if (typeof aposMudarCategoriasFixos === 'function') correrSemFalhar(aposMudarCategoriasFixos);
   // Um formulário aberto tem a lista de categorias antiga: fecha-se, sem perder nada já guardado.
   fecharNovaDespesa();
 }

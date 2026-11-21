@@ -39,6 +39,7 @@ function dadosIniciais() {
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
     cartaoImportados: {}, // gastos do cartão já importados, por marca "data|comerciante|cêntimos", ex.: { "2026-11-03|continente|2350": 1 }
     csvImportados: {},  // gastos de outra pessoa já importados de um CSV, por marca "pessoa|id", ex.: { "pessoa b|d-abc": 1 }
+    fixosCriados: {},   // meses já criados pelos gastos fixos (fixos.js), por marca "idDoFixo|AAAA-MM", ex.: { "abc|2026-12": 1 }
   };
 }
 
@@ -263,6 +264,11 @@ function normalizarDados(original, tolerante = false) {
   const csv = bruto.csvImportados && typeof bruto.csvImportados === 'object' && !Array.isArray(bruto.csvImportados) ? bruto.csvImportados : {};
   Object.entries(csv).forEach(([marca, numero]) => {
     if (marca && Number.isInteger(numero) && numero > 0) limpos.csvImportados[marca] = numero;
+  });
+  // Dados e cópias anteriores aos gastos fixos não têm esta lista: fica vazia.
+  const fixos = bruto.fixosCriados && typeof bruto.fixosCriados === 'object' && !Array.isArray(bruto.fixosCriados) ? bruto.fixosCriados : {};
+  Object.entries(fixos).forEach(([marca, numero]) => {
+    if (/^.+\|\d{4}-\d{2}$/.test(marca) && Number.isInteger(numero) && numero > 0) limpos.fixosCriados[marca] = numero;
   });
   return limpos;
 }

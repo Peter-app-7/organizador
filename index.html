@@ -123,6 +123,29 @@
         <div id="despesas-comerciantes" class="organizar-seccao" hidden></div>
       </details>
 
+      <!-- Gastos fixos (js/fixos.js): recolhida por defeito; à direita, quantos estão em vigor e quanto somam por mês. -->
+      <section class="gastos-fixos" aria-labelledby="fixos-abrir">
+        <button id="fixos-abrir" type="button" class="gerir-linha" aria-expanded="false" aria-controls="fixos-corpo"><span class="gerir-linha-seta" aria-hidden="true">▸</span><span class="gerir-linha-texto">Gastos fixos</span><span id="fixos-resumo" class="gerir-linha-resumo"></span></button>
+        <div id="fixos-corpo" hidden>
+          <p id="fixos-vazio" class="mes-vazio-curto">Ainda não há gastos fixos. No dia de cada um, a app cria o gasto em "Gastos do mês".</p>
+          <ul id="fixos-lista" class="lista fixos-lista"></ul>
+          <div id="fixos-novo-caixa" hidden></div>
+          <div class="fixos-botoes">
+            <button id="fixos-novo" type="button" class="botao-pequeno botao-pequeno-principal" aria-expanded="false" aria-controls="fixos-novo-caixa">+ Novo gasto fixo</button>
+            <button id="fixos-colar-abrir" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="fixos-colar-caixa">Colar lista</button>
+          </div>
+          <div id="fixos-colar-caixa" class="fixos-colar" hidden>
+            <form id="fixos-colar-formulario" class="formulario" novalidate>
+              <label for="fixos-colar-texto">Uma linha por gasto fixo: Nome;Valor;Dia;Categoria;casa ou pessoal;sozinho ou confirmar (opcional no fim: ;AAAA-MM do último mês)</label>
+              <p id="fixos-colar-exemplo" class="nota-previa fixos-exemplo">Exemplo:<br>Fixo A;10,00;5;Outros;casa;sozinho<br>Fixo B;25,50;31;Outros;pessoal;confirmar;2027-06</p>
+              <textarea id="fixos-colar-texto" rows="6" autocomplete="off" autocapitalize="sentences" spellcheck="false" aria-describedby="fixos-colar-exemplo"></textarea>
+              <button type="submit" class="botao-principal">Pré-visualizar</button>
+            </form>
+            <div id="fixos-colar-previa"></div>
+          </div>
+        </div>
+      </section>
+
       <div class="mes-navegacao gastos-periodo">
         <button id="mes-anterior" type="button" aria-label="Mês anterior">‹</button>
         <div class="mes-nome">
@@ -239,6 +262,7 @@
   <script src="js/despesas.js"></script>
   <script src="js/comerciantes.js"></script>
   <script src="js/mes.js"></script>
+  <script src="js/fixos.js"></script>
   <script src="js/exportar-csv.js"></script>
   <script src="js/importar-csv.js"></script>
   <script src="js/app.js"></script>

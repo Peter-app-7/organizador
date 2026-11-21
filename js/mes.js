@@ -69,6 +69,8 @@ function desenharMes() {
   document.getElementById('mes-intervalo').textContent = intervaloDoPeriodo(periodo);
   document.getElementById('mes-hoje').hidden = mesDeslocamento === 0;
   desenharDiaInicio();
+  // "Gastos fixos" (fixos.js): o resumo e, aberta, a lista.
+  if (typeof desenharFixos === 'function') correrSemFalhar(desenharFixos);
   // Com um gasto a ser editado, não se mexe nele (ex.: a app voltou a ficar visível). Só conta o formulário da edição:
   // o foco noutro botão da lista (ex.: a linha de uma categoria) não impede de a desenhar outra vez.
   const caixaGastos = document.getElementById('mes-gastos');
