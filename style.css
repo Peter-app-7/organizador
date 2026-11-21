@@ -14,6 +14,11 @@
   --vermelho: #c62828;
   --vermelho-suave: #b4423b;
   --sobre-vermelho: #ffffff;
+  /* "Por categorizar" em "Gastos do mês": âmbar discreto (o texto em --alerta tem contraste de pelo menos 4,5:1). */
+  --ambar-fundo: #fdf3e6;
+  --ambar-contorno: #d79a55;
+  /* Realce breve de um gasto acabado de registar, editar ou importar. */
+  --realce: #d6eeec;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +36,9 @@
     --vermelho: #f87171;
     --vermelho-suave: #f09a92;
     --sobre-vermelho: #2a0808;
+    --ambar-fundo: #2b2217;
+    --ambar-contorno: #8a5a26;
+    --realce: #1d3a39;
   }
 }
 
@@ -422,9 +430,43 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 }
 .gasto-data { flex: none; width: 3.6em; font-size: .85rem; color: var(--texto-suave); }
 .gasto-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.gasto-nota { font-size: .8rem; color: var(--texto-suave); }
+.gasto-detalhe { min-width: 0; }
+.gasto-sem-nota { color: var(--texto-suave); }
 .gasto-valor { flex: none; font-weight: 600; white-space: nowrap; }
-.gastos-ver-todos { margin: 2px auto 0; padding: 0 12px; }
+.gastos-lista > li[data-gasto] .gasto-linha { transition: background-color .3s ease; }
+.gastos-lista > li.gasto-realce .gasto-linha { background: var(--realce); }
+
+/* "Gastos do mês" por categoria: uma linha por categoria (nome, número de gastos, total e seta) e, aberta, os gastos
+   dela logo por baixo, ligeiramente recuados. */
+.gastos-grupos { list-style: none; margin: 8px 0 0; padding: 0; }
+.gastos-grupo { margin-bottom: 8px; }
+.gastos-grupo-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  margin: 0;
+  padding: 8px 12px;
+  text-align: left;
+  background: var(--cartao);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.gastos-grupo-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.gastos-grupo-nome { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.gastos-grupo-contagem { font-size: .8rem; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
+.gastos-grupo-total { flex: none; font-weight: 600; white-space: nowrap; }
+.gastos-grupo-linha .botao-linha-seta { transition: transform .2s ease; }
+.gastos-grupo-linha[aria-expanded="true"] .botao-linha-seta { transform: rotate(90deg); }
+.gastos-grupo-por-categorizar .gastos-grupo-linha { background: var(--ambar-fundo); border-color: var(--ambar-contorno); }
+.gastos-grupo-por-categorizar .gastos-grupo-contagem { color: var(--alerta); font-weight: 600; }
+.gastos-grupo-lista { margin: 6px 0 0 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .gastos-grupo-linha .botao-linha-seta, .gastos-lista > li[data-gasto] .gasto-linha { transition: none; }
+}
+/* "Comerciantes lembrados", sub-secção recolhível de "Categorias de gastos". */
+.comerciantes-abrir { margin-top: 12px; }
 .gasto-editar { padding: 4px 12px 2px; background: var(--cartao); border: 1px solid var(--destaque); border-radius: 8px; }
 .gasto-editar .formulario-gasto { margin: 8px 0; }
 .gasto-editar .despesas-registo-titulo { margin-top: 8px; }

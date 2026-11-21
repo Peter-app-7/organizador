@@ -194,8 +194,8 @@ function abrirRegisto() {
           return;
         }
         fecharRegisto();
-        // A lista e o total estão na vista Gastos: ao entrar nela, mostra o período deste registo (e abre a lista
-        // "Gastos do mês" se ele ficar fora dos que se veem com ela recolhida).
+        // A lista e o total estão na vista Gastos: ao entrar nela, mostra o período deste registo, com a categoria
+        // Mercearia aberta e o registo à vista.
         deslocamentoAoEntrar = deslocamentoDaData(novo.data);
         gastosADestacar = [`compras:${id}`];
         // Um gasto meu: se o seletor de pessoas estiver noutra pessoa, passa para "Meus".

@@ -1,4 +1,5 @@
-// despesas.js: secção "Gastos do mês" da vista Gastos. Gastos gerais, por categoria, com as categorias editáveis,
+// despesas.js: secção "Gastos do mês" da vista Gastos, agrupada por categoria (uma linha por categoria com gastos, que
+// abre ali mesmo os gastos dela). Gastos gerais, com as categorias editáveis,
 // e a barra fixa com o total do mês. Os gastos gerais e as categorias ficam em chaves próprias. Os registos de
 // "Registar compras" (gastos.js) continuam na chave deles e aparecem aqui na categoria Mercearia, sem serem alterados.
 
@@ -481,64 +482,81 @@ function linhaDespesa(item, desenharDeNovo) {
     // Os registos de "Registar compras" abrem com o formulário de sempre (data, loja e valor), na chave deles.
     const formulario = item.origem === 'compras' ? formularioGasto(opcoes) : formularioDespesa(opcoes);
     const titulo = item.origem === 'compras' ? `Editar compra (${categoria})` : 'Editar gasto';
-    return criar('li', { className: 'gasto-editar' }, criar('h3', { className: 'despesas-registo-titulo', textContent: titulo }), formulario);
+    const li = criar('li', { className: 'gasto-editar' }, criar('h3', { className: 'despesas-registo-titulo', textContent: titulo }), formulario);
+    li.dataset.gasto = chave;
+    return li;
   }
   const data = textoParaData(item.data);
   // Em "Casa", os gastos de outra pessoa mostram o nome a mostrar dela, pequeno, ao lado da nota.
   const pessoa = escolhaPessoas === 'casa' && item.pessoa ? nomeAMostrar(item.pessoa) : '';
-  const detalhe = [];
-  if (item.nota) detalhe.push(item.nota);
-  if (item.nota && pessoa) detalhe.push(' · ');
-  if (pessoa) detalhe.push(criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
-  return criar('li', {}, criar('button', {
+  // Dentro da categoria, a linha mostra a nota (ou "Sem nota"); o nome da categoria já está na linha do grupo.
+  const detalhe = [criar('span', { className: item.nota ? 'gasto-nota-texto' : 'gasto-sem-nota', textContent: item.nota || 'Sem nota' })];
+  if (pessoa) detalhe.push(' · ', criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
+  const li = criar('li', {}, criar('button', {
     type: 'button',
     className: 'gasto-linha',
     'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
     onclick: () => { despesaAEditar = chave; fecharNovaDespesa(); desenharDeNovo(); },
   },
   criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
-  criar('span', { className: 'gasto-texto' },
-    criar('span', { className: 'gasto-categoria', textContent: categoria }),
-    ...(detalhe.length ? [criar('span', { className: 'gasto-nota' }, ...detalhe)] : [])),
+  criar('span', { className: 'gasto-texto' }, criar('span', { className: 'gasto-detalhe' }, ...detalhe)),
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
+  li.dataset.gasto = chave;
+  return li;
 }
 
-// Nome do período como no seletor, com o ano só quando não é o atual. Ex.: "Dezembro", "Janeiro de 2027".
-function nomeDoPeriodo(periodo) {
-  const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
-  return periodo.ano === new Date().getFullYear() ? nome : `${nome} de ${periodo.ano}`;
-}
-
-// --- Lista "Gastos do mês" recolhível ---
-// Com mais de GASTOS_VISIVEIS gastos no período, a lista recolhida mostra só os mais recentes. A escolha vale para todos
-// os períodos, fica numa chave própria ("sim"/"nao"; sem valor, recolhida) e vai na cópia, em "preferencias".
+// --- Preferência antiga da lista recolhível ---
+// Até 21 nov 2026 (v45), a lista "Gastos do mês" podia recolher-se aos 4 mais recentes. Desde que a lista se agrupa
+// por categoria, a escolha já não se usa no ecrã, mas a chave continua guardada e a ir e vir na cópia de segurança
+// ("preferencias.gastosRecolhidos", ver ajustes.js), para as cópias antigas e novas continuarem compatíveis.
 const CHAVE_GASTOS_RECOLHIDOS = 'organizador-gastos-recolhidos';
-const GASTOS_VISIVEIS = 4;
-// Gastos acabados de registar, editar ou importar ("despesa:id" ou "compras:id"): se ficarem fora dos visíveis,
-// a lista abre para se verem. Só vale para o desenho seguinte da lista.
-let gastosADestacar = [];
-
-function lerGastosRecolhidos() {
-  try {
-    return localStorage.getItem(CHAVE_GASTOS_RECOLHIDOS) !== 'nao';
-  } catch (erro) {
-    return true;
-  }
-}
-
-// Sem armazenamento, a escolha vale só até recarregar.
-let gastosRecolhidosSemGuardar = null;
-function gastosRecolhidos() {
-  return gastosRecolhidosSemGuardar === null ? lerGastosRecolhidos() : gastosRecolhidosSemGuardar;
-}
 
 function guardarGastosRecolhidos(recolhidos) {
   try {
     localStorage.setItem(CHAVE_GASTOS_RECOLHIDOS, recolhidos ? 'sim' : 'nao');
-    gastosRecolhidosSemGuardar = null;
-  } catch (erro) {
-    gastosRecolhidosSemGuardar = recolhidos;
-  }
+  } catch (erro) { /* sem espaço: fica a escolha deste aparelho */ }
+}
+
+// --- "Gastos do mês" agrupados por categoria ---
+// Categorias abertas (ids), só enquanto a app estiver aberta: ao abrir a app começa tudo fechado. Mantêm-se ao mudar
+// de período e de pessoa; as de categorias apagadas são esquecidas.
+const categoriasAbertas = new Set();
+// Gastos acabados de registar, editar ou importar ("despesa:id" ou "compras:id"): a categoria deles abre e o primeiro
+// que aparecer na lista fica à vista, com um realce breve. Só vale para o desenho seguinte da lista na vista Gastos.
+let gastosADestacar = [];
+
+function ePorCategorizar(id) {
+  return chaveTexto(nomeCategoriaDespesa(id)) === chaveTexto(CATEGORIA_POR_CATEGORIZAR);
+}
+
+// Grupos { id, nome, gastos, total }: só as categorias com gastos. "Por categorizar" primeiro; depois do maior total
+// para o menor; com o mesmo total, por ordem alfabética (sem maiúsculas nem acentos). "lista" já vem ordenada por data.
+function gruposPorCategoria(lista) {
+  const porId = new Map();
+  lista.forEach((g) => {
+    if (!porId.has(g.categoria)) porId.set(g.categoria, []);
+    porId.get(g.categoria).push(g);
+  });
+  return [...porId].map(([id, gastosDela]) => ({ id, nome: nomeCategoriaDespesa(id), gastos: gastosDela, total: somaCentimos(gastosDela) }))
+    .sort((a, b) => Number(ePorCategorizar(b.id)) - Number(ePorCategorizar(a.id))
+      || b.total - a.total
+      || a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }));
+}
+
+// Leva o gasto até à vista (scroll suave, sem animação se o sistema pedir menos movimento) e realça-o durante 1 s.
+const MENOS_MOVIMENTO = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+function mostrarGastosDestacados(caixa, chaves) {
+  const linhas = chaves.map((chave) => caixa.querySelector(`[data-gasto="${CSS.escape(chave)}"]`)).filter(Boolean);
+  if (!linhas.length) return;
+  // Depois de mostrarVista, que volta ao topo da página.
+  setTimeout(() => {
+    const primeira = linhas.filter((l) => l.isConnected)
+      .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))[0];
+    if (!primeira) return;
+    primeira.scrollIntoView({ behavior: MENOS_MOVIMENTO.matches ? 'auto' : 'smooth', block: 'center' });
+    linhas.forEach((l) => l.classList.add('gasto-realce'));
+    setTimeout(() => linhas.forEach((l) => l.classList.remove('gasto-realce')), 1000);
+  }, 60);
 }
 
 // Barra fixa no fundo da vista: o nome do período e o total do que está escolhido no seletor (mercearia e gastos
@@ -554,7 +572,7 @@ function desenharTotalMes(periodo, total, totalCasa = null) {
   casa.hidden = totalCasa === null;
 }
 
-// Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos.
+// Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos, agrupados por categoria.
 // Com o seletor de pessoas visível, só os gastos da escolha (ver gastosDaEscolha).
 function desenharDespesasMes(periodo) {
   const comPessoas = desenharSeletorPessoas();
@@ -565,48 +583,62 @@ function desenharDespesasMes(periodo) {
   const redesenhar = () => desenharDespesasMes(periodo);
   const chaveDe = (g) => `${g.origem}:${g.id}`;
 
-  // Um gasto acabado de registar, editar ou importar que ficaria escondido abre a lista (e a escolha fica guardada).
-  const destacados = gastosADestacar;
-  gastosADestacar = [];
-  const podeRecolher = doMes.length > GASTOS_VISIVEIS;
-  if (podeRecolher && gastosRecolhidos()
-    && doMes.slice(GASTOS_VISIVEIS).some((g) => destacados.includes(chaveDe(g)))) guardarGastosRecolhidos(false);
-  const recolhida = podeRecolher && gastosRecolhidos();
-  const visiveis = recolhida ? doMes.slice(0, GASTOS_VISIVEIS) : doMes;
+  // As categorias apagadas deixam de contar como abertas.
+  [...categoriasAbertas].forEach((id) => { if (!categoriasDespesas.some((c) => c.id === id)) categoriasAbertas.delete(id); });
+  // Um gasto acabado de registar, editar ou importar abre a sua categoria (só quando a vista Gastos se vê: depois de
+  // "Registar compras", na Mercearia, espera pela entrada nos Gastos).
+  let destacados = [];
+  if (vistaAtual === 'gastos' && gastosADestacar.length) {
+    destacados = gastosADestacar;
+    gastosADestacar = [];
+    doMes.forEach((g) => { if (destacados.includes(chaveDe(g))) categoriasAbertas.add(g.categoria); });
+  }
+  const grupos = gruposPorCategoria(doMes);
+  // Um gasto aberto para editar que deixou de se ver (categoria fechada ou fora da lista) é fechado, sem guardar.
+  if (despesaAEditar && !grupos.some((gr) => categoriasAbertas.has(gr.id) && gr.gastos.some((g) => chaveDe(g) === despesaAEditar))) {
+    despesaAEditar = null;
+  }
 
   const caixa = document.getElementById('mes-gastos');
   caixa.dataset.mes = periodo.chave;
-  const partes = [];
-  if (doMes.length) {
-    partes.push(criar('ul', { className: 'gastos-lista', id: 'gastos-lista' }, ...visiveis.map((g) => linhaDespesa(g, redesenhar))));
-  } else {
-    partes.push(criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
-  }
-  if (podeRecolher) {
-    partes.push(criar('button', {
-      type: 'button',
-      className: 'botao-discreto gastos-ver-todos',
-      textContent: recolhida ? `Ver todos (${doMes.length})` : 'Mostrar menos',
-      'aria-expanded': String(!recolhida),
-      'aria-controls': 'gastos-lista',
-      onclick: () => {
-        guardarGastosRecolhidos(!recolhida);
-        // Ao recolher, um gasto aberto para editar que deixe de se ver é fechado (sem guardar), e o "voltar" do
-        // Android deixa de contar com ele (ver o fim desta função).
-        if (!recolhida && despesaAEditar && !doMes.slice(0, GASTOS_VISIVEIS).some((g) => chaveDe(g) === despesaAEditar)) {
-          despesaAEditar = null;
-        }
-        redesenhar();
-        const botao = caixa.querySelector('.gastos-ver-todos');
-        if (botao) botao.focus({ preventScroll: true });
+  if (grupos.length) {
+    caixa.replaceChildren(criar('ul', { className: 'gastos-grupos', id: 'gastos-lista' }, ...grupos.map((grupo, i) => {
+      const aberta = categoriasAbertas.has(grupo.id);
+      const porCategorizar = ePorCategorizar(grupo.id);
+      const n = grupo.gastos.length;
+      const contagem = `${n} ${n === 1 ? 'gasto' : 'gastos'}${porCategorizar ? ' · toca para arrumar' : ''}`;
+      const idLista = `gastos-grupo-${i}`;
+      const botao = criar('button', {
+        type: 'button',
+        className: 'gastos-grupo-linha',
+        'aria-expanded': String(aberta),
+        'aria-controls': idLista,
+        onclick: () => {
+          if (aberta) categoriasAbertas.delete(grupo.id);
+          else categoriasAbertas.add(grupo.id);
+          redesenhar();
+          // O foco fica no botão da mesma categoria (a lista foi desenhada outra vez).
+          const mesmo = [...caixa.querySelectorAll('.gastos-grupo-linha')].find((b) => b.dataset.categoria === grupo.id);
+          if (mesmo) mesmo.focus({ preventScroll: true });
+        },
       },
-    }));
+      criar('span', { className: 'gastos-grupo-texto' },
+        criar('span', { className: 'gastos-grupo-nome', textContent: grupo.nome }),
+        criar('span', { className: 'gastos-grupo-contagem', textContent: contagem })),
+      criar('span', { className: 'gastos-grupo-total', textContent: formatarEuros(grupo.total) }),
+      criar('span', { className: 'botao-linha-seta', 'aria-hidden': 'true', textContent: '›' }));
+      botao.dataset.categoria = grupo.id;
+      return criar('li', { className: porCategorizar ? 'gastos-grupo gastos-grupo-por-categorizar' : 'gastos-grupo' },
+        botao,
+        criar('ul', { className: 'gastos-lista gastos-grupo-lista', id: idLista, hidden: !aberta },
+          ...(aberta ? grupo.gastos.map((g) => linhaDespesa(g, redesenhar)) : [])));
+    })));
+  } else {
+    caixa.replaceChildren(criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));
   }
-  caixa.replaceChildren(...partes);
-  // O total é sempre de todos os gastos do período (da escolha), mesmo com a lista recolhida.
+  if (destacados.length) mostrarGastosDestacados(caixa, destacados);
+  // O total é sempre de todos os gastos do período (da escolha), com as categorias abertas ou fechadas.
   desenharTotalMes(periodo, somaCentimos(doMes), comPessoas && escolhaPessoas !== 'casa' ? somaCentimos(doPeriodo) : null);
-  // A contagem de cada categoria é a deste período: atualiza-se sempre que a lista muda.
-  atualizarContagemCategorias();
   // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
   if (despesaAEditar) abrirComVoltar('editar-gasto', 'gastos', () => { despesaAEditar = null; redesenhar(); });
   else fechadoSemVoltar('editar-gasto');
@@ -615,29 +647,14 @@ function desenharDespesasMes(periodo) {
 // --- Categorias de gastos ---
 const estadoCategoriasDespesas = { aRenomear: null };
 
-// O número por baixo de cada categoria conta só os gastos do período escolhido nas setas (os mesmos da lista
-// "Gastos do mês" e do total, incluindo os de "Registar compras"). Ex.: "1 gasto em Dezembro".
+// Só a gestão: nome e lápis (os totais estão em "Gastos do mês").
 function itensCategoriasDespesas() {
-  const periodo = periodoDoDeslocamento(mesDeslocamento);
-  // Com o seletor de pessoas, conta só os gastos da escolha, como a lista e o total.
-  const doPeriodo = gastosDaEscolha(todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim));
-  const nome = nomeDoPeriodo(periodo);
-  return categoriasDespesasOrdenadas().map((c) => {
-    const numero = doPeriodo.filter((g) => g.categoria === c.id).length;
-    return {
-      chave: c.id,
-      nome: c.nome,
-      podeRenomear: true,
-      podeApagar: !CATEGORIAS_FIXAS.includes(c.id),
-      detalhe: `${numero} ${numero === 1 ? 'gasto' : 'gastos'} em ${nome}`,
-    };
-  });
-}
-
-// Redesenha "Categorias de gastos" se estiver aberta e ninguém estiver a escrever lá dentro.
-function atualizarContagemCategorias() {
-  const caixaCategorias = document.getElementById('despesas-categorias-caixa');
-  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharCategoriasDespesas();
+  return categoriasDespesasOrdenadas().map((c) => ({
+    chave: c.id,
+    nome: c.nome,
+    podeRenomear: true,
+    podeApagar: !CATEGORIAS_FIXAS.includes(c.id),
+  }));
 }
 
 function aposMudarCategorias() {
@@ -719,15 +736,31 @@ function desenharCategoriasDespesas() {
   });
 }
 
+// "Comerciantes lembrados": sub-secção recolhível dentro de "Categorias de gastos", recolhida por defeito.
+const botaoComerciantes = document.getElementById('despesas-comerciantes-abrir');
+function definirComerciantesAbertos(abertos) {
+  document.getElementById('despesas-comerciantes').hidden = !abertos;
+  botaoComerciantes.setAttribute('aria-expanded', String(abertos));
+  if (abertos) {
+    desenharComerciantes();
+  } else {
+    // Um comerciante aberto para editar fecha-se sem guardar.
+    regraAEditar = null;
+    fechadoSemVoltar('editar-comerciante');
+  }
+}
+botaoComerciantes.addEventListener('click', () => {
+  definirComerciantesAbertos(botaoComerciantes.getAttribute('aria-expanded') !== 'true');
+});
+
 document.getElementById('despesas-categorias-caixa').addEventListener('toggle', (evento) => {
   if (evento.target.open) {
     desenharCategoriasDespesas();
-    desenharComerciantes();
   } else {
     estadoCategoriasDespesas.aRenomear = null;
-    regraAEditar = null;
     fechadoSemVoltar('renomear-despesas-categoria');
-    fechadoSemVoltar('editar-comerciante');
+    // Ao fechar "Categorias de gastos", os comerciantes voltam a ficar recolhidos.
+    definirComerciantesAbertos(false);
   }
 });
 
@@ -844,6 +877,8 @@ async function importarGastosCartao(ficheiro) {
   if (novas.length > 0) {
     const porCategorizar = lembrados < novas.length ? garantirCategoriaPorCategorizar() : null;
     if (lembrados < novas.length && !porCategorizar) return; // já foi avisado de que não deu para guardar
+    // "Categorias de gastos" passa a mostrar "Por categorizar", se acabou de ser criada.
+    if (porCategorizar) correrSemFalhar(desenharCategoriasDespesas);
     const antes = despesas;
     const idsNovos = comRegra.map(() => novoId());
     despesas = [...despesas, ...comRegra.map(({ linha, regra }, i) => ({

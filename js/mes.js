@@ -1,7 +1,8 @@
 // mes.js: vista Gastos. De cima para baixo: "Importar do cartão" no topo, ao lado do ⚙️ (só nesta vista); título;
 // "Exportar (CSV)" e "Importar (CSV)" (exportar-csv.js e importar-csv.js) com as mensagens por baixo; "Categorias de
-// gastos" (com o dia de início e os comerciantes lembrados); seletor do período; seletor "Meus · <pessoa> · Casa" (só
-// com gastos importados); bloco "Gastos do mês" (despesas.js) e a barra fixa com o total do período. A lista de
+// gastos" (só a gestão: dia de início, categorias e comerciantes lembrados); seletor do período; seletor
+// "Meus · <pessoa> · Casa" (só com gastos importados); bloco "Gastos do mês", agrupado por categoria (despesas.js), e a
+// barra fixa com o total do período. A lista de
 // produtos está na vista Mercearia (mercearia.js).
 //
 // Os gastos agrupam-se por "mês de gastos" (período), não por mês de calendário: começa no dia dados.diaInicioGastos
@@ -68,15 +69,14 @@ function desenharMes() {
   document.getElementById('mes-hoje').hidden = mesDeslocamento === 0;
   desenharDiaInicio();
   // Com um gasto a ser editado, não se mexe nele (ex.: a app voltou a ficar visível). Só conta o formulário da edição:
-  // o foco noutro botão da lista (ex.: "Ver todos") não impede de a desenhar outra vez.
+  // o foco noutro botão da lista (ex.: a linha de uma categoria) não impede de a desenhar outra vez.
   const caixaGastos = document.getElementById('mes-gastos');
   const edicao = caixaGastos.querySelector('.gasto-editar');
   const aEditar = Boolean(despesaAEditar && edicao && edicao.contains(document.activeElement));
   if (!(aEditar && caixaGastos.dataset.mes === periodo.chave)) desenharDespesasMes(periodo);
-  // A contagem das categorias acompanha o período (atualizarContagemCategorias, chamada por desenharDespesasMes).
-  atualizarContagemCategorias();
-  const caixaCategorias = document.getElementById('despesas-categorias-caixa');
-  if (caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharComerciantes();
+  // Os comerciantes lembrados (abertos) acompanham os nomes das categorias, se ninguém estiver a escrever lá dentro.
+  const caixaComerciantes = document.getElementById('despesas-comerciantes');
+  if (!caixaComerciantes.hidden && !caixaComerciantes.contains(document.activeElement)) desenharComerciantes();
 }
 
 function mudarMes(deslocamento) {

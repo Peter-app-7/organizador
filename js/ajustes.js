@@ -270,7 +270,7 @@ function restaurarExtras(preferencias, copiasInternas) {
       aplicarProdutosRecolhidos(preferencias.produtosRecolhidos === 'sim');
     }
   } catch (erro) { /* sem espaço: fica a preferência deste aparelho */ }
-  // A lista "Gastos do mês" volta a ser desenhada ao entrar nos Gastos, já com a escolha reposta.
+  // Já não se usa no ecrã (a lista agrupa-se por categoria), mas continua guardada, para as cópias seguintes a levarem.
   if (preferencias.gastosRecolhidos) guardarGastosRecolhidos(preferencias.gastosRecolhidos === 'sim');
   if (preferencias.nomeExportacao !== undefined) guardarNomeExportacao(preferencias.nomeExportacao);
   if (preferencias.nomesPessoas) guardarNomesPessoas(preferencias.nomesPessoas);
