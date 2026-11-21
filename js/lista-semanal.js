@@ -1,4 +1,4 @@
-// lista-semanal.js: botão "Adicionar lista semanal" da lista de produtos (vista Gastos).
+// lista-semanal.js: botão "Lista semanal" do cartão de resumo da vista Mercearia.
 
 // Para mudar a lista, basta editar aqui: ['Produto', 'quantidade'], dentro do tipo de produto.
 const LISTA_SEMANAL = [

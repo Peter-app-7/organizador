@@ -39,47 +39,62 @@
         <button id="mercearia-exportar" type="button" class="botao-pequeno">Exportar dados</button>
       </div>
 
+      <!-- Adicionar um produto: sempre à vista, numa só linha (campo, categoria e "+"). A mensagem aparece por baixo. -->
+      <form id="compras-formulario" class="adicionar-produto" novalidate>
+        <label for="compras-nome" class="so-leitor">Adicionar produto</label>
+        <input id="compras-nome" type="text" placeholder="Adicionar produto…" maxlength="100" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" aria-describedby="compras-adicionar-mensagem">
+        <label for="compras-tipo" class="so-leitor">Categoria</label>
+        <select id="compras-tipo"></select>
+        <button type="submit" class="botao-mais" aria-label="Adicionar"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
+      </form>
+      <p id="compras-adicionar-mensagem" class="mensagem-adicionar" role="status" hidden></p>
+
+      <!-- Resumo: quantos há por comprar, o filtro e as três ações (Limpar comprados, Lista semanal e Registar compras). -->
+      <div class="resumo-compras">
+        <div class="resumo-compras-topo">
+          <p id="compras-contador" class="resumo-compras-numero"></p>
+          <label class="interruptor">
+            <span>Só por comprar</span>
+            <span class="interruptor-marca">
+              <input id="compras-filtro" class="interruptor-caixa" type="checkbox" role="switch">
+              <span class="interruptor-trilho" aria-hidden="true"></span>
+            </span>
+          </label>
+        </div>
+        <div class="acoes-compras">
+          <button id="compras-limpar" type="button" class="acao-compras"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"/><path d="M8.2 12.4l2.6 2.6 5-5.2"/></svg><span>Limpar comprados</span></button>
+          <button id="compras-lista-semanal" type="button" class="acao-compras"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16"/><path d="M8.5 3.5v4"/><path d="M15.5 3.5v4"/></svg><span>Lista semanal</span></button>
+          <button id="gastos-registar" type="button" class="acao-compras" aria-expanded="false" aria-controls="gastos-registo"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6"/><path d="M9 12h6"/><path d="M9 15.5h3"/></svg><span>Registar compras</span></button>
+        </div>
+      </div>
+      <div id="gastos-registo" class="gastos-registo" hidden></div>
+
       <div class="titulo-com-botao produtos-cabecalho">
         <button id="produtos-alternar" type="button" class="produtos-alternar" aria-expanded="true" aria-controls="produtos-corpo">
           <span class="produtos-seta" aria-hidden="true">▾</span> Produtos <span id="produtos-resumo" class="produtos-resumo"></span>
         </button>
-        <button id="compras-editar" type="button" class="botao-pequeno" aria-expanded="false" aria-controls="compras-gerir">Editar</button>
+        <button id="compras-editar" type="button" class="botao-pequeno botao-editar" aria-expanded="false" aria-controls="compras-gerir"><svg class="icone-lapis" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d="M4 20l1.2-4.4L15.8 5a2.1 2.1 0 0 1 3 3L8.4 18.8z"/><path d="M13.8 7l3.2 3.2"/></svg><span id="compras-editar-texto">Editar</span></button>
       </div>
       <div id="produtos-corpo">
-        <div id="compras-gerir" hidden>
-        <form id="compras-formulario" class="formulario">
-          <label>Produto
-            <input id="compras-nome" type="text" placeholder="Ex.: leite" maxlength="100" autocomplete="off" autocapitalize="sentences" enterkeyhint="done" required>
-          </label>
-          <label>Categoria <select id="compras-tipo"></select></label>
-          <button type="submit" class="botao-principal">Adicionar</button>
-        </form>
-        <details id="importar-caixa" class="gerir">
-          <summary>Importar lista</summary>
-          <form id="importar-formulario" class="formulario">
-            <label>Cola aqui a lista: títulos das categorias seguidos dos produtos, um por linha.
-              <textarea id="importar-texto" rows="8" required></textarea>
-            </label>
-            <button type="submit" class="botao-principal">Pré-visualizar</button>
-          </form>
-          <div id="importar-previa"></div>
-        </details>
-        <details id="compras-categorias-caixa" class="gerir">
-          <summary>Categorias</summary>
-          <div id="compras-categorias"></div>
-        </details>
-        </div>
-        <div class="compras-estado">
-          <p id="compras-contador" class="resumo"></p>
-          <button id="compras-limpar" type="button" class="botao-pequeno">Limpar comprados</button>
-        </div>
-        <label class="opcao">
-          <input id="compras-filtro" type="checkbox"> Mostrar só o que é para comprar
-        </label>
-        <button id="compras-lista-semanal" type="button" class="botao-discreto">Adicionar lista semanal</button>
-        <button id="gastos-registar" type="button" class="botao-discreto" aria-expanded="false" aria-controls="gastos-registo">Registar compras</button>
-        <div id="gastos-registo" class="gastos-registo" hidden></div>
         <div id="compras-lista"></div>
+        <!-- Só no modo Editar, no fim da lista: as ferramentas usadas raramente. Cada botão abre a sua secção logo por baixo. -->
+        <div id="compras-gerir" class="organizar" hidden>
+          <h2 class="organizar-titulo">Organizar a lista</h2>
+          <button id="compras-categorias-abrir" type="button" class="botao-linha" aria-expanded="false" aria-controls="compras-categorias-caixa"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><span class="botao-linha-texto">Categorias</span><span class="botao-linha-seta" aria-hidden="true">›</span></button>
+          <div id="compras-categorias-caixa" class="organizar-seccao" hidden>
+            <div id="compras-categorias"></div>
+          </div>
+          <button id="importar-abrir" type="button" class="botao-linha" aria-expanded="false" aria-controls="importar-caixa"><svg class="icone-traco" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><rect x="5.5" y="4.5" width="13" height="16" rx="2"/><path d="M9 3.5h6v3H9z"/><path d="M9 11h6"/><path d="M9 15h4"/></svg><span class="botao-linha-texto">Importar lista (colar texto)</span><span class="botao-linha-seta" aria-hidden="true">›</span></button>
+          <div id="importar-caixa" class="organizar-seccao" hidden>
+            <form id="importar-formulario" class="formulario">
+              <label>Cola aqui a lista: títulos das categorias seguidos dos produtos, um por linha.
+                <textarea id="importar-texto" rows="8" required></textarea>
+              </label>
+              <button type="submit" class="botao-principal">Pré-visualizar</button>
+            </form>
+            <div id="importar-previa"></div>
+          </div>
+        </div>
       </div>
     </section>
 

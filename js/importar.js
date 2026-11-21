@@ -1,4 +1,4 @@
-// importar.js: "Importar lista" na lista de produtos da vista Gastos. Lê texto colado, com títulos de categorias
+// importar.js: "Importar lista (colar texto)" no modo Editar da vista Mercearia, em "Organizar a lista". Lê texto colado, com títulos de categorias
 // seguidos de produtos, mostra como foi interpretado e só depois grava.
 
 // Início de linha: "*", "-", "1." e caixas como "[ ]" ou "☐", sozinhos ou combinados.
@@ -132,7 +132,7 @@ function limparPrevia() {
 
 function fecharImportacao() {
   document.getElementById('importar-texto').value = '';
-  document.getElementById('importar-caixa').open = false;
+  definirSeccaoOrganizar('importar', false); // compras.js
   limparPrevia();
 }
 

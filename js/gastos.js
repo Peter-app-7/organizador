@@ -171,7 +171,7 @@ if (window.visualViewport) {
   });
 }
 
-// --- Vista Mercearia, lista de produtos: botão "Registar compras" ---
+// --- Vista Mercearia, cartão de resumo: botão "Registar compras" (o formulário abre logo por baixo do cartão) ---
 const caixaRegisto = document.getElementById('gastos-registo');
 const botaoRegistar = document.getElementById('gastos-registar');
 

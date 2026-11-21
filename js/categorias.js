@@ -60,7 +60,7 @@ function desenharGestorCategorias(caixa, opcoes) {
   const redesenhar = () => desenharGestorCategorias(caixa, opcoes);
   if (estado.aRenomear !== null && !itens.some((item) => item.chave === estado.aRenomear)) estado.aRenomear = null;
   // Com uma categoria aberta para editar, o "voltar" do Android fecha-a, como o Cancelar.
-  if (estado.aRenomear !== null) abrirComVoltar(`renomear-${prefixo}`, vista, () => { estado.aRenomear = null; redesenhar(); });
+  if (estado.aRenomear !== null) manterComVoltar(`renomear-${prefixo}`, vista, () => { estado.aRenomear = null; redesenhar(); });
   else fechadoSemVoltar(`renomear-${prefixo}`);
 
   const campoComErro = (id, valor, rotulo) => {
@@ -116,7 +116,12 @@ function desenharGestorCategorias(caixa, opcoes) {
         ...(item.detalhe ? [criar('span', { className: 'categoria-detalhe', textContent: item.detalhe })] : [])),
       // Abrir outra categoria fecha a que estava aberta, sem guardar.
       podeEditar
-        ? botaoLapis(`Editar ${item.nome}`, () => { estado.aRenomear = item.chave; redesenhar(); })
+        ? botaoLapis(`Editar ${item.nome}`, () => {
+          estado.aRenomear = item.chave;
+          redesenhar();
+          // A que se abriu agora é a primeira a fechar com o "voltar".
+          abrirComVoltar(`renomear-${prefixo}`, vista, fechar);
+        })
         // Lugar vazio do tamanho do lápis, para os nomes ficarem alinhados.
         : criar('span', { className: 'categoria-fixa', 'aria-hidden': 'true' }));
   });

@@ -1,6 +1,8 @@
 // mercearia.js: vista Mercearia (a primeira da barra; a app abre sempre nela). De cima para baixo: o lembrete da cópia
-// de segurança (com "Exportar dados" dentro), a lista de produtos (compras.js, lista-semanal.js e importar.js), que se
-// pode recolher, e o "Registar compras" (gastos.js). Os registos de compras aparecem e contam na vista Gastos.
+// de segurança (com "Exportar dados" dentro), a linha "Adicionar produto" (compras.js), o cartão de resumo (por comprar,
+// "Só por comprar", "Limpar comprados", "Lista semanal" em lista-semanal.js e "Registar compras" em gastos.js) e a
+// lista de produtos, que se pode recolher; no modo Editar, no fim, "Organizar a lista" (categorias e importar.js).
+// Os registos de compras aparecem e contam na vista Gastos.
 // Com uma casa ligada (casa.js), uma linha por baixo do título mostra o estado da lista partilhada.
 
 // --- Lembrete da cópia: só quando nunca houve cópia ou passaram mais de 30 dias ---
@@ -31,8 +33,9 @@ function aplicarProdutosRecolhidos(recolhidos) {
   botao.setAttribute('aria-expanded', String(!recolhidos));
   botao.setAttribute('aria-label', recolhidos ? 'Mostrar produtos' : 'Esconder produtos');
   botao.querySelector('.produtos-seta').textContent = recolhidos ? '▸' : '▾';
-  // Com a lista recolhida, não há nada para editar: o Editar só volta com a lista aberta.
+  // Com a lista recolhida, não há nada para editar: o Editar só volta com a lista aberta (e o modo Editar fecha-se).
   document.getElementById('compras-editar').hidden = recolhidos;
+  if (recolhidos && comprasAEditar) definirEdicaoCompras(false);
   desenharContadorCompras();
 }
 

@@ -77,6 +77,7 @@ function linhaProduto(produto, tipos) {
       botaoLapis(`Editar ${produto.nome}`, () => {
         produtoAEditar = produto.id;
         desenharCompras();
+        abrirComVoltar('editar-produto', 'mercearia', fecharProdutoAEditar); // o primeiro a fechar com o "voltar"
         const campo = document.getElementById('produto-editar-nome');
         if (campo) campo.focus();
       }),
@@ -113,12 +114,11 @@ function contarParaComprar() {
   return dados.compras.filter((p) => p.comprar).length;
 }
 
+// Cartão de resumo: "N por comprar" e o "Limpar comprados", que fica desativado (e não escondido) sem produtos a "Sim".
 function desenharContadorCompras() {
   const numero = contarParaComprar();
-  document.getElementById('compras-contador').textContent = numero === 0
-    ? 'Nada por comprar'
-    : `${numero} ${numero === 1 ? 'produto' : 'produtos'} por comprar`;
-  document.getElementById('compras-limpar').hidden = numero === 0;
+  document.getElementById('compras-contador').textContent = numero === 0 ? 'Nada por comprar' : `${numero} por comprar`;
+  document.getElementById('compras-limpar').disabled = numero === 0;
   // Com a lista recolhida, o número fica visível ao lado de "Produtos".
   const recolhidos = document.getElementById('produtos-corpo').hidden;
   document.getElementById('produtos-resumo').textContent = recolhidos && numero > 0 ? `· ${numero} por comprar` : '';
@@ -151,7 +151,7 @@ function desenharCompras() {
   desenharContadorCompras();
   atualizarSeletorTipo();
   const caixaCategorias = document.getElementById('compras-categorias-caixa');
-  if (comprasAEditar && caixaCategorias.open && !caixaCategorias.contains(document.activeElement)) desenharCategoriasCompras();
+  if (comprasAEditar && !caixaCategorias.hidden && !caixaCategorias.contains(document.activeElement)) desenharCategoriasCompras();
   const tipos = tiposDeCompras();
   tipos.forEach((tipo) => {
     const produtos = visiveis
@@ -167,11 +167,11 @@ function desenharCompras() {
   if (produtoAEditar && !caixa.querySelector('.produto-editar')) produtoAEditar = null;
   reporCartaoProduto(caixa, escrito);
   // Com um produto aberto, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
-  if (produtoAEditar) abrirComVoltar('editar-produto', 'mercearia', fecharProdutoAEditar);
+  if (produtoAEditar) manterComVoltar('editar-produto', 'mercearia', fecharProdutoAEditar);
   else fechadoSemVoltar('editar-produto');
 
   if (visiveis.length === 0) {
-    const mensagem = soComprar ? 'Nada para comprar.' : 'A lista está vazia. Toca em Editar para acrescentar produtos.';
+    const mensagem = soComprar ? 'Nada para comprar.' : 'A lista está vazia. Escreve um produto em "Adicionar produto…", lá em cima.';
     caixa.append(criar('p', { className: 'vazio', textContent: mensagem }));
   }
 }
@@ -209,44 +209,68 @@ function reporCartaoProduto(caixa, escrito) {
 
 const seletorTipo = document.getElementById('compras-tipo');
 
-// Os tipos podem mudar ao importar uma lista: mantém a escolha atual, se ainda existir.
+// Os tipos podem mudar ao importar uma lista: mantém a escolha atual, se ainda existir. Assim, a última categoria
+// escolhida fica lembrada enquanto a app estiver aberta; ao abrir, começa na primeira (por ordem alfabética).
 function atualizarSeletorTipo() {
   const escolhido = seletorTipo.value;
   seletorTipo.replaceChildren(...tiposDeCompras().map((tipo) => criar('option', { value: tipo, textContent: tipo })));
   if (tiposDeCompras().includes(escolhido)) seletorTipo.value = escolhido;
 }
 
+// --- Adicionar (linha sempre à vista, por cima do resumo): campo, categoria e "+"; Enter também adiciona ---
+const campoAdicionar = document.getElementById('compras-nome');
+const mensagemAdicionar = document.getElementById('compras-adicionar-mensagem');
+
+// A mensagem fica por baixo da linha até se voltar a escrever no campo. "erro" pinta-a de vermelho e marca o campo.
+function mostrarMensagemAdicionar(texto, erro = false) {
+  mensagemAdicionar.textContent = texto || '';
+  mensagemAdicionar.hidden = !texto;
+  mensagemAdicionar.classList.toggle('erro-campo', Boolean(texto && erro));
+  if (texto && erro) campoAdicionar.setAttribute('aria-invalid', 'true');
+  else campoAdicionar.removeAttribute('aria-invalid');
+}
+
+campoAdicionar.addEventListener('input', () => mostrarMensagemAdicionar(null));
+
 document.getElementById('compras-formulario').addEventListener('submit', (evento) => {
   evento.preventDefault();
-  const campo = document.getElementById('compras-nome');
-  const nome = primeiraMaiuscula(campo.value.replace(/\s+/g, ' '));
-  if (!nome) return;
+  const nome = primeiraMaiuscula(campoAdicionar.value.replace(/\s+/g, ' '));
+  if (!nome) {
+    mostrarMensagemAdicionar('Escreve o nome do produto.', true);
+    campoAdicionar.focus();
+    return;
+  }
   // Não duplica: compara sem maiúsculas, acentos nem quantidade, em qualquer tipo (ver lista-semanal.js).
   const existente = dados.compras.find((p) => chaveProduto(p.nome) === chaveProduto(nome));
+  let mensagem = null;
   if (existente) {
     if (existente.comprar) {
-      avisar(`"${existente.nome}" já está na lista para comprar.`);
+      mensagem = `"${existente.nome}" já está na lista para comprar.`;
     } else {
       existente.comprar = true;
       guardarDados();
-      avisar(`"${existente.nome}" já estava na lista: passou para "Sim".`);
+      mensagem = `"${existente.nome}" já estava na lista: passou para "Sim".`;
     }
   } else {
     dados.compras.push({ id: novoId(), nome, tipo: seletorTipo.value, comprar: true });
     guardarDados();
   }
-  campo.value = '';
-  campo.focus(); // o teclado fica aberto para o produto seguinte
+  campoAdicionar.value = '';
+  campoAdicionar.focus(); // o teclado fica aberto para o produto seguinte
   desenharCompras();
+  mostrarMensagemAdicionar(mensagem);
 });
 document.getElementById('compras-limpar').addEventListener('click', limparComprados);
 document.getElementById('compras-filtro').addEventListener('change', desenharCompras);
-// Modo de edição: campo de novo produto, categorias, importar e o × para apagar. O "voltar" do Android também o fecha.
+// Modo Editar: o lápis e o × em cada produto e, no fim da lista, "Organizar a lista" (Categorias e Importar lista).
+// O botão passa a "Concluído". O "voltar" do Android também o fecha.
 function definirEdicaoCompras(aEditar) {
   comprasAEditar = aEditar;
   const botao = document.getElementById('compras-editar');
   document.getElementById('compras-gerir').hidden = !comprasAEditar;
-  botao.textContent = comprasAEditar ? 'Fechar' : 'Editar';
+  document.getElementById('compras-editar-texto').textContent = comprasAEditar ? 'Concluído' : 'Editar';
+  botao.classList.toggle('botao-pequeno-principal', comprasAEditar);
+  botao.querySelector('svg').toggleAttribute('hidden', comprasAEditar); // o lápis só no "Editar"
   botao.setAttribute('aria-expanded', String(comprasAEditar));
   if (comprasAEditar) {
     abrirComVoltar('editar-compras', 'mercearia', () => definirEdicaoCompras(false));
@@ -255,12 +279,44 @@ function definirEdicaoCompras(aEditar) {
     // Um produto ou uma categoria abertos para editar ficam escondidos com o resto: deixam de contar para o "voltar".
     produtoAEditar = null;
     fechadoSemVoltar('editar-produto');
-    estadoCategoriasCompras.aRenomear = null;
-    fechadoSemVoltar('renomear-compras-categoria');
+    // As secções "Categorias" e "Importar lista" fecham-se (o texto colado fica, como antes).
+    definirSeccaoOrganizar('categorias', false);
+    definirSeccaoOrganizar('importar', false);
   }
   desenharCompras();
 }
 document.getElementById('compras-editar').addEventListener('click', () => definirEdicaoCompras(!comprasAEditar));
+
+// --- Organizar a lista (modo Editar): cada botão abre ou fecha a sua secção, logo por baixo dele ---
+const SECCOES_ORGANIZAR = {
+  categorias: { botao: 'compras-categorias-abrir', caixa: 'compras-categorias-caixa', voltar: 'organizar-categorias' },
+  importar: { botao: 'importar-abrir', caixa: 'importar-caixa', voltar: 'organizar-importar' },
+};
+
+function definirSeccaoOrganizar(nome, aberta) {
+  const seccao = SECCOES_ORGANIZAR[nome];
+  const caixa = document.getElementById(seccao.caixa);
+  caixa.hidden = !aberta;
+  document.getElementById(seccao.botao).setAttribute('aria-expanded', String(aberta));
+  if (aberta) {
+    abrirComVoltar(seccao.voltar, 'mercearia', () => definirSeccaoOrganizar(nome, false));
+    if (nome === 'categorias') desenharCategoriasCompras();
+  } else {
+    fechadoSemVoltar(seccao.voltar);
+    if (nome === 'categorias') {
+      // Uma categoria aberta para editar fecha-se sem guardar.
+      estadoCategoriasCompras.aRenomear = null;
+      fechadoSemVoltar('renomear-compras-categoria');
+    }
+  }
+}
+
+Object.keys(SECCOES_ORGANIZAR).forEach((nome) => {
+  const { botao, caixa } = SECCOES_ORGANIZAR[nome];
+  document.getElementById(botao).addEventListener('click', () => {
+    definirSeccaoOrganizar(nome, document.getElementById(caixa).hidden);
+  });
+});
 
 // --- Categorias (no modo de edição) ---
 const estadoCategoriasCompras = { aRenomear: null };
@@ -332,12 +388,3 @@ function desenharCategoriasCompras() {
     aoApagar: apagarCategoriaCompras,
   });
 }
-
-document.getElementById('compras-categorias-caixa').addEventListener('toggle', (evento) => {
-  if (evento.target.open) {
-    desenharCategoriasCompras();
-  } else {
-    estadoCategoriasCompras.aRenomear = null;
-    fechadoSemVoltar('renomear-compras-categoria');
-  }
-});

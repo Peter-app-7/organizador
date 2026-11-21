@@ -30,6 +30,14 @@ function abrirComVoltar(chave, vista, fechar) {
   acertarVoltar();
 }
 
+// Para o que se volta a desenhar (ex.: a lista de produtos): se já estava aberto, fica no mesmo lugar da ordem do
+// "voltar" (só troca a função de fechar); senão, abre como abrirComVoltar.
+function manterComVoltar(chave, vista, fechar) {
+  const aberto = abertosComVoltar.find((a) => a.chave === chave);
+  if (aberto) aberto.fechar = fechar;
+  else abrirComVoltar(chave, vista, fechar);
+}
+
 // Fechou por outro caminho (Cancelar, Guardar, mudar de período…): deixa de ser preciso tratar do "voltar".
 function fechadoSemVoltar(chave) {
   const indice = abertosComVoltar.findIndex((a) => a.chave === chave);

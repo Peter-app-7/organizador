@@ -165,7 +165,7 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
 .nota-previa { font-size: .9rem; color: var(--texto-suave); margin: 8px 0; overflow-wrap: anywhere; }
 #importar-previa .botao-principal { margin-top: 12px; }
 
-/* --- Compras: lista semanal --- */
+/* --- Botão discreto (ex.: "Ver todos" nos Gastos) --- */
 .botao-discreto {
   display: block;
   min-height: 44px;
@@ -177,10 +177,77 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
   border: 0;
 }
 
-/* --- Compras: contador e limpar comprados --- */
-.compras-estado { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; }
-.compras-estado .resumo { margin: 0; }
-#compras-limpar { min-height: 44px; }
+/* Texto só para leitores de ecrã (ex.: os rótulos da linha "Adicionar produto"). */
+.so-leitor { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* Ícones de traço na cor de destaque (cartão de resumo, "+" e "Organizar a lista"). */
+.icone-traco { flex: none; fill: none; stroke: var(--destaque); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* --- Mercearia: linha "Adicionar produto" (campo, categoria e "+"), sempre à vista; o campo encolhe --- */
+.adicionar-produto { display: grid; grid-template-columns: minmax(0, 1fr) 112px 48px; gap: 8px; align-items: center; margin: 0 0 12px; }
+.adicionar-produto input[type="text"], .adicionar-produto select { height: 48px; min-height: 48px; margin: 0; }
+.adicionar-produto select { padding: 8px 6px; text-overflow: ellipsis; }
+.botao-mais { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; background: var(--destaque); border: 0; border-radius: 8px; }
+.botao-mais .icone-traco { stroke: var(--destaque-texto); stroke-width: 2.4; }
+.mensagem-adicionar { margin: -6px 0 12px; font-size: .85rem; line-height: 1.35; color: var(--texto-suave); }
+.mensagem-adicionar.erro-campo { color: var(--vermelho); }
+
+/* --- Mercearia: cartão de resumo (por comprar, "Só por comprar" e as três ações) --- */
+.resumo-compras { margin: 0 0 12px; padding: 4px 12px 12px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; }
+.resumo-compras-topo { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; }
+.resumo-compras-numero { margin: 0; font-size: 1.15rem; font-weight: 700; }
+/* Interruptor: a caixa verdadeira (role="switch") fica invisível por cima do trilho; a etiqueta toda é a área de toque. */
+.interruptor { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-left: auto; font-size: .95rem; cursor: pointer; }
+.interruptor-marca { position: relative; flex: none; width: 44px; height: 26px; }
+.interruptor-caixa { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.interruptor-trilho { position: absolute; inset: 0; background: var(--linha); border-radius: 13px; transition: background-color .2s ease; }
+.interruptor-trilho::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #ffffff; border-radius: 50%; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); transition: transform .2s ease; }
+.interruptor-caixa:checked + .interruptor-trilho { background: var(--destaque); }
+.interruptor-caixa:checked + .interruptor-trilho::after { transform: translateX(18px); }
+.interruptor-caixa:focus-visible + .interruptor-trilho { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.acoes-compras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.acao-compras {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 3px 4px;
+  font-size: 13px;
+  line-height: 1.2;
+  text-align: center;
+  background: var(--fundo);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.acao-compras span { overflow-wrap: normal; }
+.acao-compras:disabled { opacity: .45; cursor: default; }
+.acao-compras[aria-expanded="true"] { border-color: var(--destaque); }
+
+/* --- Mercearia: "Organizar a lista", no fim da lista, só no modo Editar --- */
+.organizar { margin-top: 20px; padding-top: 4px; border-top: 1px solid var(--linha); }
+.organizar-titulo { margin: 12px 0 8px; }
+.botao-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  margin: 0 0 8px;
+  padding: 0 12px;
+  text-align: left;
+  background: var(--cartao);
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+}
+.botao-linha-texto { flex: 1; min-width: 0; font-weight: 600; }
+.botao-linha-seta { flex: none; font-size: 1.3rem; line-height: 1; color: var(--texto-suave); transition: transform .2s ease; }
+.botao-linha[aria-expanded="true"] .botao-linha-seta { transform: rotate(90deg); }
+.organizar-seccao { margin: 0 0 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .interruptor-trilho, .interruptor-trilho::after, .botao-linha-seta { transition: none; }
+}
 
 /* --- Vista Mercearia: lembrete da cópia (com "Exportar dados") e botão para recolher os produtos --- */
 .lembrete-copia {
@@ -199,6 +266,9 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
 .lembrete-copia .botao-pequeno { min-height: 44px; }
 .produtos-cabecalho { margin-top: 8px; }
 #compras-editar, #receitas-nova-semana { min-height: 44px; }
+/* "Editar" com um pequeno lápis antes do texto; no modo Editar passa a "Concluído", cheio na cor de destaque. */
+.botao-editar { display: inline-flex; align-items: center; gap: 6px; }
+.icone-lapis { flex: none; fill: none; stroke: var(--destaque); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .produtos-alternar {
   display: flex;
   align-items: center;
