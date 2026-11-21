@@ -48,6 +48,9 @@ function normalizarCategoriasDespesas(lista) {
   return [...limpas.filter((c) => c.id !== 'outros'), outros];
 }
 
+// Valores da coluna "origem" do ficheiro CSV (ver exportar-csv.js).
+const ORIGENS_CSV = ['compras', 'manual', 'cartao'];
+
 // Gastos vindos de fora (do aparelho ou de uma cópia): os incompletos ficam de fora, e uma categoria que
 // já não exista passa para Outros. Lança um erro se não for uma lista.
 function normalizarDespesas(lista, categorias) {
@@ -71,6 +74,11 @@ function normalizarDespesas(lista, categorias) {
         ...(typeof d.comerciante === 'string' && d.comerciante.trim() ? { comerciante: d.comerciante.trim().slice(0, NOTA_MAXIMA) } : {}),
         // Marca dos gastos importados do cartão (ver importarGastosCartao): só existe nesses.
         ...(typeof d.cartao === 'string' && d.cartao ? { cartao: d.cartao } : {}),
+        // Gastos de outra pessoa, importados de um ficheiro "Exportar gastos (CSV)" (importar-csv.js): o nome como veio
+        // no ficheiro, a marca "pessoa|id" (para não voltarem a entrar) e a origem no outro aparelho. Os meus não os têm.
+        ...(typeof d.pessoa === 'string' && d.pessoa.trim() ? { pessoa: d.pessoa.replace(/\s+/g, ' ').trim().slice(0, 60) } : {}),
+        ...(typeof d.csvMarca === 'string' && d.csvMarca ? { csvMarca: d.csvMarca } : {}),
+        ...(ORIGENS_CSV.includes(d.origemOriginal) ? { origemOriginal: d.origemOriginal } : {}),
       };
     });
 }
@@ -154,11 +162,73 @@ function nomeCategoriaDespesa(id) {
 
 // Todos os gastos num só formato: os gerais (incluindo os importados do cartão) e os de "Registar compras"
 // (em Mercearia, com a loja como nota). Cada registo aparece uma só vez: é daqui que sai o total do mês.
+// "pessoa" só existe nos gastos de outra pessoa (importados de um CSV); os meus têm-na vazia.
 function todosOsGastos() {
   return [
-    ...despesas.map((d) => ({ origem: 'despesa', id: d.id, data: d.data, categoria: d.categoria, nota: d.nota, centimos: d.centimos, registo: d })),
-    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'mercearia', nota: g.loja, centimos: g.centimos, registo: g })),
+    ...despesas.map((d) => ({ origem: 'despesa', id: d.id, data: d.data, categoria: d.categoria, nota: d.nota, centimos: d.centimos, pessoa: d.pessoa || '', registo: d })),
+    ...gastos.map((g) => ({ origem: 'compras', id: g.id, data: g.data, categoria: 'mercearia', nota: g.loja, centimos: g.centimos, pessoa: '', registo: g })),
   ];
+}
+
+// --- Seletor "Meus · <pessoa> · Casa" ---
+// Só aparece quando há gastos de outra pessoa (importados de um CSV). "meus": os gastos sem pessoa (incluindo os de
+// "Registar compras"); "casa": todos; outro valor: a chave (nome normalizado, chaveTexto) de uma pessoa.
+// Não fica guardado: a app abre sempre em "Meus", e a escolha mantém-se enquanto a app estiver aberta.
+let escolhaPessoas = 'meus';
+
+// Pessoas com gastos importados, em qualquer período: [{ chave, nome }], por ordem alfabética. O nome é o do gasto
+// mais recente dessa pessoa, tal como veio no ficheiro.
+function pessoasImportadas() {
+  const porChave = new Map();
+  [...despesas].sort((a, b) => a.data.localeCompare(b.data)).forEach((d) => {
+    if (d.pessoa) porChave.set(chaveTexto(d.pessoa), d.pessoa);
+  });
+  return [...porChave].map(([chave, nome]) => ({ chave, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }));
+}
+
+// Os gastos da escolha atual (recebe itens de todosOsGastos).
+function gastosDaEscolha(lista) {
+  if (escolhaPessoas === 'casa') return lista;
+  if (escolhaPessoas === 'meus') return lista.filter((g) => !g.pessoa);
+  return lista.filter((g) => g.pessoa && chaveTexto(g.pessoa) === escolhaPessoas);
+}
+
+// Depois de registar um gasto meu: se o seletor estiver noutra pessoa, passa para "Meus", para o gasto se ver.
+function mostrarMeusSeForOutraPessoa() {
+  if (escolhaPessoas !== 'meus' && escolhaPessoas !== 'casa') escolhaPessoas = 'meus';
+}
+
+function desenharSeletorPessoas() {
+  const caixa = document.getElementById('gastos-pessoas');
+  const pessoas = pessoasImportadas();
+  // Sem gastos de outra pessoa (ou se a escolhida deixou de ter gastos), volta a "Meus".
+  if (escolhaPessoas !== 'meus' && escolhaPessoas !== 'casa' && !pessoas.some((p) => p.chave === escolhaPessoas)) escolhaPessoas = 'meus';
+  if (pessoas.length === 0) escolhaPessoas = 'meus';
+  // Para o CSS: a barra do total fica mais alta (com a linha "Casa:"), e a vista e os avisos dão-lhe espaço.
+  document.body.classList.toggle('gastos-com-pessoas', pessoas.length > 0);
+  caixa.hidden = pessoas.length === 0;
+  const focada = caixa.contains(document.activeElement) ? document.activeElement.dataset.escolha : null;
+  const opcoes = [{ chave: 'meus', nome: 'Meus' }, ...pessoas, { chave: 'casa', nome: 'Casa' }];
+  caixa.replaceChildren(...opcoes.map((o) => criar('button', {
+    type: 'button',
+    className: o.chave === 'meus' || o.chave === 'casa' ? 'pessoa-fixa' : 'pessoa-nome',
+    textContent: o.nome,
+    title: o.nome,
+    'aria-pressed': String(o.chave === escolhaPessoas),
+    onclick: () => {
+      if (escolhaPessoas === o.chave) return;
+      escolhaPessoas = o.chave;
+      despesaAEditar = null;
+      desenharDespesasMes(periodoDoDeslocamento(mesDeslocamento));
+    },
+  })));
+  caixa.querySelectorAll('button').forEach((botao, i) => { botao.dataset.escolha = opcoes[i].chave; });
+  if (focada) {
+    const botao = [...caixa.querySelectorAll('button')].find((b) => b.dataset.escolha === focada);
+    if (botao) botao.focus({ preventScroll: true });
+  }
+  return pessoas.length > 0;
 }
 
 function somaCentimos(lista) {
@@ -265,6 +335,7 @@ function abrirNovaDespesa() {
           return;
         }
         fecharNovaDespesa();
+        mostrarMeusSeForOutraPessoa();
         gastosADestacar = [`despesa:${id}`];
         // Leva o seletor para o período do gasto, para se ver logo na lista.
         mesDeslocamento = deslocamentoDaData(novo.data);
@@ -353,16 +424,22 @@ function linhaDespesa(item, desenharDeNovo) {
     return criar('li', { className: 'gasto-editar' }, criar('h3', { className: 'despesas-registo-titulo', textContent: titulo }), formulario);
   }
   const data = textoParaData(item.data);
+  // Em "Casa", os gastos de outra pessoa mostram o nome dela, pequeno, ao lado da nota.
+  const pessoa = escolhaPessoas === 'casa' && item.pessoa ? item.pessoa : '';
+  const detalhe = [];
+  if (item.nota) detalhe.push(item.nota);
+  if (item.nota && pessoa) detalhe.push(' · ');
+  if (pessoa) detalhe.push(criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
   return criar('li', {}, criar('button', {
     type: 'button',
     className: 'gasto-linha',
-    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
+    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}, ${formatarEuros(item.centimos)}. Tocar para editar ou apagar.`,
     onclick: () => { despesaAEditar = chave; fecharNovaDespesa(); desenharDeNovo(); },
   },
   criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
   criar('span', { className: 'gasto-texto' },
     criar('span', { className: 'gasto-categoria', textContent: categoria }),
-    ...(item.nota ? [criar('span', { className: 'gasto-nota', textContent: item.nota })] : [])),
+    ...(detalhe.length ? [criar('span', { className: 'gasto-nota' }, ...detalhe)] : [])),
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
 }
 
@@ -404,19 +481,25 @@ function guardarGastosRecolhidos(recolhidos) {
   }
 }
 
-// Barra fixa no fundo da vista: o nome do período e o total de tudo o que se gastou nele (mercearia e gastos gerais).
-// O ano só aparece quando não é o atual.
-function desenharTotalMes(periodo, total) {
+// Barra fixa no fundo da vista: o nome do período e o total do que está escolhido no seletor (mercearia e gastos
+// gerais). O ano só aparece quando não é o atual. "totalCasa" (o dos dois juntos) só aparece, por baixo, com o seletor
+// visível e uma escolha que não seja "Casa"; null esconde-o.
+function desenharTotalMes(periodo, total, totalCasa = null) {
   const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
   document.getElementById('gastos-total-mes').textContent =
     periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`; // na barra, sem "de", para caber
   document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
+  const casa = document.getElementById('gastos-total-casa');
+  casa.textContent = totalCasa === null ? '' : `Casa: ${formatarEuros(totalCasa)}`;
+  casa.hidden = totalCasa === null;
 }
 
 // Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos.
+// Com o seletor de pessoas visível, só os gastos da escolha (ver gastosDaEscolha).
 function desenharDespesasMes(periodo) {
-  const doMes = todosOsGastos()
-    .filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim)
+  const comPessoas = desenharSeletorPessoas();
+  const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
+  const doMes = gastosDaEscolha(doPeriodo)
     // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro (os ids começam pela hora).
     .sort((a, b) => b.data.localeCompare(a.data) || b.id.localeCompare(a.id));
   const redesenhar = () => desenharDespesasMes(periodo);
@@ -460,8 +543,8 @@ function desenharDespesasMes(periodo) {
     }));
   }
   caixa.replaceChildren(...partes);
-  // O total é sempre de todos os gastos do período, mesmo com a lista recolhida.
-  desenharTotalMes(periodo, somaCentimos(doMes));
+  // O total é sempre de todos os gastos do período (da escolha), mesmo com a lista recolhida.
+  desenharTotalMes(periodo, somaCentimos(doMes), comPessoas && escolhaPessoas !== 'casa' ? somaCentimos(doPeriodo) : null);
   // A contagem de cada categoria é a deste período: atualiza-se sempre que a lista muda.
   atualizarContagemCategorias();
   // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
@@ -476,7 +559,8 @@ const estadoCategoriasDespesas = { aRenomear: null };
 // "Gastos do mês" e do total, incluindo os de "Registar compras"). Ex.: "1 gasto em Dezembro".
 function itensCategoriasDespesas() {
   const periodo = periodoDoDeslocamento(mesDeslocamento);
-  const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
+  // Com o seletor de pessoas, conta só os gastos da escolha, como a lista e o total.
+  const doPeriodo = gastosDaEscolha(todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim));
   const nome = nomeDoPeriodo(periodo);
   return categoriasDespesasOrdenadas().map((c) => {
     const numero = doPeriodo.filter((g) => g.categoria === c.id).length;

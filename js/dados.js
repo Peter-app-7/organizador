@@ -38,6 +38,7 @@ function dadosIniciais() {
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
     cartaoImportados: {}, // gastos do cartão já importados, por marca "data|comerciante|cêntimos", ex.: { "2026-11-03|continente|2350": 1 }
+    csvImportados: {},  // gastos de outra pessoa já importados de um CSV, por marca "pessoa|id", ex.: { "pessoa b|d-abc": 1 }
   };
 }
 
@@ -257,6 +258,11 @@ function normalizarDados(original, tolerante = false) {
   const cartao = bruto.cartaoImportados && typeof bruto.cartaoImportados === 'object' ? bruto.cartaoImportados : {};
   Object.entries(cartao).forEach(([marca, numero]) => {
     if (marca && Number.isInteger(numero) && numero > 0) limpos.cartaoImportados[marca] = numero;
+  });
+  // Dados e cópias anteriores à importação de CSV não têm esta lista: fica vazia.
+  const csv = bruto.csvImportados && typeof bruto.csvImportados === 'object' && !Array.isArray(bruto.csvImportados) ? bruto.csvImportados : {};
+  Object.entries(csv).forEach(([marca, numero]) => {
+    if (marca && Number.isInteger(numero) && numero > 0) limpos.csvImportados[marca] = numero;
   });
   return limpos;
 }

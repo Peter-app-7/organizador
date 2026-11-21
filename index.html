@@ -98,6 +98,8 @@
         <button id="mes-seguinte" type="button" aria-label="Mês seguinte">›</button>
       </div>
       <button id="mes-hoje" type="button" class="botao-pequeno mes-hoje" hidden>Voltar ao período de hoje</button>
+      <!-- Só com gastos importados de outra pessoa (js/importar-csv.js): "Meus", um botão por pessoa e "Casa" (os dois juntos). -->
+      <div id="gastos-pessoas" class="gastos-pessoas" role="group" aria-label="Gastos de quem" hidden></div>
 
       <div class="titulo-com-botao bloco-gastos despesas-cabecalho">
         <h2>Gastos do mês</h2>
@@ -116,13 +118,24 @@
         <h3 class="despesas-registo-titulo">Comerciantes lembrados</h3>
         <div id="despesas-comerciantes"></div>
       </details>
-      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js). -->
-      <button id="gastos-exportar-csv" type="button" class="botao-discreto gastos-exportar-csv">Exportar gastos (CSV)</button>
+      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js), e os gastos do outro telemóvel,
+           a partir do ficheiro dele (ver js/importar-csv.js). -->
+      <div class="gastos-csv-botoes">
+        <button id="gastos-exportar-csv" type="button" class="botao-discreto gastos-exportar-csv">Exportar gastos (CSV)</button>
+        <button id="gastos-importar-csv" type="button" class="botao-discreto gastos-exportar-csv">Importar gastos (CSV)</button>
+        <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
+      </div>
+      <p id="gastos-importar-csv-resultado" class="importar-resultado" role="status" hidden></p>
+      <div id="gastos-importar-csv-previa" class="gastos-registo" role="region" hidden></div>
 
       <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
       <div id="gastos-total-barra" class="gastos-total-barra" aria-live="polite">
         <span id="gastos-total-mes" class="gastos-total-mes"></span>
-        <span id="gastos-total-valor" class="gastos-total-valor"></span>
+        <span class="gastos-total-direita">
+          <span id="gastos-total-valor" class="gastos-total-valor"></span>
+          <!-- Só com o seletor de pessoas visível e uma escolha que não seja "Casa": o total dos dois juntos. -->
+          <span id="gastos-total-casa" class="gastos-total-casa" hidden></span>
+        </span>
       </div>
     </section>
 
@@ -204,6 +217,7 @@
   <script src="js/comerciantes.js"></script>
   <script src="js/mes.js"></script>
   <script src="js/exportar-csv.js"></script>
+  <script src="js/importar-csv.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

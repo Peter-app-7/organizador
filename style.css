@@ -233,7 +233,12 @@ button:disabled { opacity: .6; }
   border-top: 1px solid var(--linha);
 }
 .gastos-total-mes { min-width: 0; font-weight: 600; color: var(--texto-suave); }
+.gastos-total-direita { flex: none; display: flex; flex-direction: column; align-items: flex-end; }
 .gastos-total-valor { flex: none; font-size: 1.35rem; font-weight: 700; color: var(--texto); }
+/* "Casa: 530,00 €", por baixo do total, só com o seletor de pessoas. A barra fica mais alta: a vista ganha espaço. */
+.gastos-total-casa { font-size: .8rem; line-height: 1.2; color: var(--texto-suave); white-space: nowrap; }
+body.gastos-com-pessoas #vista-gastos { padding-bottom: 80px; }
+body.gastos-com-pessoas[data-vista="gastos"] .aviso { bottom: calc(144px + env(safe-area-inset-bottom)); }
 /* Na vista Gastos, os avisos ficam acima da barra do total. */
 body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bottom)); }
 .titulo-com-botao h3.despesas-subtitulo { margin: 0; }
@@ -273,8 +278,33 @@ body[data-vista="gastos"] .aviso { bottom: calc(124px + env(safe-area-inset-bott
 .casa-botoes .botao-pequeno { min-width: 96px; min-height: 44px; }
 .copiar-escondido { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; }
 
-/* "Exportar gastos (CSV)", discreto, no fim da vista. */
-.gastos-exportar-csv { margin-top: 12px; }
+/* "Exportar gastos (CSV)" e "Importar gastos (CSV)", discretos, lado a lado no fim da vista (por baixo um do outro,
+   se não couberem). */
+/* A margem fica no contentor, para se juntar à de cima como antes (dentro de um flex, as margens não se juntam). */
+.gastos-csv-botoes { display: flex; flex-wrap: wrap; column-gap: 24px; margin-top: 12px; }
+.gastos-csv-botoes .gastos-exportar-csv { margin-top: 0; }
+#gastos-importar-csv-resultado { margin-top: 8px; }
+
+/* Seletor "Meus · <pessoa> · Casa": botões segmentados, como o sim/não. Os nomes compridos cortam-se com reticências. */
+.gastos-pessoas { display: flex; margin: 12px 0 0; border: 1px solid var(--linha); border-radius: 8px; overflow: hidden; background: var(--cartao); }
+.gastos-pessoas button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  font-size: .9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  background: none;
+  border: 0;
+}
+.gastos-pessoas button + button { border-left: 1px solid var(--linha); }
+/* "Meus" e "Casa" nunca se cortam; os nomes repartem o resto em partes iguais. */
+.gastos-pessoas .pessoa-fixa { flex: none; }
+.gastos-pessoas .pessoa-nome { flex: 1 1 0; }
+.gastos-pessoas button[aria-pressed="true"] { background: var(--destaque); color: var(--destaque-texto); font-weight: 600; }
+.gasto-pessoa { color: var(--texto-suave); }
 
 /* --- Gastos: formulários (Compras e Despesas) e lista (Despesas) --- */
 /* No iPhone, o campo de data tem aspeto e largura próprios: assim fica igual aos outros campos. */

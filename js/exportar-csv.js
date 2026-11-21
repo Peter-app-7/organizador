@@ -62,8 +62,10 @@ function campoCsv(texto) {
 }
 
 // Uma linha por registo, já pela ordem do ficheiro. Usa os mesmos registos do total do mês (todosOsGastos, em despesas.js).
+// Os gastos de outra pessoa (importados de um CSV, ver importar-csv.js) saem com o nome e a origem dela: assim, quando
+// ela importa este ficheiro, reconhece-os como seus e ignora-os.
 function linhasCsvGastos() {
-  const pessoa = lerNomeExportacao();
+  const meuNome = lerNomeExportacao();
   return todosOsGastos()
     // Do mais antigo para o mais recente; no mesmo dia, pela ordem em que foram registados (os ids começam pela hora).
     .sort((a, b) => a.data.localeCompare(b.data) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -73,8 +75,8 @@ function linhasCsvGastos() {
         `${compras ? 'c' : 'd'}-${g.id}`,
         g.data,
         periodoDaData(g.data).chave,
-        pessoa,
-        compras ? 'compras' : (g.registo.cartao ? 'cartao' : 'manual'),
+        g.pessoa || meuNome,
+        compras ? 'compras' : (g.registo.origemOriginal || (g.registo.cartao ? 'cartao' : 'manual')),
         nomeCategoriaDespesa(g.categoria), // nos registos de compras, o nome atual da Mercearia
         g.nota || '',
         compras ? '' : (g.registo.comerciante || ''),

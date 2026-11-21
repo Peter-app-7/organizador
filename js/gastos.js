@@ -198,6 +198,8 @@ function abrirRegisto() {
         // "Gastos do mês" se ele ficar fora dos que se veem com ela recolhida).
         deslocamentoAoEntrar = deslocamentoDaData(novo.data);
         gastosADestacar = [`compras:${id}`];
+        // Um gasto meu: se o seletor de pessoas estiver noutra pessoa, passa para "Meus".
+        mostrarMeusSeForOutraPessoa();
         avisar(`Registado: ${formatarEuros(novo.centimos)} em ${novo.loja}. Vê-o em Gastos.`);
       },
       aoCancelar: fecharRegisto,

@@ -193,7 +193,8 @@ function lembrarComerciante(registo, antes) {
   }
 
   const categoria = nomeCategoriaDespesa(regra.categoria);
-  const iguais = porCategorizar ? despesas.filter((d) => d !== registo && d.categoria === porCategorizar
+  // Os gastos de outra pessoa (importados de um CSV) nunca mudam por causa das regras deste aparelho.
+  const iguais = porCategorizar ? despesas.filter((d) => d !== registo && !d.pessoa && d.categoria === porCategorizar
     && mesmoComerciante(comercianteDoGasto(d), regra.comerciante)) : [];
   let aplicados = 0;
   if (iguais.length > 0) {
