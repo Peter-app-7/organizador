@@ -62,6 +62,20 @@ function campoCsv(texto) {
 }
 
 // Na coluna "pessoa" vai sempre o nome original (gasto.pessoa), nunca o nome a mostrar das Definições.
+// Id do gasto no ficheiro. Os gastos de outra pessoa saem com o id original, o do ficheiro dela (a parte do csvMarca
+// "pessoaNormalizada|id" depois da pessoa), e não com o id deste telemóvel: assim, reimportar este ficheiro (aqui ou
+// noutro telemóvel que já tenha os gastos dela) dá "já importados" em vez de os duplicar. Serve também para os gastos
+// importados antes desta correção, porque todos têm o csvMarca. Os meus saem como sempre: "c-" ou "d-" + id.
+function idCsvDoGasto(g) {
+  const marca = g.origem === 'despesa' ? g.registo.csvMarca : '';
+  if (marca && g.pessoa) {
+    const prefixo = `${chaveTexto(g.pessoa)}|`;
+    const original = marca.startsWith(prefixo) ? marca.slice(prefixo.length) : marca.slice(marca.indexOf('|') + 1);
+    if (original.trim()) return original;
+  }
+  return `${g.origem === 'compras' ? 'c' : 'd'}-${g.id}`;
+}
+
 // Uma linha por registo, já pela ordem do ficheiro. Usa os mesmos registos do total do mês (todosOsGastos, em despesas.js).
 // Os gastos de outra pessoa (importados de um CSV, ver importar-csv.js) saem com o nome e a origem dela: assim, quando
 // ela importa este ficheiro, reconhece-os como seus e ignora-os.
@@ -73,7 +87,7 @@ function linhasCsvGastos() {
     .map((g) => {
       const compras = g.origem === 'compras';
       return [
-        `${compras ? 'c' : 'd'}-${g.id}`,
+        idCsvDoGasto(g),
         g.data,
         periodoDaData(g.data).chave,
         g.pessoa || meuNome,
