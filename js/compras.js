@@ -1,6 +1,8 @@
 // compras.js: lista de produtos da vista Mercearia. Lista da casa, por tipo de produto, com sim/não para comprar.
 
 let comprasAEditar = false;
+// Produto aberto para editar (nome e categoria), no modo Editar: o id, ou null. Só um de cada vez.
+let produtoAEditar = null;
 
 function definirComprar(produto, valor) {
   produto.comprar = valor;
@@ -8,7 +10,82 @@ function definirComprar(produto, valor) {
   desenharCompras();
 }
 
-function linhaProduto(produto) {
+function fecharProdutoAEditar() {
+  produtoAEditar = null;
+  desenharCompras();
+}
+
+// Cartão para mudar o nome e a categoria de um produto, ali mesmo na lista. Mantém o id e o sim/não.
+function cartaoProduto(produto, tipos) {
+  const erro = criar('p', { id: 'produto-editar-nome-erro', className: 'erro-campo', hidden: true });
+  const nome = criar('input', {
+    id: 'produto-editar-nome', type: 'text', value: produto.nome, maxLength: 100, autocomplete: 'off',
+    autocapitalize: 'sentences', enterKeyHint: 'done', 'aria-describedby': 'produto-editar-nome-erro',
+  });
+  const tipo = criar('select', { id: 'produto-editar-tipo' },
+    ...tipos.map((t) => criar('option', { value: t, textContent: t })));
+  tipo.value = tipoMostrado(produto, tipos);
+  // Valores iniciais: se chegar uma alteração da nuvem com o cartão aberto, só os campos não mexidos acompanham.
+  nome.dataset.inicial = nome.value;
+  tipo.dataset.inicial = tipo.value;
+  nome.addEventListener('input', () => { erro.hidden = true; nome.removeAttribute('aria-invalid'); });
+  const formulario = criar('form', { className: 'formulario-edicao', noValidate: true },
+    criar('label', { htmlFor: nome.id, textContent: 'Nome do produto' }), nome, erro,
+    criar('label', { htmlFor: tipo.id, textContent: 'Categoria' }), tipo,
+    // Só com uma casa ligada (lista partilhada, casa.js).
+    ...(codigoCasa ? [criar('p', { className: 'nota nota-edicao', textContent: 'O nome novo também muda no outro telemóvel.' })] : []));
+  formulario.append(botoesEdicao(formulario, { aoCancelar: fecharProdutoAEditar }));
+  formulario.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const novoNome = primeiraMaiuscula(nome.value.replace(/\s+/g, ' '));
+    // O mesmo produto pode ficar com outras maiúsculas; outro produto com o mesmo nome (sem maiúsculas, acentos nem
+    // quantidade, em qualquer categoria, como no "Adicionar") não.
+    const outro = novoNome && dados.compras.find((p) => p.id !== produto.id && chaveProduto(p.nome) === chaveProduto(novoNome));
+    const mensagem = !novoNome ? 'Escreve o nome do produto.' : (outro ? `Já existe «${outro.nome}» em ${tipoMostrado(outro, tiposDeCompras())}.` : null);
+    if (mensagem) {
+      erro.textContent = mensagem;
+      erro.hidden = false;
+      nome.setAttribute('aria-invalid', 'true');
+      nome.focus();
+      return;
+    }
+    // A categoria só muda se foi escolhida outra (assim, um tipo guardado com outras maiúsculas fica como está).
+    const novoTipo = tipo.value !== tipoMostrado(produto, tiposDeCompras()) ? tipo.value : produto.tipo;
+    const mudou = novoNome !== produto.nome || novoTipo !== produto.tipo;
+    if (mudou) {
+      produto.nome = novoNome;
+      produto.tipo = novoTipo;
+      guardarDados(); // com uma casa ligada, segue para a nuvem (notarMudancasCompras)
+    }
+    produtoAEditar = null;
+    desenharCompras();
+    if (mudou) avisar(`Produto alterado: ${novoNome} (${tipoMostrado(produto, tiposDeCompras())}).`);
+  });
+  const cartao = criar('li', { className: 'produto-editar cartao-edicao' }, formulario);
+  cartao.dataset.produto = produto.id; // para não passar o que se escreveu para outro produto (ver guardarCartaoProduto)
+  return cartao;
+}
+
+function linhaProduto(produto, tipos) {
+  if (comprasAEditar && produtoAEditar === produto.id) return cartaoProduto(produto, tipos);
+  // No modo Editar: o nome, o lápis e o ×; o sim/não fica escondido para caberem.
+  if (comprasAEditar) {
+    return criar('li', { className: 'linha' },
+      criar('span', { className: 'linha-texto', textContent: produto.nome }),
+      // Abrir outro produto fecha o que estava aberto, sem guardar.
+      // O teclado só abre aqui, ao tocar no lápis (não quando a lista é desenhada outra vez).
+      botaoLapis(`Editar ${produto.nome}`, () => {
+        produtoAEditar = produto.id;
+        desenharCompras();
+        const campo = document.getElementById('produto-editar-nome');
+        if (campo) campo.focus();
+      }),
+      botaoApagar(produto.nome, () => {
+        dados.compras = dados.compras.filter((p) => p.id !== produto.id);
+        guardarDados();
+        desenharCompras();
+      }));
+  }
   return criar('li', { className: 'linha' },
     criar('span', { className: 'linha-texto', textContent: produto.nome }),
     criar('div', { className: 'sim-nao', 'aria-label': `Comprar ${produto.nome}?` },
@@ -23,13 +100,7 @@ function linhaProduto(produto) {
         textContent: 'Não',
         'aria-pressed': String(!produto.comprar),
         onclick: () => definirComprar(produto, false),
-      })),
-    // O × só existe no modo de edição.
-    ...(comprasAEditar ? [botaoApagar(produto.nome, () => {
-      dados.compras = dados.compras.filter((p) => p.id !== produto.id);
-      guardarDados();
-      desenharCompras();
-    })] : []));
+      })));
 }
 
 // Tipo em que o produto aparece: compara sem maiúsculas nem acentos, e um tipo desconhecido vai para "Outros",
@@ -71,6 +142,10 @@ function desenharCompras() {
   const soComprar = document.getElementById('compras-filtro').checked;
   const visiveis = dados.compras.filter((p) => !soComprar || p.comprar);
   const caixa = document.getElementById('compras-lista');
+  // Um produto aberto para editar que deixou de existir (ex.: apagado no outro telemóvel) fecha-se.
+  if (produtoAEditar && !(comprasAEditar && dados.compras.some((p) => p.id === produtoAEditar))) produtoAEditar = null;
+  // O que está a ser escrito no cartão não se perde quando a lista é desenhada outra vez (ex.: chega uma alteração da nuvem).
+  const escrito = guardarCartaoProduto(caixa);
   caixa.replaceChildren();
 
   desenharContadorCompras();
@@ -85,13 +160,50 @@ function desenharCompras() {
     if (produtos.length === 0) return;
     caixa.append(
       criar('h3', { textContent: tipo }),
-      criar('ul', { className: 'lista' }, ...produtos.map(linhaProduto)),
+      criar('ul', { className: 'lista' }, ...produtos.map((p) => linhaProduto(p, tipos))),
     );
   });
+  // O cartão pode ter ficado escondido pelo filtro "Mostrar só o que é para comprar": então fecha-se.
+  if (produtoAEditar && !caixa.querySelector('.produto-editar')) produtoAEditar = null;
+  reporCartaoProduto(caixa, escrito);
+  // Com um produto aberto, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
+  if (produtoAEditar) abrirComVoltar('editar-produto', 'mercearia', fecharProdutoAEditar);
+  else fechadoSemVoltar('editar-produto');
 
   if (visiveis.length === 0) {
     const mensagem = soComprar ? 'Nada para comprar.' : 'A lista está vazia. Toca em Editar para acrescentar produtos.';
     caixa.append(criar('p', { className: 'vazio', textContent: mensagem }));
+  }
+}
+
+// Valores do cartão aberto antes de desenhar outra vez: { id, nome, tipo, foco, inicio, fim } ou null.
+// Guarda só os campos que o utilizador mudou (diferentes do valor inicial).
+function guardarCartaoProduto(caixa) {
+  const cartao = caixa.querySelector('.produto-editar');
+  const nome = caixa.querySelector('#produto-editar-nome');
+  const tipo = caixa.querySelector('#produto-editar-tipo');
+  if (!cartao || !nome || !tipo) return null;
+  return {
+    id: cartao.dataset.produto, // o produto do cartão que estava aberto (pode já ter sido aberto outro)
+    nome: nome.value !== nome.dataset.inicial ? nome.value : null,
+    tipo: tipo.value !== tipo.dataset.inicial ? tipo.value : null,
+    foco: document.activeElement === nome ? 'nome' : (document.activeElement === tipo ? 'tipo' : null),
+    inicio: nome.selectionStart,
+    fim: nome.selectionEnd,
+  };
+}
+
+function reporCartaoProduto(caixa, escrito) {
+  if (!escrito || escrito.id !== produtoAEditar) return;
+  const nome = caixa.querySelector('#produto-editar-nome');
+  const tipo = caixa.querySelector('#produto-editar-tipo');
+  if (!nome || !tipo) return;
+  if (escrito.nome !== null) nome.value = escrito.nome;
+  if (escrito.tipo !== null && [...tipo.options].some((o) => o.value === escrito.tipo)) tipo.value = escrito.tipo;
+  if (escrito.foco === 'tipo') tipo.focus({ preventScroll: true });
+  if (escrito.foco === 'nome') {
+    nome.focus({ preventScroll: true });
+    try { nome.setSelectionRange(escrito.inicio, escrito.fim); } catch (erro) { /* sem seleção: não faz mal */ }
   }
 }
 
@@ -140,7 +252,9 @@ function definirEdicaoCompras(aEditar) {
     abrirComVoltar('editar-compras', 'mercearia', () => definirEdicaoCompras(false));
   } else {
     fechadoSemVoltar('editar-compras');
-    // Uma categoria a ser renomeada fica escondida com o resto: deixa de contar para o "voltar".
+    // Um produto ou uma categoria abertos para editar ficam escondidos com o resto: deixam de contar para o "voltar".
+    produtoAEditar = null;
+    fechadoSemVoltar('editar-produto');
     estadoCategoriasCompras.aRenomear = null;
     fechadoSemVoltar('renomear-compras-categoria');
   }
