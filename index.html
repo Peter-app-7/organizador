@@ -19,12 +19,8 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Acesso às Definições, no canto de cima, em todas as vistas. Na vista Gastos, à esquerda do ⚙️, "Importar do cartão". -->
+  <!-- Acesso às Definições, no canto de cima, em todas as vistas. -->
   <header class="topo">
-    <!-- A etiqueta funciona como botão: tocar abre o seletor de ficheiros do aparelho. Só se vê na vista Gastos (style.css). -->
-    <label class="botao-pequeno botao-ficheiro" id="despesas-importar-botao">Importar do cartão
-      <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
-    </label>
     <button id="botao-ajustes" class="botao-icone" type="button" aria-label="Definições e cópia de segurança">⚙️</button>
   </header>
 
@@ -99,14 +95,16 @@
     </section>
 
     <section id="vista-gastos" class="vista" hidden>
-      <!-- Título e, na mesma linha, à direita, os botões CSV: todos os períodos, num ficheiro para folhas de cálculo
-           (ver js/exportar-csv.js), e os gastos do outro telemóvel, a partir do ficheiro dele (ver js/importar-csv.js).
-           Se o texto não couber, os botões ficam só com o ícone (classe so-icone, ver js/despesas.js). -->
+      <!-- Título e, na mesma linha, à direita, três botões só com ícone: "Importar do cartão" (o ficheiro .txt do atalho
+           do iPhone, ver js/despesas.js), "Exportar" (todos os períodos, num ficheiro para folhas de cálculo, ver
+           js/exportar-csv.js) e "Importar" (os gastos do outro telemóvel, a partir do ficheiro dele, ver js/importar-csv.js). -->
       <div id="gastos-cabecalho" class="gastos-cabecalho">
         <h1>Gastos</h1>
         <div class="gastos-csv-botoes">
-          <button id="gastos-exportar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Exportar gastos (CSV)" title="Exportar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg><span>Exportar</span></button>
-          <button id="gastos-importar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos (CSV)" title="Importar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/></svg><span>Importar</span></button>
+          <button id="despesas-importar-botao" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos do cartão" title="Importar do cartão"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18"/><path d="M7 14.5h4"/></svg></button>
+          <input id="despesas-importar-cartao" type="file" accept=".txt,text/plain" hidden>
+          <button id="gastos-exportar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Exportar gastos (CSV)" title="Exportar (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg></button>
+          <button id="gastos-importar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos (CSV)" title="Importar (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/></svg></button>
           <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
         </div>
       </div>

@@ -1,5 +1,5 @@
-// mes.js: vista Gastos. De cima para baixo (desde 23 nov 2026): "Importar do cartão" no topo, ao lado do ⚙️ (só nesta
-// vista); título; "Exportar (CSV)" e "Importar (CSV)" (exportar-csv.js e importar-csv.js) com as mensagens por baixo;
+// mes.js: vista Gastos. De cima para baixo (desde 23 nov 2026): título e, na mesma linha, três botões só com ícone,
+// "Importar do cartão" (despesas.js), "Exportar" e "Importar" (CSV, exportar-csv.js e importar-csv.js), com as mensagens por baixo;
 // traço; seletor do período; seletor "Meus · <pessoa> · Juntos" (só com gastos importados); traço; bloco "Gastos do
 // mês", com os gastos por confirmar, "Por categorizar" e os blocos Casa e Pessoal, agrupados por categoria (despesas.js);
 // no fim, depois de um traço, "Gastos fixos" (fixos.js) e "Categorias de gastos" (dia de início, categorias e

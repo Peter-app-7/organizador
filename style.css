@@ -92,7 +92,7 @@ input[type="text"], input[type="time"], input[type="number"], input[type="date"]
 button { cursor: pointer; }
 button:disabled { opacity: .6; }
 
-/* --- Topo: o botão das Definições, à direita (na vista Gastos, com "Importar do cartão" à esquerda dele) --- */
+/* --- Topo: o botão das Definições, à direita, em todas as vistas --- */
 .topo {
   display: flex;
   justify-content: flex-end;
@@ -103,8 +103,6 @@ button:disabled { opacity: .6; }
   padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
 }
 .botao-icone { flex: none; background: none; border: 0; font-size: 1.3rem; min-width: 44px; min-height: 44px; }
-/* "Importar do cartão" só se vê na vista Gastos. */
-body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; }
 
 /* --- Formulários e botões --- */
 .formulario { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-bottom: 16px; }
@@ -375,15 +373,12 @@ body[data-vista="gastos"] .aviso { bottom: calc(71px + var(--altura-barra-total,
 .casa-botoes .botao-pequeno { min-width: 96px; min-height: 44px; }
 .copiar-escondido { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; }
 
-/* Título "Gastos" à esquerda e os dois botões CSV à direita, na mesma linha. Se o texto não couber (ex.: 360 px com
-   letra maior), js/despesas.js põe a classe so-icone: botões de 44 x 44 px só com o ícone (aria-label e title ficam). */
+/* Título "Gastos" à esquerda e, à direita, encostados, três botões com contorno só com o ícone, 44 x 44 px: "Importar do
+   cartão", "Exportar" e "Importar" (CSV). O nome de cada um está no aria-label e no title. */
 .gastos-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; min-width: 0; }
 .gastos-cabecalho h1 { flex: none; margin: 0; overflow-wrap: normal; white-space: nowrap; }
 .gastos-csv-botoes { display: flex; flex: none; gap: 6px; }
-.botao-csv { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 4px 10px; font-size: 15px; }
-.botao-csv span { white-space: nowrap; overflow-wrap: normal; }
-.gastos-cabecalho.so-icone .botao-csv { min-width: 44px; padding: 0; }
-.gastos-cabecalho.so-icone .botao-csv span { display: none; }
+.botao-csv { display: flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; }
 .icone-csv { flex: none; fill: none; stroke: var(--destaque); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* O período fica separado da linha do título (e das mensagens) por um traço. */
 .mes-navegacao.gastos-periodo { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--linha); }
@@ -679,9 +674,7 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
   text-align: center;
 }
 
-/* --- Gastos: importar gastos do cartão --- */
-/* A etiqueta funciona como botão: tocar abre o seletor de ficheiros do aparelho. */
-.botao-ficheiro { display: flex; align-items: center; width: fit-content; cursor: pointer; }
+/* --- Gastos: mensagens dos botões do topo (importar do cartão, CSV) --- */
 .importar-resultado { margin: 0 0 12px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; overflow-wrap: anywhere; }
 
 /* --- Gastos fixos (js/fixos.js), logo a seguir a "Categorias de gastos" --- */
