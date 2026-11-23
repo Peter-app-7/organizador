@@ -302,7 +302,7 @@ button:disabled { opacity: .6; }
 #despesas-comerciantes { margin-bottom: 8px; }
 
 /* Barra fixa do total do mês, acima da barra de separadores (60 px + contorno + zona segura). A altura da barra muda
-   com as linhas de baixo (Casa/Pessoal e Juntos): é medida em despesas.js (--altura-barra-total) e a vista dá-lhe espaço. */
+   com o "Previsto": é medida em despesas.js (--altura-barra-total) e a vista dá-lhe espaço. */
 #vista-gastos { padding-bottom: calc(var(--altura-barra-total, 53px) + 8px); }
 .gastos-total-barra {
   position: fixed;
@@ -318,19 +318,13 @@ button:disabled { opacity: .6; }
   background: var(--cartao);
   border-top: 1px solid var(--linha);
 }
-/* À esquerda: "Previsto: …" (pequeno, vermelho) por cima do nome do período. Encolhe antes dos totais da direita (não
-   os empurra): se "Previsto: …" não couber, o valor passa para a linha de baixo, mas nunca é cortado. */
-.gastos-total-esquerda { flex: 0 1000 auto; min-width: min-content; display: flex; flex-direction: column; align-items: flex-start; }
-.gastos-total-previsto { font-size: .8rem; line-height: 1.25; font-weight: 600; color: var(--vermelho-suave); } /* 5,6:1 em claro e 7,2:1 em escuro sobre --cartao */
-.gastos-total-previsto > span { white-space: nowrap; }
+/* À esquerda, só o nome do período; à direita, "Previsto: …" (pequeno, vermelho) por cima do total. O nome nunca é
+   cortado: é a direita que encolhe e, se "Previsto: …" não couber, o valor passa para a linha de baixo. */
 .gastos-total-mes { flex: none; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
 .gastos-total-direita { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
-/* "Casa 376,50 € · Pessoal 84,30 €": cada parte não se parte; se não couberem as duas, a segunda passa para baixo. */
-.gastos-total-blocos { font-size: .8rem; line-height: 1.25; color: var(--texto-suave); overflow-wrap: normal; }
-.gastos-total-parte { white-space: nowrap; }
+.gastos-total-previsto { font-size: .8rem; line-height: 1.25; font-weight: 600; color: var(--vermelho-suave); } /* 5,6:1 em claro e 7,2:1 em escuro sobre --cartao */
+.gastos-total-previsto > span { white-space: nowrap; }
 .gastos-total-valor { flex: none; font-size: 1.35rem; font-weight: 700; color: var(--texto); }
-/* "Juntos: 530,00 €", por baixo do total, só com o seletor de pessoas. */
-.gastos-total-casa { font-size: .8rem; line-height: 1.2; color: var(--texto-suave); white-space: nowrap; }
 /* Na vista Gastos, os avisos ficam acima da barra do total. */
 body[data-vista="gastos"] .aviso { bottom: calc(71px + var(--altura-barra-total, 53px) + env(safe-area-inset-bottom)); }
 .titulo-com-botao h3.despesas-subtitulo { margin: 0; }

@@ -297,7 +297,7 @@ function desenharSeletorPessoas() {
   // Sem gastos de outra pessoa (ou se a escolhida deixou de ter gastos), volta a "Meus".
   if (escolhaPessoas !== 'meus' && escolhaPessoas !== 'casa' && !pessoas.some((p) => p.chave === escolhaPessoas)) escolhaPessoas = 'meus';
   if (pessoas.length === 0) escolhaPessoas = 'meus';
-  // Para o CSS: com o seletor, a barra do total pode ter a linha "Juntos:".
+  // Classe sem CSS (fica só como marca de que o seletor está visível).
   document.body.classList.toggle('gastos-com-pessoas', pessoas.length > 0);
   caixa.hidden = pessoas.length === 0;
   const focada = caixa.contains(document.activeElement) ? document.activeElement.dataset.escolha : null;
@@ -737,7 +737,7 @@ const BLOCOS_GASTOS = [
   { tipo: 'casa', titulo: 'Casa' },
   { tipo: 'pessoal', titulo: 'Pessoal' },
 ];
-// Na lista "Gastos do mês", o bloco Pessoal vem antes do Casa (na barra do total continua "Casa … · Pessoal …").
+// Na lista "Gastos do mês", o bloco Pessoal vem antes do Casa.
 const BLOCOS_NA_LISTA = ['pessoal', 'casa'].map((tipo) => BLOCOS_GASTOS.find((b) => b.tipo === tipo));
 // Em cada bloco, só as primeiras categorias; as outras com "Ver todas (N)". Blocos abertos ("casa", "pessoal"), só
 // enquanto a app estiver aberta: ao abrir a app estão os dois recolhidos; mantêm-se ao mudar de período, de pessoa e
@@ -765,17 +765,6 @@ function gruposPorCategoria(lista) {
     .sort((a, b) => Number(ePorCategorizar(b.id)) - Number(ePorCategorizar(a.id))
       || b.total - a.total
       || a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }));
-}
-
-// Somas por bloco de uma lista (itens de todosOsGastos): { casa, pessoal, porCategorizar } em cêntimos.
-function somasPorBloco(lista) {
-  const somas = { casa: 0, pessoal: 0, porCategorizar: 0 };
-  lista.forEach((g) => {
-    const bloco = blocoDoGasto(g);
-    if (bloco === 'por-categorizar') somas.porCategorizar += g.centimos;
-    else somas[bloco] += g.centimos;
-  });
-  return somas;
 }
 
 // Ícones de traço dos blocos: uma casa (cor de destaque) e uma pessoa (cor de acento própria, ver style.css).
@@ -815,27 +804,18 @@ function mostrarGastosDestacados(caixa, chaves) {
   }, 60);
 }
 
-// Barra fixa no fundo da vista: o nome do período e o total do que está escolhido no seletor (mercearia e gastos
-// gerais). O ano só aparece quando não é o atual. Por baixo do total, "Casa … · Pessoal …" (só as partes com valor;
-// "Por categorizar" conta no total, mas em nenhuma delas). "totalJuntos" (o dos dois juntos) só aparece, ainda por baixo,
-// com o seletor visível e uma escolha que não seja "Juntos"; null esconde-o.
-function desenharTotalMes(periodo, total, somas, totalJuntos = null) {
+// Barra fixa no fundo da vista: à esquerda, só o nome do período (o ano só aparece quando não é o atual); à direita,
+// "Previsto: …" (ver desenharPrevisto) por cima do total do que está escolhido no seletor (mercearia e gastos gerais).
+// Os subtotais de Casa e Pessoal ficam só nos blocos de "Gastos do mês".
+function desenharTotalMes(periodo, total) {
   const nome = primeiraMaiuscula(NOMES_MESES[periodo.mes]);
   document.getElementById('gastos-total-mes').textContent =
     periodo.ano === new Date().getFullYear() ? nome : `${nome} ${periodo.ano}`; // na barra, sem "de", para caber
   document.getElementById('gastos-total-valor').textContent = formatarEuros(total);
-  const partes = BLOCOS_GASTOS.filter((b) => somas[b.tipo] > 0)
-    .map((b) => criar('span', { className: 'gastos-total-parte', textContent: `${b.titulo} ${formatarEuros(somas[b.tipo])}` }));
-  const blocos = document.getElementById('gastos-total-blocos');
-  blocos.replaceChildren(...partes.flatMap((parte, i) => (i ? [criar('span', { className: 'gastos-total-ponto', textContent: ' · ' }), parte] : [parte])));
-  blocos.hidden = partes.length === 0;
-  const juntos = document.getElementById('gastos-total-casa');
-  juntos.textContent = totalJuntos === null ? '' : `Juntos: ${formatarEuros(totalJuntos)}`;
-  juntos.hidden = totalJuntos === null;
   desenharPrevisto(periodo, total);
 }
 
-// "Previsto: 1450,00 €", à esquerda, por cima do nome do período: o total de agora mais os gastos fixos que ainda vão
+// "Previsto: 1450,00 €", à direita, por cima do total: o total de agora mais os gastos fixos que ainda vão
 // entrar neste período (centimosFixosEmFalta, em fixos.js). Só no período de hoje ou num futuro, só se faltar algum e
 // só com "Meus" ou "Juntos" (os fixos são sempre meus). É só uma conta para o ecrã: nada é gravado.
 function desenharPrevisto(periodo, total) {
@@ -872,7 +852,7 @@ if (window.ResizeObserver) {
 // blocos Pessoal e Casa, cada um com as suas categorias (as 3 primeiras e, se houver mais, "Ver todas (N)"); um bloco
 // sem gastos não aparece.
 function desenharDespesasMes(periodo) {
-  const comPessoas = desenharSeletorPessoas();
+  desenharSeletorPessoas();
   const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
   const doMes = gastosDaEscolha(doPeriodo)
     // Do mais recente para o mais antigo; no mesmo dia, o último registado primeiro (os ids começam pela hora).
@@ -1020,7 +1000,7 @@ function desenharDespesasMes(periodo) {
   }
   if (destacados.length) mostrarGastosDestacados(caixa, destacados);
   // O total é sempre de todos os gastos do período (da escolha), com as categorias abertas ou fechadas.
-  desenharTotalMes(periodo, somaCentimos(doMes), somasPorBloco(doMes), comPessoas && escolhaPessoas !== 'casa' ? somaCentimos(doPeriodo) : null);
+  desenharTotalMes(periodo, somaCentimos(doMes));
   // Com um gasto aberto para editar, o "voltar" do Android fecha-o (sem guardar), como o Cancelar.
   if (despesaAEditar) abrirComVoltar('editar-gasto', 'gastos', () => { despesaAEditar = null; redesenhar(); });
   else fechadoSemVoltar('editar-gasto');
