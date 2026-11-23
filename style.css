@@ -541,6 +541,10 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .categoria-nova { display: grid; grid-template-columns: minmax(0, 1fr) 48px; align-items: center; gap: 8px; margin-bottom: 12px; }
 .categoria-nova input[type="text"] { height: 48px; min-height: 48px; margin: 0; }
 .categoria-nova .mensagem-adicionar { grid-column: 1 / -1; margin: -2px 0 0; }
+/* Nos Gastos, no fim da vista e sempre à vista: "Nova categoria de gastos", com o rótulo visível por cima da linha. */
+.gastos-nova-categoria { margin-top: 8px; }
+.gastos-nova-categoria .categoria-nova { margin-bottom: 0; }
+.categoria-nova-rotulo { grid-column: 1 / -1; margin: 0; padding-top: 8px; font-size: .85rem; font-weight: 600; color: var(--texto-suave); }
 
 /* Lápis das categorias e dos produtos (modo Editar): só o ícone, em cor secundária, com 44 x 44 px de toque. */
 .botao-lapis {

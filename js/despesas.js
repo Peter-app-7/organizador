@@ -1092,8 +1092,37 @@ function desenharCategoriasDespesas() {
     aoRenomear: renomearCategoriaDespesa,
     aoApagar: apagarCategoriaDespesa,
     campoExtra: campoTipoCategoria,
+    // A linha "Nova categoria…" está no fim da vista Gastos, sempre à vista (desenharNovaCategoriaDespesas).
+    semLinhaNova: true,
   });
 }
+
+// "Nova categoria de gastos", no fim da vista Gastos, por baixo de "Gastos fixos" e "Categorias de gastos", sempre à
+// vista. Criar faz o mesmo de sempre (criarCategoriaDespesa: antes de Outros, "Da casa"); a lista de "Categorias de
+// gastos" é desenhada outra vez (aberta ou fechada) e "Categoria «…» criada." fica por baixo da linha.
+function desenharNovaCategoriaDespesas() {
+  const caixa = document.getElementById('despesas-categoria-nova-caixa');
+  const formulario = formularioNovaCategoria({
+    prefixo: 'despesas-categoria',
+    rotulo: 'Nova categoria de gastos',
+    obterNomes: () => itensCategoriasDespesas().map((item) => item.nome),
+    aoCriar: criarCategoriaDespesa,
+    aoErro: () => mostrarAcimaDasBarras(formulario),
+    aoCriada: (nome, campo) => {
+      correrSemFalhar(desenharCategoriasDespesas);
+      campo.entrada.value = '';
+      campo.erro.classList.remove('erro-campo');
+      campo.erro.textContent = `Categoria «${nome}» criada.`;
+      campo.erro.hidden = false;
+      campo.entrada.focus({ preventScroll: true }); // o teclado fica aberto para a categoria seguinte
+      mostrarAcimaDasBarras(formulario);
+    },
+  });
+  // Ao tocar no campo, a linha e a mensagem ficam acima da barra do total e do teclado (que demora a abrir).
+  formulario.addEventListener('focusin', () => setTimeout(() => mostrarAcimaDasBarras(formulario), 350));
+  caixa.replaceChildren(formulario);
+}
+desenharNovaCategoriaDespesas();
 
 // "Comerciantes lembrados": sub-secção recolhível dentro de "Categorias de gastos", recolhida por defeito.
 const botaoComerciantes = document.getElementById('despesas-comerciantes-abrir');

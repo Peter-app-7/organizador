@@ -72,6 +72,65 @@ function validarNomeCategoria(texto, existentes, atual = null) {
   return { nome };
 }
 
+// Campo de texto de um nome de categoria (até 40 letras), com a mensagem de erro por baixo, que se esconde ao escrever.
+function campoCategoriaComErro(id, valor, rotulo) {
+  const erro = criar('p', { id: `${id}-erro`, className: 'erro-campo', hidden: true });
+  const entrada = criar('input', {
+    id, type: 'text', value: valor, autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: 40,
+    'aria-describedby': `${id}-erro`, ...(rotulo ? { 'aria-label': rotulo } : {}),
+  });
+  entrada.addEventListener('input', () => { erro.hidden = true; entrada.removeAttribute('aria-invalid'); });
+  const mostrarErro = (mensagem) => {
+    erro.classList.add('erro-campo');
+    erro.textContent = mensagem;
+    erro.hidden = false;
+    entrada.setAttribute('aria-invalid', 'true');
+    entrada.focus();
+  };
+  return { entrada, erro, mostrarErro };
+}
+
+// Linha "Nova categoria…", com o aspeto da linha "Adicionar produto" da Mercearia: campo de 48 px e botão "+" de
+// 48 x 48 px; a mensagem fica por baixo da linha até se voltar a escrever. obterNomes() devolve os nomes atuais;
+// aoCriar(nome) devolve uma mensagem de erro, ou null se correu bem; depois corre aoCriada(nome, campo).
+// aoErro() (opcional) corre depois de mostrar um erro (ex.: nos Gastos, para a mensagem ficar acima da barra do total).
+// "rotulo": texto visível por cima da linha (ex.: nos Gastos); sem ele, o rótulo "Nova categoria" fica escondido.
+function formularioNovaCategoria({ prefixo, obterNomes, aoCriar, aoCriada, aoErro, rotulo }) {
+  const novo = campoCategoriaComErro(`${prefixo}-nova`, '', null);
+  novo.entrada.placeholder = 'Nova categoria…';
+  novo.erro.classList.add('mensagem-adicionar');
+  novo.erro.setAttribute('role', 'status');
+  const mais = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  mais.setAttribute('class', 'icone-traco');
+  mais.setAttribute('viewBox', '0 0 24 24');
+  mais.setAttribute('width', '22');
+  mais.setAttribute('height', '22');
+  mais.setAttribute('aria-hidden', 'true');
+  mais.setAttribute('focusable', 'false');
+  ['M12 5v14', 'M5 12h14'].forEach((d) => {
+    const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    caminho.setAttribute('d', d);
+    mais.append(caminho);
+  });
+  const formulario = criar('form', { className: 'categoria-nova', noValidate: true },
+    criar('label', { htmlFor: novo.entrada.id, className: rotulo ? 'categoria-nova-rotulo' : 'so-leitor', textContent: rotulo || 'Nova categoria' }),
+    novo.entrada,
+    criar('button', { type: 'submit', className: 'botao-mais', 'aria-label': 'Criar categoria' }, mais),
+    novo.erro);
+  formulario.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const lido = validarNomeCategoria(novo.entrada.value, obterNomes());
+    const erro = lido.erro || aoCriar(lido.nome);
+    if (erro) {
+      novo.mostrarErro(erro);
+      if (aoErro) aoErro();
+      return;
+    }
+    aoCriada(lido.nome, novo);
+  });
+  return formulario;
+}
+
 // Desenha a lista dentro de "caixa". obterItens() devolve a lista atual, com cada item
 // { chave, nome, podeRenomear, podeApagar, detalhe, etiqueta } ("etiqueta": texto pequeno ao lado do nome, ex.: "Pessoal").
 // aoCriar(nome) e aoRenomear(chave, nome, extra) devolvem uma mensagem de erro, ou null se correu bem;
@@ -91,22 +150,6 @@ function desenharGestorCategorias(caixa, opcoes) {
   if (estado.aRenomear !== null) manterComVoltar(`renomear-${prefixo}`, vista, () => { estado.aRenomear = null; redesenhar(); });
   else fechadoSemVoltar(`renomear-${prefixo}`);
 
-  const campoComErro = (id, valor, rotulo) => {
-    const erro = criar('p', { id: `${id}-erro`, className: 'erro-campo', hidden: true });
-    const entrada = criar('input', {
-      id, type: 'text', value: valor, autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: 40,
-      'aria-describedby': `${id}-erro`, ...(rotulo ? { 'aria-label': rotulo } : {}),
-    });
-    entrada.addEventListener('input', () => { erro.hidden = true; entrada.removeAttribute('aria-invalid'); });
-    const mostrarErro = (mensagem) => {
-      erro.textContent = mensagem;
-      erro.hidden = false;
-      entrada.setAttribute('aria-invalid', 'true');
-      entrada.focus();
-    };
-    return { entrada, erro, mostrarErro };
-  };
-
   const fechar = () => { estado.aRenomear = null; redesenhar(); };
   const apagar = (item) => {
     if (!aoApagar(item.chave)) return;
@@ -117,7 +160,7 @@ function desenharGestorCategorias(caixa, opcoes) {
   const linhas = itens.map((item) => {
     if (estado.aRenomear === item.chave) {
       // Cartão de edição: "Nome da categoria", o campo e os botões. Enter guarda e Esc cancela.
-      const campo = campoComErro(`${prefixo}-renomear`, item.nome, null);
+      const campo = campoCategoriaComErro(`${prefixo}-renomear`, item.nome, null);
       const formulario = criar('form', { className: 'formulario-edicao', noValidate: true },
         criar('label', { htmlFor: campo.entrada.id, textContent: 'Nome da categoria' }),
         campo.entrada,
@@ -159,41 +202,21 @@ function desenharGestorCategorias(caixa, opcoes) {
         : criar('span', { className: 'categoria-fixa', 'aria-hidden': 'true' }));
   });
 
-  // Linha "Nova categoria…", com o aspeto da linha "Adicionar produto" da Mercearia: campo de 48 px com rótulo escondido
-  // e botão "+" de 48 x 48 px; a mensagem de erro fica por baixo da linha até se voltar a escrever.
-  const novo = campoComErro(`${prefixo}-nova`, '', null);
-  novo.entrada.placeholder = 'Nova categoria…';
-  novo.erro.classList.add('mensagem-adicionar');
-  novo.erro.setAttribute('role', 'status');
-  const mais = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  mais.setAttribute('class', 'icone-traco');
-  mais.setAttribute('viewBox', '0 0 24 24');
-  mais.setAttribute('width', '22');
-  mais.setAttribute('height', '22');
-  mais.setAttribute('aria-hidden', 'true');
-  mais.setAttribute('focusable', 'false');
-  ['M12 5v14', 'M5 12h14'].forEach((d) => {
-    const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    caminho.setAttribute('d', d);
-    mais.append(caminho);
-  });
-  const formularioNovo = criar('form', { className: 'categoria-nova', noValidate: true },
-    criar('label', { htmlFor: novo.entrada.id, className: 'so-leitor', textContent: 'Nova categoria' }),
-    novo.entrada,
-    criar('button', { type: 'submit', className: 'botao-mais', 'aria-label': 'Criar categoria' }, mais),
-    novo.erro);
-  formularioNovo.addEventListener('submit', (evento) => {
-    evento.preventDefault();
-    const lido = validarNomeCategoria(novo.entrada.value, nomes);
-    const erro = lido.erro || aoCriar(lido.nome);
-    if (erro) {
-      novo.mostrarErro(erro);
-      return;
-    }
-    avisar(`Categoria "${lido.nome}" criada.`);
-    redesenhar();
-    const campo = document.getElementById(`${prefixo}-nova`);
-    if (campo) campo.focus(); // o teclado fica aberto para a categoria seguinte
+  // "semLinhaNova": a linha "Nova categoria…" está noutro sítio (nos Gastos, no fim da vista, sempre à vista).
+  if (opcoes.semLinhaNova) {
+    caixa.replaceChildren(criar('ul', { className: 'lista categorias-lista' }, ...linhas));
+    return;
+  }
+  const formularioNovo = formularioNovaCategoria({
+    prefixo,
+    obterNomes: () => nomes,
+    aoCriar,
+    aoCriada: (nome) => {
+      avisar(`Categoria "${nome}" criada.`);
+      redesenhar();
+      const campo = document.getElementById(`${prefixo}-nova`);
+      if (campo) campo.focus(); // o teclado fica aberto para a categoria seguinte
+    },
   });
 
   caixa.replaceChildren(criar('ul', { className: 'lista categorias-lista' }, ...linhas), formularioNovo);

@@ -130,7 +130,8 @@
       <div id="despesas-registo" class="gastos-registo" hidden></div>
       <div id="mes-gastos"></div>
 
-      <!-- No fim da vista, separadas por um traço: "Gastos fixos" e "Categorias de gastos" (as duas recolhidas por defeito). -->
+      <!-- No fim da vista, separadas por um traço: "Gastos fixos" e "Categorias de gastos" (as duas recolhidas por defeito)
+           e, por baixo, a linha "Nova categoria…", sempre à vista. -->
       <div class="gastos-gestao">
         <!-- Gastos fixos (js/fixos.js): recolhida por defeito; à direita, quantos estão em vigor e quanto somam por mês. -->
         <section class="gastos-fixos" aria-labelledby="fixos-abrir">
@@ -173,6 +174,8 @@
           <button id="despesas-comerciantes-abrir" type="button" class="botao-linha comerciantes-abrir" aria-expanded="false" aria-controls="despesas-comerciantes"><span class="botao-linha-texto">Comerciantes lembrados</span><span class="botao-linha-seta" aria-hidden="true">›</span></button>
           <div id="despesas-comerciantes" class="organizar-seccao" hidden></div>
         </details>
+        <!-- "Nova categoria de gastos": sempre à vista, com as duas secções abertas ou fechadas (js/despesas.js). -->
+        <div id="despesas-categoria-nova-caixa" class="gastos-nova-categoria"></div>
       </div>
 
       <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
