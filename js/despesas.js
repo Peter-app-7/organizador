@@ -272,7 +272,7 @@ function pessoasImportadas() {
 }
 
 // Mensagens dos botões do topo dos Gastos ("Importar do cartão", "Exportar (CSV)" e "Importar (CSV)"): uma só caixa,
-// por baixo dos botões CSV. Vazio esconde-a.
+// por baixo da linha do título (com os botões CSV). Vazio esconde-a.
 function mostrarResultadoGastos(texto) {
   const resultado = document.getElementById('gastos-resultado');
   resultado.textContent = texto;
@@ -866,6 +866,18 @@ if (window.ResizeObserver) {
     if (altura) document.documentElement.style.setProperty('--altura-barra-total', `${altura}px`);
   }).observe(barraTotal);
 }
+
+// Topo dos Gastos: título e botões CSV numa só linha. Se os botões com texto não couberem ao lado do título, ficam só
+// com o ícone (classe so-icone), em vez de cortar o título ou passar para outra linha. Mede-se sempre com o texto,
+// por isso volta a mostrá-lo quando houver espaço (ex.: ao rodar o telemóvel). Escondida, mede 0 e não muda nada.
+const cabecalhoGastos = document.getElementById('gastos-cabecalho');
+function ajustarCabecalhoGastos() {
+  if (!cabecalhoGastos.clientWidth) return;
+  cabecalhoGastos.classList.remove('so-icone');
+  if (cabecalhoGastos.scrollWidth > cabecalhoGastos.clientWidth) cabecalhoGastos.classList.add('so-icone');
+}
+if (window.ResizeObserver) new ResizeObserver(ajustarCabecalhoGastos).observe(cabecalhoGastos);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarCabecalhoGastos);
 
 // Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos. Com o seletor de pessoas
 // visível, só os gastos da escolha (ver gastosDaEscolha). De cima para baixo: "Por categorizar" (fora dos blocos) e os

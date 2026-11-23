@@ -5,7 +5,7 @@
 // Sem casa ligada, a app não faz pedidos a outros endereços: tudo o que precisa está nesta lista.
 // Com a lista partilhada da Mercearia, o Firebase (js/vendor/firebase) fala com os servidores da Google, que não passam por aqui.
 
-const NOME_CACHE = 'organizador-v54';
+const NOME_CACHE = 'organizador-v55';
 const FICHEIROS = [
   './',
   'index.html',

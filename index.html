@@ -99,15 +99,18 @@
     </section>
 
     <section id="vista-gastos" class="vista" hidden>
-      <h1 class="titulo-vista">Gastos</h1>
-      <!-- Todos os períodos, num ficheiro para folhas de cálculo (ver js/exportar-csv.js), e os gastos do outro telemóvel,
-           a partir do ficheiro dele (ver js/importar-csv.js). -->
-      <div class="gastos-csv-botoes">
-        <button id="gastos-exportar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Exportar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg><span>Exportar (CSV)</span></button>
-        <button id="gastos-importar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/></svg><span>Importar (CSV)</span></button>
-        <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
+      <!-- Título e, na mesma linha, à direita, os botões CSV: todos os períodos, num ficheiro para folhas de cálculo
+           (ver js/exportar-csv.js), e os gastos do outro telemóvel, a partir do ficheiro dele (ver js/importar-csv.js).
+           Se o texto não couber, os botões ficam só com o ícone (classe so-icone, ver js/despesas.js). -->
+      <div id="gastos-cabecalho" class="gastos-cabecalho">
+        <h1>Gastos</h1>
+        <div class="gastos-csv-botoes">
+          <button id="gastos-exportar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Exportar gastos (CSV)" title="Exportar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/></svg><span>Exportar</span></button>
+          <button id="gastos-importar-csv" type="button" class="botao-pequeno botao-csv" aria-label="Importar gastos (CSV)" title="Importar gastos (CSV)"><svg class="icone-csv" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 14v5h16v-5"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/></svg><span>Importar</span></button>
+          <input id="gastos-importar-csv-ficheiro" type="file" accept=".csv,text/csv,text/plain" hidden>
+        </div>
       </div>
-      <!-- Mensagens do "Importar do cartão", do "Exportar (CSV)" e do "Importar (CSV)". -->
+      <!-- Mensagens do "Importar do cartão", do "Exportar", do "Importar" (CSV) e dos gastos fixos, por baixo da linha do título. -->
       <p id="gastos-resultado" class="importar-resultado" role="status" hidden></p>
       <div id="gastos-importar-csv-previa" class="gastos-registo" role="region" hidden></div>
 
