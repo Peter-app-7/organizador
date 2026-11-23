@@ -825,6 +825,29 @@ function desenharTotalMes(periodo, total, somas, totalJuntos = null) {
   const juntos = document.getElementById('gastos-total-casa');
   juntos.textContent = totalJuntos === null ? '' : `Juntos: ${formatarEuros(totalJuntos)}`;
   juntos.hidden = totalJuntos === null;
+  desenharPrevisto(periodo, total);
+}
+
+// "Previsto: 1450,00 €", à esquerda, por cima do nome do período: o total de agora mais os gastos fixos que ainda vão
+// entrar neste período (centimosFixosEmFalta, em fixos.js). Só no período de hoje ou num futuro, só se faltar algum e
+// só com "Meus" ou "Juntos" (os fixos são sempre meus). É só uma conta para o ecrã: nada é gravado.
+function desenharPrevisto(periodo, total) {
+  const caixa = document.getElementById('gastos-total-previsto');
+  const emFalta = periodo.fim >= dataParaTexto(new Date()) && (escolhaPessoas === 'meus' || escolhaPessoas === 'casa')
+    && typeof centimosFixosEmFalta === 'function' ? centimosFixosEmFalta(periodo) : 0;
+  if (emFalta <= 0) {
+    caixa.replaceChildren();
+    caixa.hidden = true;
+    return;
+  }
+  const valor = formatarEuros(total + emFalta);
+  // O leitor de ecrã lê a frase inteira; o texto à vista é mais curto. Se não couber, o valor passa para baixo.
+  caixa.replaceChildren(
+    criar('span', { className: 'so-leitor', textContent: `Previsto até ao fim do período: ${valor}` }),
+    criar('span', { 'aria-hidden': 'true', textContent: 'Previsto:' }),
+    document.createTextNode(' '),
+    criar('span', { 'aria-hidden': 'true', textContent: valor }));
+  caixa.hidden = false;
 }
 
 // A barra do total muda de altura (com as linhas de baixo): a vista e os avisos acompanham-na (--altura-barra-total,

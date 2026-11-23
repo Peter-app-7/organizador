@@ -320,6 +320,11 @@ body:not([data-vista="gastos"]) .topo #despesas-importar-botao { display: none; 
   background: var(--cartao);
   border-top: 1px solid var(--linha);
 }
+/* À esquerda: "Previsto: …" (pequeno, vermelho) por cima do nome do período. Encolhe antes dos totais da direita (não
+   os empurra): se "Previsto: …" não couber, o valor passa para a linha de baixo, mas nunca é cortado. */
+.gastos-total-esquerda { flex: 0 1000 auto; min-width: min-content; display: flex; flex-direction: column; align-items: flex-start; }
+.gastos-total-previsto { font-size: .8rem; line-height: 1.25; font-weight: 600; color: var(--vermelho-suave); } /* 5,6:1 em claro e 7,2:1 em escuro sobre --cartao */
+.gastos-total-previsto > span { white-space: nowrap; }
 .gastos-total-mes { flex: none; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
 .gastos-total-direita { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
 /* "Casa 376,50 € · Pessoal 84,30 €": cada parte não se parte; se não couberem as duas, a segunda passa para baixo. */
@@ -527,14 +532,15 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .campo-tipo .nota-tipo { margin: 0; }
 .categoria-detalhe.regra-para-rever { color: var(--vermelho); font-weight: 600; }
 .regras-para-rever { margin: 0 0 8px; }
-.categoria-linha .botao-pequeno, .categoria-nova .botao-pequeno { min-height: 44px; }
+.categoria-linha .botao-pequeno { min-height: 44px; }
 .categoria-fixa { flex: none; width: 44px; }
 .categoria-a-editar { display: block; padding: 8px 0; }
 /* Nova categoria: campo e botão lado a lado; o erro fica por baixo, a toda a largura. */
-.categoria-nova { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; }
-.categoria-nova input[type="text"] { margin: 0; }
-.categoria-nova .erro-campo { grid-column: 1 / -1; margin: 0; }
-.categoria-nova { margin-bottom: 12px; }
+/* "Nova categoria…": com o aspeto da linha "Adicionar produto" (campo de 48 px e botão "+" de 48 x 48 px); a mensagem
+   de erro fica por baixo da linha, como lá. */
+.categoria-nova { display: grid; grid-template-columns: minmax(0, 1fr) 48px; align-items: center; gap: 8px; margin-bottom: 12px; }
+.categoria-nova input[type="text"] { height: 48px; min-height: 48px; margin: 0; }
+.categoria-nova .mensagem-adicionar { grid-column: 1 / -1; margin: -2px 0 0; }
 
 /* Lápis das categorias e dos produtos (modo Editar): só o ícone, em cor secundária, com 44 x 44 px de toque. */
 .botao-lapis {

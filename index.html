@@ -177,7 +177,12 @@
 
       <!-- Fixa no fundo, acima da barra de separadores: o mês e o total de tudo o que se gastou nele. -->
       <div id="gastos-total-barra" class="gastos-total-barra" aria-live="polite">
-        <span id="gastos-total-mes" class="gastos-total-mes"></span>
+        <span class="gastos-total-esquerda">
+          <!-- Só no período de hoje ou num futuro, com gastos fixos ainda por entrar e o seletor em "Meus" ou "Juntos":
+               o total de agora mais esses fixos. -->
+          <span id="gastos-total-previsto" class="gastos-total-previsto" hidden></span>
+          <span id="gastos-total-mes" class="gastos-total-mes"></span>
+        </span>
         <span class="gastos-total-direita">
           <span id="gastos-total-valor" class="gastos-total-valor"></span>
           <!-- "Casa 376,50 € · Pessoal 84,30 €": só as partes com valor ("Por categorizar" não entra em nenhuma). -->

@@ -102,6 +102,29 @@ function fixoEmVigor(f, mesAtual = mesDeData(dataParaTexto(new Date()))) {
   return f.ativo && (!f.fim || f.fim >= mesAtual);
 }
 
+// --- Meses de cada fixo ---
+// Marcas dos meses já criados: as de dados.fixosCriados e as dos gastos (fixoId + fixoMes).
+function marcasFixosCriados() {
+  const jaCriados = new Set(Object.keys(dados.fixosCriados));
+  despesas.forEach((d) => { if (d.fixoId && d.fixoMes) jaCriados.add(`${d.fixoId}|${d.fixoMes}`); });
+  return jaCriados;
+}
+
+// Meses de um fixo ativo ainda por criar, desde o início até "ate" (e até ao fim, inclusive), com a data de cada um
+// (dia que o mês não tem passa ao último) e a marca "idDoFixo|AAAA-MM", sem os que já estão em "jaCriados". Um fixo em
+// pausa não tem nenhum. Usada pela criação e pela conta do "Previsto" (as duas dão sempre os mesmos meses).
+function mesesDoFixoPorCriar(f, ate, jaCriados) {
+  if (!f.ativo) return [];
+  const ultimo = f.fim && f.fim < ate ? f.fim : ate;
+  const meses = [];
+  let mes = f.inicio;
+  for (let i = 0; mes <= ultimo && i < MESES_A_CRIAR_MAXIMO; i += 1, mes = somarMeses(mes, 1)) {
+    const marca = `${f.id}|${mes}`;
+    if (!jaCriados.has(marca)) meses.push({ mes, data: dataDoFixoNoMes(f.dia, mes), marca });
+  }
+  return meses;
+}
+
 // --- Criar os gastos no dia certo ---
 // Para cada fixo ativo, cada mês desde o início até ao atual (e até ao fim, inclusive), com a data já chegada (hoje
 // incluído) e sem marca em dados.fixosCriados nem num gasto (fixoId + fixoMes): cria um gasto geral. Primeiro grava os
@@ -109,18 +132,12 @@ function fixoEmVigor(f, mesAtual = mesDeData(dataParaTexto(new Date()))) {
 function criarGastosFixosDevidos() {
   const hoje = dataParaTexto(new Date());
   const mesAtual = mesDeData(hoje);
-  const jaCriados = new Set(Object.keys(dados.fixosCriados));
-  despesas.forEach((d) => { if (d.fixoId && d.fixoMes) jaCriados.add(`${d.fixoId}|${d.fixoMes}`); });
+  const jaCriados = marcasFixosCriados();
   const idsCategorias = new Set(categoriasDespesas.map((c) => c.id));
   const novos = [];
   fixos.forEach((f) => {
-    if (!f.ativo) return;
-    const ultimo = f.fim && f.fim < mesAtual ? f.fim : mesAtual;
-    let mes = f.inicio;
-    for (let i = 0; mes <= ultimo && i < MESES_A_CRIAR_MAXIMO; i += 1, mes = somarMeses(mes, 1)) {
-      const data = dataDoFixoNoMes(f.dia, mes);
-      const marca = `${f.id}|${mes}`;
-      if (data > hoje || jaCriados.has(marca)) continue;
+    mesesDoFixoPorCriar(f, mesAtual, jaCriados).forEach(({ mes, data, marca }) => {
+      if (data > hoje || jaCriados.has(marca)) return;
       jaCriados.add(marca);
       // Uma categoria que já não exista passa a Outros, como nos outros gastos.
       const categoria = idsCategorias.has(f.categoria) ? f.categoria : 'outros';
@@ -137,7 +154,7 @@ function criarGastosFixosDevidos() {
         fixoMes: mes,
         ...(f.confirmar ? { porConfirmar: true } : {}),
       });
-    }
+    });
   });
   if (novos.length === 0) return [];
   const antes = despesas;
@@ -149,6 +166,16 @@ function criarGastosFixosDevidos() {
   novos.forEach((d) => { dados.fixosCriados[`${d.fixoId}|${d.fixoMes}`] = 1; });
   guardarDados();
   return novos;
+}
+
+// "Previsto" na barra do total (despesas.js): a soma dos valores habituais dos meses dos fixos ativos cuja data cai
+// dentro do período (datas verdadeiras, ex.: com o dia útil anterior) e que ainda não foram criados (os já criados,
+// mesmo por confirmar, já estão no total). Só lê: não grava nada.
+function centimosFixosEmFalta(periodo) {
+  const jaCriados = marcasFixosCriados();
+  const ate = mesDeData(periodo.fim);
+  return fixos.reduce((soma, f) => soma + mesesDoFixoPorCriar(f, ate, jaCriados)
+    .filter(({ data }) => data >= periodo.inicio && data <= periodo.fim).length * f.centimos, 0);
 }
 
 // Mensagem por baixo dos botões CSV, como as outras. Ex.: "2 gastos fixos criados (1 por confirmar)."
@@ -467,7 +494,7 @@ function pausarOuRetomarFixo(id) {
     desenharMes();
     avisar(`Gasto fixo "${f.nome}" retomado.`);
   } else {
-    desenharFixos();
+    desenharMes(); // também a barra do total ("Previsto")
     avisar(`Gasto fixo "${f.nome}" em pausa: não cria gastos até o retomares.`);
   }
 }
@@ -484,7 +511,7 @@ function apagarFixo(id) {
     return;
   }
   fecharCartaoFixo();
-  desenharFixos();
+  desenharMes(); // também a barra do total ("Previsto")
   avisar(`Gasto fixo "${f.nome}" apagado. Os gastos já criados ficam.`);
 }
 

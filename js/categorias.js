@@ -159,11 +159,28 @@ function desenharGestorCategorias(caixa, opcoes) {
         : criar('span', { className: 'categoria-fixa', 'aria-hidden': 'true' }));
   });
 
-  const novo = campoComErro(`${prefixo}-nova`, '', 'Nome da nova categoria');
-  novo.entrada.placeholder = 'Nova categoria';
+  // Linha "Nova categoria…", com o aspeto da linha "Adicionar produto" da Mercearia: campo de 48 px com rótulo escondido
+  // e botão "+" de 48 x 48 px; a mensagem de erro fica por baixo da linha até se voltar a escrever.
+  const novo = campoComErro(`${prefixo}-nova`, '', null);
+  novo.entrada.placeholder = 'Nova categoria…';
+  novo.erro.classList.add('mensagem-adicionar');
+  novo.erro.setAttribute('role', 'status');
+  const mais = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  mais.setAttribute('class', 'icone-traco');
+  mais.setAttribute('viewBox', '0 0 24 24');
+  mais.setAttribute('width', '22');
+  mais.setAttribute('height', '22');
+  mais.setAttribute('aria-hidden', 'true');
+  mais.setAttribute('focusable', 'false');
+  ['M12 5v14', 'M5 12h14'].forEach((d) => {
+    const caminho = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    caminho.setAttribute('d', d);
+    mais.append(caminho);
+  });
   const formularioNovo = criar('form', { className: 'categoria-nova', noValidate: true },
+    criar('label', { htmlFor: novo.entrada.id, className: 'so-leitor', textContent: 'Nova categoria' }),
     novo.entrada,
-    criar('button', { type: 'submit', className: 'botao-pequeno botao-pequeno-principal', textContent: 'Criar' }),
+    criar('button', { type: 'submit', className: 'botao-mais', 'aria-label': 'Criar categoria' }, mais),
     novo.erro);
   formularioNovo.addEventListener('submit', (evento) => {
     evento.preventDefault();
