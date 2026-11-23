@@ -35,6 +35,7 @@ function dadosIniciais() {
     tiposCompras: [],   // tipos de produto criados na app, além dos TIPOS_COMPRAS
     receitasFeitas: [], // ids das receitas marcadas como feitas esta semana (ver receitas-dados.js)
     diaInicioGastos: 21, // dia em que começa o "mês de gastos" (1 a 28); com 1, é o mês de calendário
+    diaInicioDiaUtil: false, // se o dia de início não for dia útil (fim de semana ou feriado nacional), começa no dia útil anterior (mes.js)
     ultimaCopia: null,  // quando foi exportada a última cópia de segurança
     comprasFeitas: {},  // produtos dados como comprados em "Limpar comprados", por dia, ex.: { "2026-11-06": 7 }
     cartaoImportados: {}, // gastos do cartão já importados, por marca "data|comerciante|cêntimos", ex.: { "2026-11-03|continente|2350": 1 }
@@ -248,6 +249,8 @@ function normalizarDados(original, tolerante = false) {
   if (Number.isInteger(bruto.diaInicioGastos) && bruto.diaInicioGastos >= 1 && bruto.diaInicioGastos <= 28) {
     limpos.diaInicioGastos = bruto.diaInicioGastos;
   }
+  // Dados e cópias anteriores a esta opção ficam desligados; só "true" exato a liga.
+  limpos.diaInicioDiaUtil = bruto.diaInicioDiaUtil === true;
   if (typeof bruto.ultimaCopia === 'string' && !Number.isNaN(Date.parse(bruto.ultimaCopia))) {
     limpos.ultimaCopia = bruto.ultimaCopia;
   }

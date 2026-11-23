@@ -341,6 +341,9 @@ body[data-vista="gastos"] .aviso { bottom: calc(71px + var(--altura-barra-total,
 .dia-inicio { margin: 0 0 12px; }
 .dia-inicio label { font-size: .9rem; color: var(--texto-suave); }
 .dia-inicio input { max-width: 120px; }
+/* Interruptor do dia útil: o texto ocupa o espaço livre e passa para a linha seguinte; o trilho fica à direita. */
+.dia-inicio .interruptor.dia-inicio-util { gap: 12px; margin-top: 8px; font-size: .95rem; color: var(--texto); }
+.dia-inicio-util > span:first-child { flex: 1; min-width: 0; }
 #mes-hoje { min-height: 44px; }
 
 /* --- Lista partilhada da Mercearia: estado na Mercearia e código da casa nas Definições --- */

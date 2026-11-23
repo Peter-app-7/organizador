@@ -161,6 +161,13 @@
             <label for="despesas-dia-inicio">Dia em que começa o mês de gastos</label>
             <input id="despesas-dia-inicio" type="number" min="1" max="28" step="1" inputmode="numeric" enterkeyhint="done" aria-describedby="despesas-dia-inicio-erro">
             <p id="despesas-dia-inicio-erro" class="erro-campo" hidden></p>
+            <label class="interruptor interruptor-linha dia-inicio-util" for="despesas-dia-util">
+              <span>Se calhar ao fim de semana ou feriado, começa no dia útil anterior</span>
+              <span class="interruptor-marca">
+                <input id="despesas-dia-util" class="interruptor-caixa" type="checkbox" role="switch">
+                <span class="interruptor-trilho" aria-hidden="true"></span>
+              </span>
+            </label>
           </div>
           <div id="despesas-categorias"></div>
           <button id="despesas-comerciantes-abrir" type="button" class="botao-linha comerciantes-abrir" aria-expanded="false" aria-controls="despesas-comerciantes"><span class="botao-linha-texto">Comerciantes lembrados</span><span class="botao-linha-seta" aria-hidden="true">›</span></button>
