@@ -210,6 +210,8 @@ function definirFixosAbertos(abertos) {
     definirColarFixos(false);
   }
   desenharFixos();
+  // Está no fim da vista Gastos: ao abrir, a página desliza para a mostrar inteira acima da barra do total.
+  if (abertos) mostrarAcimaDasBarras(botaoFixos.closest('.gastos-fixos'));
 }
 botaoFixos.addEventListener('click', () => definirFixosAbertos(corpoFixos.hidden));
 
@@ -227,8 +229,10 @@ function abrirCartaoFixo(chave) {
   botaoNovoFixo.setAttribute('aria-expanded', String(chave === 'novo'));
   desenharFixos();
   abrirComVoltar('editar-fixo', 'gastos', () => { fecharCartaoFixo(); desenharFixos(); });
+  // O cartão fica inteiro à vista, acima da barra do total; depois, o teclado abre no nome (e o "Guardar" fica visível).
   const campo = document.getElementById('fixo-nome');
-  if (campo) setTimeout(() => campo.focus(), 0);
+  if (cartaoFixo) mostrarAcimaDasBarras(cartaoFixo.elemento);
+  if (campo) setTimeout(() => campo.focus({ preventScroll: true }), 0);
 }
 
 botaoNovoFixo.addEventListener('click', () => {

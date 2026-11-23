@@ -80,6 +80,10 @@ function normalizarDespesas(lista, categorias) {
         ...(typeof d.comerciante === 'string' && d.comerciante.trim() ? { comerciante: d.comerciante.trim().slice(0, NOTA_MAXIMA) } : {}),
         // Marca dos gastos importados do cartão (ver importarGastosCartao): só existe nesses.
         ...(typeof d.cartao === 'string' && d.cartao ? { cartao: d.cartao } : {}),
+        // Nota escrita à mão num gasto do cartão (ex.: "fraldas"), desde 23 nov 2026: só nos gastos com cartao. A nota
+        // continua a ser o nome do comerciante; a importação do cartão nunca escreve nem apaga este campo.
+        ...(typeof d.cartao === 'string' && d.cartao && typeof d.detalhe === 'string' && d.detalhe.replace(/\s+/g, ' ').trim()
+          ? { detalhe: d.detalhe.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) } : {}),
         // Gastos de outra pessoa, importados de um ficheiro "Exportar gastos (CSV)" (importar-csv.js): o nome como veio
         // no ficheiro, a marca "pessoa|id" (para não voltarem a entrar) e a origem no outro aparelho. Os meus não os têm.
         ...(typeof d.pessoa === 'string' && d.pessoa.trim() ? { pessoa: d.pessoa.replace(/\s+/g, ' ').trim().slice(0, 60) } : {}),
@@ -367,8 +371,13 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
   // Nos gastos importados do cartão, a nota é o nome do comerciante.
   const doCartao = Boolean(registo && registo.cartao);
   const nota = campo('nota', doCartao ? 'Comerciante' : 'Nota (opcional)', criar('input', {
-    type: 'text', value: registo ? registo.nota : '', placeholder: doCartao ? 'Ex.: Pingo Doce' : 'Ex.: farmácia', autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: NOTA_MAXIMA,
+    type: 'text', value: registo ? registo.nota : '', placeholder: doCartao ? 'Ex.: Pingo Doce' : 'Ex.: farmácia', autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: doCartao ? 'next' : 'done', maxLength: NOTA_MAXIMA,
   }));
+  // Nos do cartão, logo por baixo do comerciante: uma nota à parte ("detalhe"), que não mexe no comerciante nem nos
+  // comerciantes lembrados.
+  const detalhe = doCartao ? campo('detalhe', 'Nota (opcional)', criar('input', {
+    type: 'text', value: registo.detalhe || '', placeholder: 'Ex.: fraldas', autocomplete: 'off', autocapitalize: 'sentences', enterKeyHint: 'done', maxLength: NOTA_MAXIMA,
+  })) : null;
   const guardar = criar('button', { type: 'submit', className: 'botao-principal', textContent: registo ? 'Guardar alterações' : 'Guardar' });
   const botoes = [guardar, criar('button', { type: 'button', className: 'botao-secundario', textContent: 'Cancelar', onclick: aoCancelar })];
   if (aoApagar) botoes.push(criar('button', { type: 'button', className: 'botao-apagar-registo', textContent: 'Apagar gasto', onclick: aoApagar }));
@@ -380,7 +389,7 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
     else parte.entrada.removeAttribute('aria-invalid');
   };
 
-  const campos = doCartao ? [nota, data, valor, categoria] : [data, categoria, valor, nota];
+  const campos = doCartao ? [nota, detalhe, data, valor, categoria] : [data, categoria, valor, nota];
   // O tipo fica logo por baixo da categoria.
   const elementos = campos.flatMap((parte) => (parte === categoria ? [parte.rotulo, caixaTipo] : [parte.rotulo]));
   const formulario = criar('form', { className: 'formulario formulario-gasto', noValidate: true },
@@ -413,9 +422,11 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
       centimos: lido.centimos,
       nota: nota.entrada.value.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA),
       tipo: tipoFinal,
+      // Só nos do cartão; vazio (undefined) apaga o campo.
+      ...(doCartao ? { detalhe: detalhe.entrada.value.replace(/\s+/g, ' ').trim().slice(0, NOTA_MAXIMA) || undefined } : {}),
     });
   });
-  [data, categoria, valor, nota].forEach((parte) => {
+  [data, categoria, valor, nota, ...(detalhe ? [detalhe] : [])].forEach((parte) => {
     parte.entrada.addEventListener('input', () => mostrarErro(parte, null));
   });
   // "Seguinte" no teclado do valor passa para a nota, em vez de guardar logo (nos do cartão, a nota vem primeiro).
@@ -424,6 +435,14 @@ function formularioDespesa({ registo, aoGuardar, aoCancelar, aoApagar }) {
     evento.preventDefault();
     nota.entrada.focus();
   });
+  // "Seguinte" no teclado do comerciante passa para a nota.
+  if (detalhe) {
+    nota.entrada.addEventListener('keydown', (evento) => {
+      if (evento.key !== 'Enter') return;
+      evento.preventDefault();
+      detalhe.entrada.focus();
+    });
+  }
   formulario.addEventListener('focusin', () => setTimeout(() => manterVisivel(guardar), 350));
   return formulario;
 }
@@ -570,7 +589,14 @@ function linhaDespesa(item, desenharDeNovo) {
   // Em "Juntos", os gastos de outra pessoa mostram o nome a mostrar dela, pequeno, ao lado da nota.
   const pessoa = escolhaPessoas === 'casa' && item.pessoa ? nomeAMostrar(item.pessoa) : '';
   // Dentro da categoria, a linha mostra a nota (ou "Sem nota"); o nome da categoria já está na linha do grupo.
+  // Num gasto do cartão com nota à parte: "<comerciante> · <nota>", numa só linha, com a nota em cor secundária e
+  // cortada com reticências se não couber.
+  const notaCartao = item.origem === 'despesa' && item.registo.cartao && item.registo.detalhe ? item.registo.detalhe : '';
   const detalhe = [criar('span', { className: item.nota ? 'gasto-nota-texto' : 'gasto-sem-nota', textContent: item.nota || 'Sem nota' })];
+  if (notaCartao) {
+    detalhe.push(criar('span', { className: 'gasto-separador', 'aria-hidden': 'true', textContent: ' · ' }),
+      criar('span', { className: 'gasto-nota-cartao', textContent: notaCartao }));
+  }
   if (pessoa) detalhe.push(' · ', criar('span', { className: 'gasto-pessoa', textContent: pessoa }));
   // Marcado à parte: por baixo da nota, pequeno.
   const marca = marcadoAParte(item) ? `marcado como ${item.tipo === 'pessoal' ? 'Pessoal' : 'da casa'}` : '';
@@ -579,7 +605,7 @@ function linhaDespesa(item, desenharDeNovo) {
   const li = criar('li', {}, criar('button', {
     type: 'button',
     className: porConfirmar ? 'gasto-linha gasto-linha-por-confirmar' : 'gasto-linha',
-    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${pessoa ? `, de ${pessoa}` : ''}${doFixo ? `, ${doFixo}` : ''}${marca ? `, ${marca}` : ''}, ${formatarEuros(item.centimos)}. ${porConfirmar ? 'Tocar para confirmar o valor.' : 'Tocar para editar ou apagar.'}`,
+    'aria-label': `${formatarData(data, { day: 'numeric', month: 'long' })}, ${categoria}${item.nota ? `, ${item.nota}` : ''}${notaCartao ? `, ${notaCartao}` : ''}${pessoa ? `, de ${pessoa}` : ''}${doFixo ? `, ${doFixo}` : ''}${marca ? `, ${marca}` : ''}, ${formatarEuros(item.centimos)}. ${porConfirmar ? 'Tocar para confirmar o valor.' : 'Tocar para editar ou apagar.'}`,
     onclick: () => {
       despesaAEditar = chave;
       modoDespesaAEditar = porConfirmar ? 'confirmar' : 'editar';
@@ -588,7 +614,7 @@ function linhaDespesa(item, desenharDeNovo) {
     },
   },
   criar('span', { className: 'gasto-data', textContent: `${data.getDate()} ${MESES_ABREVIADOS[data.getMonth()]}` }),
-  criar('span', { className: 'gasto-texto' }, criar('span', { className: 'gasto-detalhe' }, ...detalhe),
+  criar('span', { className: 'gasto-texto' }, criar('span', { className: notaCartao ? 'gasto-detalhe gasto-detalhe-cartao' : 'gasto-detalhe' }, ...detalhe),
     ...(doFixo ? [criar('span', { className: porConfirmar ? 'gasto-marca gasto-fixo-por-confirmar' : 'gasto-marca', textContent: doFixo })] : []),
     ...(marca ? [criar('span', { className: 'gasto-marca', textContent: marca })] : [])),
   criar('span', { className: 'gasto-valor', textContent: formatarEuros(item.centimos) })));
@@ -1053,6 +1079,7 @@ function definirComerciantesAbertos(abertos) {
   botaoComerciantes.setAttribute('aria-expanded', String(abertos));
   if (abertos) {
     desenharComerciantes();
+    mostrarAcimaDasBarras(document.getElementById('despesas-comerciantes'));
   } else {
     // Um comerciante aberto para editar fecha-se sem guardar.
     regraAEditar = null;
@@ -1066,6 +1093,8 @@ botaoComerciantes.addEventListener('click', () => {
 document.getElementById('despesas-categorias-caixa').addEventListener('toggle', (evento) => {
   if (evento.target.open) {
     desenharCategoriasDespesas();
+    // Está no fim da vista Gastos: ao abrir, a página desliza para a mostrar inteira acima da barra do total.
+    mostrarAcimaDasBarras(evento.target);
   } else {
     estadoCategoriasDespesas.aRenomear = null;
     fechadoSemVoltar('renomear-despesas-categoria');

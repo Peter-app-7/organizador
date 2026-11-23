@@ -136,7 +136,7 @@ function desenharGestorCategorias(caixa, opcoes) {
         estado.aRenomear = null;
         redesenhar();
       });
-      setTimeout(() => campo.entrada.focus(), 0);
+      setTimeout(() => campo.entrada.focus(vista === 'gastos' ? { preventScroll: true } : undefined), 0);
       return criar('li', { className: 'categoria-a-editar cartao-edicao' }, formulario);
     }
     const podeEditar = item.podeRenomear || item.podeApagar;
@@ -152,6 +152,8 @@ function desenharGestorCategorias(caixa, opcoes) {
           redesenhar();
           // A que se abriu agora é a primeira a fechar com o "voltar".
           abrirComVoltar(`renomear-${prefixo}`, vista, fechar);
+          // Nos Gastos (no fim da vista), o cartão fica inteiro à vista, acima da barra do total.
+          if (vista === 'gastos') mostrarAcimaDasBarras(caixa.querySelector('.cartao-edicao'));
         })
         // Lugar vazio do tamanho do lápis, para os nomes ficarem alinhados.
         : criar('span', { className: 'categoria-fixa', 'aria-hidden': 'true' }));

@@ -98,13 +98,42 @@ function dataValida(texto) {
   return dataParaTexto(textoParaData(texto)) === texto; // recusa, por exemplo, 31 de fevereiro
 }
 
-// Com o teclado aberto, o iPhone só garante que o campo fica visível: aqui, leva também o botão de guardar.
-function manterVisivel(elemento) {
+// Fundo da parte que se vê do ecrã: o fim do ecrã visível (acima do teclado) ou, se estiverem por cima, o topo da barra
+// de separadores e da barra do total dos Gastos (no Android, ficam acima do teclado; no iPhone, ficam por trás dele).
+function fundoVisivel() {
   const vista = window.visualViewport;
-  if (!vista || !elemento.isConnected) return;
+  let fundo = vista ? vista.offsetTop + vista.height : window.innerHeight;
+  ['gastos-total-barra', 'navegacao'].forEach((id) => {
+    const barra = id === 'navegacao' ? document.querySelector('.navegacao') : document.getElementById(id);
+    if (!barra) return;
+    const caixa = barra.getBoundingClientRect();
+    if (caixa.height > 0 && caixa.top < fundo) fundo = caixa.top;
+  });
+  return fundo;
+}
+
+// Com o teclado aberto, o iPhone só garante que o campo fica visível: aqui, leva também o botão de guardar (acima do
+// teclado e das barras fixas).
+function manterVisivel(elemento) {
+  if (!window.visualViewport || !elemento.isConnected) return;
   const caixa = elemento.getBoundingClientRect();
-  const fundo = vista.offsetTop + vista.height - 12;
+  const fundo = fundoVisivel() - 12;
   if (caixa.bottom > fundo) window.scrollBy(0, caixa.bottom - fundo);
+}
+
+// Desliza a página para mostrar o elemento inteiro acima das barras fixas (ex.: uma secção acabada de abrir no fim da
+// vista Gastos). Se não couber, mostra o princípio dele. Sem animação com "reduzir movimento".
+function mostrarAcimaDasBarras(elemento) {
+  if (!elemento || !elemento.isConnected) return;
+  const caixa = elemento.getBoundingClientRect();
+  if (caixa.height === 0) return;
+  const topo = (window.visualViewport ? window.visualViewport.offsetTop : 0) + 12;
+  const fundo = fundoVisivel() - 12;
+  let deslocar = caixa.bottom > fundo ? caixa.bottom - fundo : 0;
+  if (caixa.top - deslocar < topo) deslocar = caixa.top - topo;
+  if (Math.abs(deslocar) < 1) return;
+  const menosMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollBy({ top: deslocar, behavior: menosMovimento ? 'auto' : 'smooth' });
 }
 
 let contadorFormularios = 0;

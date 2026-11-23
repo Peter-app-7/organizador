@@ -372,9 +372,11 @@ body[data-vista="gastos"] .aviso { bottom: calc(71px + var(--altura-barra-total,
 .botao-csv { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 44px; }
 .botao-csv span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
 .icone-csv { flex: none; fill: none; stroke: var(--destaque); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-/* "Categorias de gastos" logo a seguir às mensagens; o período fica separado por um traço. */
-.gerir.gastos-categorias { margin-top: 0; }
+/* O período fica separado dos botões CSV (e das mensagens) por um traço. */
 .mes-navegacao.gastos-periodo { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--linha); }
+/* No fim da vista, depois de "Gastos do mês" e separadas por um traço: "Gastos fixos" e "Categorias de gastos". */
+.gastos-gestao { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--linha); }
+.gerir.gastos-categorias { margin-top: 0; }
 
 /* Seletor "Meus · <pessoa> · Casa": botões segmentados da mesma largura (colunas iguais; o número vem de
    despesas.js, em --colunas). Os nomes que não cabem cortam-se com reticências. */
@@ -437,6 +439,12 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .gasto-texto { display: flex; flex-direction: column; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .gasto-detalhe { min-width: 0; }
 .gasto-sem-nota { color: var(--texto-suave); }
+/* Gasto do cartão com nota: "<comerciante> · <nota>" numa só linha; a nota em cor secundária, cortada com reticências.
+   O comerciante fica com até 65% da largura (também com reticências). */
+.gasto-detalhe-cartao { display: flex; align-items: baseline; min-width: 0; white-space: nowrap; overflow-wrap: normal; }
+.gasto-detalhe-cartao .gasto-nota-texto { flex: 0 1 auto; max-width: 65%; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gasto-separador { flex: none; white-space: pre; color: var(--texto-suave); }
+.gasto-nota-cartao { flex: 1 1 0; min-width: 2.5em; overflow: hidden; text-overflow: ellipsis; color: var(--texto-suave); }
 .gasto-valor { flex: none; font-weight: 600; white-space: nowrap; }
 .gastos-lista > li[data-gasto] .gasto-linha { transition: background-color .3s ease; }
 .gastos-lista > li.gasto-realce .gasto-linha { background: var(--realce); }

@@ -103,7 +103,8 @@ function linhasCsvGastos() {
         g.pessoa || meuNome,
         compras ? 'compras' : (g.registo.origemOriginal || (g.registo.cartao ? 'cartao' : 'manual')),
         nomeCategoriaDespesa(g.categoria), // nos registos de compras, o nome atual da Mercearia
-        g.nota || '',
+        // Num gasto do cartão com nota à parte (detalhe): "<comerciante> · <nota>".
+        !compras && g.registo.cartao && g.registo.detalhe ? `${g.nota || ''} · ${g.registo.detalhe}` : (g.nota || ''),
         compras ? '' : (g.registo.comerciante || ''),
         valorCsv(g.centimos),
         tipoCsvDoGasto(g),
