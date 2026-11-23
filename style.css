@@ -677,7 +677,7 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .importar-resultado { margin: 0 0 12px; padding: 8px 12px; font-size: .85rem; line-height: 1.35; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; overflow-wrap: anywhere; }
 
 /* --- Gastos fixos (js/fixos.js), logo a seguir a "Categorias de gastos" --- */
-/* Botão de linha inteira com o aspeto do título de "Categorias de gastos": seta, nome e, à direita, "N · total €/mês". */
+/* Botão de linha inteira com o aspeto do título de "Categorias de gastos": seta e nome e, à direita, "N · total €/mês". */
 .gastos-fixos { margin: 0 0 4px; }
 .gerir-linha {
   display: flex;
@@ -692,9 +692,9 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
   background: none;
   border: 0;
 }
-.gerir-linha-seta { flex: none; width: 1em; font-size: .8rem; color: var(--texto); transition: transform .2s ease; }
-.gerir-linha[aria-expanded="true"] .gerir-linha-seta { transform: rotate(90deg); }
-.gerir-linha-texto { flex: 1; min-width: 0; }
+/* A seta é o mesmo triângulo nativo do <summary> de "Categorias de gastos" (mesmo tamanho, cor e espaço até ao texto). */
+.gerir-linha-texto { flex: 1; min-width: 0; display: list-item; list-style: disclosure-closed inside; }
+.gerir-linha[aria-expanded="true"] .gerir-linha-texto { list-style-type: disclosure-open; }
 .gerir-linha-resumo { flex: none; font-size: .85rem; font-weight: 400; color: var(--texto-suave); white-space: nowrap; }
 #fixos-corpo { margin: 0 0 12px; }
 #fixos-vazio { margin: 0 0 8px; }
@@ -756,6 +756,3 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .gasto-confirmar { padding: 0 0 10px; border-color: var(--ambar-contorno); overflow: hidden; }
 .gasto-confirmar .gasto-confirmar-topo { border: 0; border-bottom: 1px solid var(--linha); border-radius: 0; }
 .gasto-confirmar .formulario-edicao { margin: 8px 12px 0; }
-@media (prefers-reduced-motion: reduce) {
-  .gerir-linha-seta { transition: none; }
-}
