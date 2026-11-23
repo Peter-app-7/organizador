@@ -737,6 +737,13 @@ const BLOCOS_GASTOS = [
   { tipo: 'casa', titulo: 'Casa' },
   { tipo: 'pessoal', titulo: 'Pessoal' },
 ];
+// Na lista "Gastos do mês", o bloco Pessoal vem antes do Casa (na barra do total continua "Casa … · Pessoal …").
+const BLOCOS_NA_LISTA = ['pessoal', 'casa'].map((tipo) => BLOCOS_GASTOS.find((b) => b.tipo === tipo));
+// Em cada bloco, só as primeiras categorias; as outras com "Ver todas (N)". Blocos abertos ("casa", "pessoal"), só
+// enquanto a app estiver aberta: ao abrir a app estão os dois recolhidos; mantêm-se ao mudar de período, de pessoa e
+// de separador.
+const CATEGORIAS_A_VISTA = 3;
+const blocosComTodas = new Set();
 
 function chaveAberta(bloco, id) {
   return `${bloco}|${id}`;
@@ -862,7 +869,8 @@ if (window.ResizeObserver) {
 
 // Lista do período (ver mes.js): os registos com data entre o início e o fim, incluídos. Com o seletor de pessoas
 // visível, só os gastos da escolha (ver gastosDaEscolha). De cima para baixo: "Por categorizar" (fora dos blocos) e os
-// blocos Casa e Pessoal, cada um com as suas categorias; um bloco sem gastos não aparece.
+// blocos Pessoal e Casa, cada um com as suas categorias (as 3 primeiras e, se houver mais, "Ver todas (N)"); um bloco
+// sem gastos não aparece.
 function desenharDespesasMes(periodo) {
   const comPessoas = desenharSeletorPessoas();
   const doPeriodo = todosOsGastos().filter((g) => g.data >= periodo.inicio && g.data <= periodo.fim);
@@ -889,8 +897,17 @@ function desenharDespesasMes(periodo) {
   // Secções: "Por categorizar" (sem título) e os blocos com gastos, cada uma com os seus grupos.
   const seccoes = [
     { bloco: 'por-categorizar', grupos: gruposPorCategoria(doMes.filter((g) => blocoDoGasto(g) === 'por-categorizar')) },
-    ...BLOCOS_GASTOS.map((b) => ({ bloco: b.tipo, titulo: b.titulo, grupos: gruposPorCategoria(doMes.filter((g) => blocoDoGasto(g) === b.tipo)) })),
+    ...BLOCOS_NA_LISTA.map((b) => ({ bloco: b.tipo, titulo: b.titulo, grupos: gruposPorCategoria(doMes.filter((g) => blocoDoGasto(g) === b.tipo)) })),
   ].filter((seccao) => seccao.grupos.length);
+  const escondidos = (seccao) => (seccao.bloco === 'por-categorizar' ? [] : seccao.grupos.slice(CATEGORIAS_A_VISTA));
+  // Um gasto a destacar numa categoria escondida abre o bloco dele antes de abrir a categoria.
+  seccoes.forEach((seccao) => {
+    if (escondidos(seccao).some((gr) => gr.gastos.some((g) => destacados.includes(chaveDe(g))))) blocosComTodas.add(seccao.bloco);
+  });
+  // Num bloco recolhido, as categorias escondidas ficam fechadas (e uma edição aberta nelas fecha-se, sem guardar).
+  seccoes.forEach((seccao) => {
+    if (!blocosComTodas.has(seccao.bloco)) escondidos(seccao).forEach((gr) => categoriasAbertas.delete(chaveAberta(seccao.bloco, gr.id)));
+  });
   // Um gasto aberto para editar que deixou de se ver (categoria fechada ou fora da lista) é fechado, sem guardar.
   if (despesaAEditar && !seccoes.some((seccao) => seccao.grupos.some((gr) => categoriasAbertas.has(chaveAberta(seccao.bloco, gr.id))
     && gr.gastos.some((g) => chaveDe(g) === despesaAEditar)))) {
@@ -938,6 +955,34 @@ function desenharDespesasMes(periodo) {
       criar('ul', { className: 'gastos-lista gastos-grupo-lista', id: idLista, hidden: !aberta },
         ...(aberta ? grupo.gastos.map((g) => linhaDespesa(g, redesenhar)) : [])));
   };
+  // As categorias depois da 3.ª de um bloco: numa lista própria (escondida com o bloco recolhido) e, por baixo, o botão
+  // "Ver todas (N)" / "Mostrar menos". Recolher fecha as categorias escondidas que estivessem abertas.
+  const restoDoBloco = (seccao) => {
+    const resto = escondidos(seccao);
+    if (!resto.length) return [];
+    const todas = blocosComTodas.has(seccao.bloco);
+    const idResto = `gastos-bloco-${seccao.bloco}-resto`;
+    const botao = criar('button', {
+      type: 'button',
+      className: 'botao-discreto gastos-ver-todas',
+      textContent: todas ? 'Mostrar menos' : `Ver todas (${seccao.grupos.length})`,
+      'aria-expanded': String(todas),
+      'aria-controls': idResto,
+      onclick: () => {
+        if (todas) blocosComTodas.delete(seccao.bloco);
+        else blocosComTodas.add(seccao.bloco);
+        redesenhar();
+        // O foco fica no botão do mesmo bloco (a lista foi desenhada outra vez).
+        const mesmo = caixa.querySelector(`.gastos-bloco-${seccao.bloco} .gastos-ver-todas`);
+        if (mesmo) mesmo.focus({ preventScroll: true });
+      },
+    });
+    return [
+      criar('ul', { className: 'gastos-grupos gastos-grupos-resto', id: idResto, hidden: !todas },
+        ...(todas ? resto.map((grupo) => linhaGrupo(seccao.bloco, grupo)) : [])),
+      botao,
+    ];
+  };
   // Gastos fixos por confirmar no período e na escolha mostrados: uma linha âmbar no topo, antes de "Por categorizar".
   // Tocar abre as categorias deles e leva ao primeiro.
   const aConfirmar = doMes.filter((g) => g.origem === 'despesa' && g.registo.porConfirmar === true);
@@ -954,16 +999,21 @@ function desenharDespesasMes(periodo) {
   criar('span', { className: 'fixos-por-confirmar-ver', 'aria-hidden': 'true', textContent: 'Ver ›' }))] : [];
   if (seccoes.length) {
     caixa.replaceChildren(...linhaPorConfirmar, ...seccoes.map((seccao) => {
-      const lista = criar('ul', { className: 'gastos-grupos' }, ...seccao.grupos.map((grupo) => linhaGrupo(seccao.bloco, grupo)));
-      if (seccao.bloco === 'por-categorizar') return lista;
+      if (seccao.bloco === 'por-categorizar') {
+        return criar('ul', { className: 'gastos-grupos' }, ...seccao.grupos.map((grupo) => linhaGrupo(seccao.bloco, grupo)));
+      }
       const idTitulo = `gastos-bloco-${seccao.bloco}-titulo`;
+      // O subtotal soma todas as categorias do bloco, à vista ou não.
       const subtotal = somaCentimos(seccao.grupos.flatMap((gr) => gr.gastos));
+      const lista = criar('ul', { className: 'gastos-grupos' },
+        ...seccao.grupos.slice(0, CATEGORIAS_A_VISTA).map((grupo) => linhaGrupo(seccao.bloco, grupo)));
       return criar('section', { className: `gastos-bloco gastos-bloco-${seccao.bloco}`, 'aria-labelledby': idTitulo },
         criar('h3', { className: 'gastos-bloco-titulo', id: idTitulo },
           iconeBloco(seccao.bloco),
           criar('span', { className: 'gastos-bloco-nome', textContent: seccao.titulo }),
           criar('span', { className: 'gastos-bloco-total', textContent: formatarEuros(subtotal) })),
-        lista);
+        lista,
+        ...restoDoBloco(seccao));
     }));
   } else {
     caixa.replaceChildren(criar('p', { className: 'mes-vazio-curto', textContent: `Sem gastos em ${NOMES_MESES[periodo.mes]}.` }));

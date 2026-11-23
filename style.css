@@ -490,6 +490,9 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .gastos-bloco-nome { flex: 1; min-width: 0; }
 .gastos-bloco-total { flex: none; font-weight: 700; white-space: nowrap; }
 .gastos-bloco .gastos-grupos { margin-top: 6px; }
+/* As categorias depois da 3.ª (só com "Ver todas") seguem logo as primeiras; o botão é uma linha inteira discreta. */
+.gastos-bloco .gastos-grupos-resto { margin-top: 0; }
+.gastos-ver-todas { width: 100%; font-size: .9rem; font-weight: 600; text-align: left; }
 .icone-bloco { flex: none; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .icone-bloco-casa { stroke: var(--destaque); }
 .icone-bloco-pessoal { stroke: var(--pessoal); }
