@@ -426,7 +426,8 @@ input[aria-invalid="true"] { border-color: var(--vermelho); }
 .botao-apagar-registo { min-height: 44px; background: none; border: 0; color: var(--vermelho); font-weight: 600; }
 
 .despesas-registo-titulo { margin: 10px 0 8px; font-size: 1rem; color: var(--texto); }
-#despesas-registar { min-height: 44px; }
+/* "Registar gasto": o mesmo "+" de 48 x 48 px da linha "Adicionar produto" (.botao-mais); não encolhe ao lado do título. */
+#despesas-registar { flex: none; }
 /* Total por categoria: nome e valor numa linha e, por baixo, a barra em proporção do total do mês. */
 .gastos-lista { list-style: none; margin: 8px 0 0; padding: 0; }
 .gastos-lista > li { margin-bottom: 6px; }
